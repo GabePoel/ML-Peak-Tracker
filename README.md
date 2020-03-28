@@ -16,6 +16,6 @@ $$A_{\text{in}}=\frac{A_0}{4}\frac{1}{\left(\frac{f-f_0}{\Gamma}\right)^2+\frac{
 
 Where the full version is then the following:
 
-$$A(f,\theta)=A_0\cos(\theta)+A_0\sin(\theta)$$
+$$A(f,\theta)=A_\text{in}\cos(\theta)+A_\text{out}\sin(\theta)$$
 
 (The LaTeX probably won't appear properly on GitHub. But it should render properly in any other markdown viewer.)

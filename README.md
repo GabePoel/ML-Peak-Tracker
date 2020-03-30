@@ -12,7 +12,7 @@ All the actual Lorentz generation happens in `generate_lorentz.py`. Import this 
 
 As I've set it up here, the in and out of phase components of the Lorentzian are defined as follows:
 
-$$A_{\text{in}}=\frac{A_0}{4}\frac{1}{\left(\frac{f-f_0}{\Gamma}\right)^2+\frac{1}{4}},\quad A_\text{out}=\frac{A_0}{2\Gamma}\frac{f-f_0}{\left(\frac{f-f_0}{\Gamma}\right)^2+\frac{1}{4}}$$ 
+$$A_\text{in}=\frac{A_0}{2\Gamma}\frac{f-f_0}{\left(\frac{f-f_0}{\Gamma}\right)^2+\frac{1}{4}},\quad A_{\text{out}}=\frac{A_0}{4}\frac{1}{\left(\frac{f-f_0}{\Gamma}\right)^2+\frac{1}{4}}$$ 
 
 Where the full version is then the following:
 

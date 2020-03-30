@@ -2,12 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def in_phase_lorentz(A, f0, FWHM, f):
-    # In phase Lorentzian with amplitude A centered at f0
-    return (A / 4) * (1 / (((f - f0) / FWHM) ** 2 + 1 / 4))
-
-def out_phase_lorentz(A, f0, FWHM, f):
     # Out of phase Lorentzian with amplitude A centered at f0
     return (A / (2 * FWHM)) * (f - f0) / (((f - f0) / FWHM) **2 + 1 / 4)
+
+def out_phase_lorentz(A, f0, FWHM, f):
+    # In phase Lorentzian with amplitude A centered at f0
+    return (A / 4) * (1 / (((f - f0) / FWHM) ** 2 + 1 / 4))
 
 def complex_lorentz(A, f0, FWHM, f, phase):
     # Arbitrary phase Lorentzian with amplitude A centered at f0
@@ -46,7 +46,7 @@ def generate_background(f):
 
 def generate_noise(f):
     # Returns slight background noise
-    return np.random.normal(0, 1, f.shape)
+    return np.random.normal(0, 0, f.shape)
 
 def generate_data(include_noise=True):
     # Returns randomly generated data set and all its defining parameters

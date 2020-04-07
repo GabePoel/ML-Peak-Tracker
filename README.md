@@ -1,6 +1,18 @@
 # ML Peak Tracker
 
-Currently only data generation is done. To make a bunch of data run `generate_data.py` . This creates a `generated_data` directory and fills it with 1000 randomly generated data sets. Each one is composed of the following three files:
+## What Works
+
+The program is currently broken down into three steps:
+
+1. Figure out *how many* clusters of Lorentzians there are. This is how many multi-Lorentz fits will be needed.
+2. Figure out *where* those Lorentzian clusters are.
+3. Figure out how many Lorentzians are within a given cluster.
+
+After all this is done, fitting can easily happen. Versions of the first and third step are done and semi-functional. The current models can consistently get above 90% accuracy with figuring out how many clusters there are. But, they have yet to crack 70% for figuring out how many are clumped together at any one point. No attempt has yet been made at figuring out where the clusters are.
+
+## Data Generation
+
+To make a bunch of data run `generate_data.py` . This creates a `generated_data` directory and fills it with 1000 randomly generated data sets. Each one is composed of the following three files:
 
 - `*_background.csv` - Has the parameters for the big background Lorentzian.
 - `*_lorentz.csv` - Has the parameters for all of the generated Lorentzians.

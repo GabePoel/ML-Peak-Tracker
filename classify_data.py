@@ -81,7 +81,6 @@ def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1
     (f, v) = separate_data(data_array)
     ref_scale = scale_1d(f)
     temp_scale = (0, 1, ref_scale[2])
-    # print('temp scale:' + str(temp_scale))
     for i in range(0, len(fit_range_list)):
         fit_range = fit_range_list[i]
         f_low_range = fit_range[1] - fit_range[0]
@@ -89,17 +88,11 @@ def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1
         f_min = np.random.random() * f_low_range + fit_range[0]
         f_max = np.random.random() * f_high_range + fit_range[2]
         v_norm = normalize_1d(v, temp_scale)
-        # print(v_norm)
-        # print(f)
-        # print(fit_range)
-        # print(f_min)
-        # print(f_max)
         np.putmask(v_norm, f<f_min, v_norm * 0 - 1)
         np.putmask(v_norm, f>f_max, v_norm * 0 -1)
         v_clipped = v_norm[v_norm >= 0]
         f_clipped = f[f >= f_min]
         f_clipped = f_clipped[f_clipped <= f_max]
-        # print(v_clipped)
         v_norm = normalize_1d(v_clipped, scale)
         v_array = np.append(v_array, np.array([v_norm]), axis=0)
         num_lorentz = count_lorentz(fit_range, lorentz_array_2d)
@@ -153,8 +146,6 @@ def normalize_1d(x, scale=(0,1,1024)):
     x_norm = (x - min_x) / (max_x - min_x)
     old_baseline = np.linspace(0, 1, old_size)
     new_baseline = np.linspace(0, 1, new_len)
-    # print(old_baseline)
-    # print(x_norm)
     x_interp = interp.interp1d(old_baseline, x_norm)
     x_resized = (x_interp(new_baseline) * (new_max - new_min)) + new_min
     return x_resized
@@ -170,9 +161,9 @@ def normalize_lorentz_1d(lorentz, old_f_scale, old_v_scale, new_f_scale=(0,1,102
     A0 = lorentz[0]
     f0 = lorentz[1]
     G0 = lorentz[2]
-    A1 = normalize_0d(A0, old_v_scale, new_v_scale)
+    A1 = normalize_0d(A0 + old_v_scale[0], old_v_scale, new_v_scale)
     f1 = normalize_0d(f0, old_f_scale, new_f_scale)
-    G1 = normalize_0d(G0, old_f_scale, new_f_scale)
+    G1 = normalize_0d(G0 + old_f_scale[0], old_f_scale, new_f_scale)
     return np.array([A1, f1, G1, lorentz[3]])
 
 def normalize_lorentz_2d(lorentz, old_f_scale, old_v_scale, new_f_scale=(0,1,1024), new_v_scale=(0,1,1024)):
@@ -247,3 +238,13 @@ def pre_process_for_classifying(block, scale=(0,1,1024)):
         cluster_labels = np.append(cluster_labels, labels, axis=0)
         cluster_data = np.append(cluster_data, v, axis=0)
     return cluster_labels, cluster_data
+
+def pre_process_for_range(block, scale=(0,1,1024), cluster_data=None):
+    lorentz_arrays_list = block[1]
+    data_arrays_list = block[2]
+    block_size = len(lorentz_arrays_list)
+    range_labels = np.empty((0, 2))
+    if cluster_data is not None:
+        cluster_labels, cluster_data = pre_process_for_classifying(block, scale)
+    for i in range(0, block_size):
+        pass

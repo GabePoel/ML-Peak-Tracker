@@ -1,5 +1,7 @@
 import numpy as np
 import scipy.interpolate as interp
+import efficient_data_generation as ed
+from utilities import progressbar
 
 def arr_to_tup(a):
     return tuple(a.reshape(1, -1)[0])
@@ -89,7 +91,7 @@ def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1
         f_max = np.random.random() * f_high_range + fit_range[2]
         v_norm = normalize_1d(v, temp_scale)
         np.putmask(v_norm, f<f_min, v_norm * 0 - 1)
-        np.putmask(v_norm, f>f_max, v_norm * 0 -1)
+        np.putmask(v_norm, f>f_max, v_norm * 0 - 1)
         v_clipped = v_norm[v_norm >= 0]
         f_clipped = f[f >= f_min]
         f_clipped = f_clipped[f_clipped <= f_max]
@@ -137,6 +139,16 @@ def disect_lorentz_params_array(lorentz_params_array):
 
 def scale_1d(x):
     return (min(x), max(x), len(x))
+
+def normalize_data(background_params, lorentz_params, f, v, scale=(0,1,1024)):
+    old_f_scale = scale_1d(f)
+    old_v_scale = scale_1d(v)
+    background_params = background_params[0]
+    background_params_norm = normalize_lorentz_1d(background_params, old_f_scale, old_v_scale, scale, scale)
+    lorentz_params_norm = normalize_lorentz_2d(lorentz_params, old_f_scale, old_v_scale, scale, scale)
+    f_norm = normalize_1d(f, scale)
+    v_norm = normalize_1d(v, scale)
+    return np.array([background_params_norm]), lorentz_params_norm, f_norm, v_norm
 
 def normalize_1d(x, scale=(0,1,1024)):
     new_min = scale[0]
@@ -194,6 +206,30 @@ def separate_all_data(data_arrays_list):
         separated_data_list.append(separate_data(data_arrays_list[i]))
     return separated_data_list
 
+def equalize_data(class_labels, class_data):
+    a1 = class_data[np.where(class_labels == 1)[0]]
+    a2 = class_data[np.where(class_labels == 2)[0]]
+    a3 = class_data[np.where(class_labels == 3)[0]]
+    a4 = class_data[np.where(class_labels == 4)[0]]
+    max_len = min(len(a1), len(a2), len(a3), len(a4))
+    a0 = ed.make_blank_data_set(max_len)[1]
+    a1 = a1[0:max_len]
+    a2 = a2[0:max_len]
+    a3 = a3[0:max_len]
+    a4 = a4[0:max_len]
+    arr = np.concatenate((a0, a1, a2, a3, a4))
+    b0 = np.zeros((max_len, 1))
+    b1 = np.ones((max_len, 1))
+    b2 = np.ones((max_len, 1)) * 2
+    b3 = np.ones((max_len, 1)) * 3
+    b4 = np.ones((max_len, 1)) * 4
+    brr = np.concatenate((b0, b1, b2, b3, b4))
+    combined_arr = np.append(brr, arr, axis=1)
+    combined_arr = np.random.permutation(combined_arr)
+    labels = np.transpose(combined_arr)[0]
+    data = np.delete(combined_arr, 0, axis=1)
+    return labels, data
+
 def pre_process_for_counting(block, scale=(0,1,1024)):
     lorentz_arrays_list = block[1]
     data_arrays_list = block[2]
@@ -201,7 +237,7 @@ def pre_process_for_counting(block, scale=(0,1,1024)):
     scale_list = []
     processed_lorentz_arrays_list = []
     processed_data_array = np.empty((0, scale[2]))
-    for i in range(0, block_size):
+    for i in progressbar(range(block_size), "Normalizing: ", 40):
         lorentz_array = lorentz_arrays_list[i]
         data_array = data_arrays_list[i]
         (f_unprocessed, v_unprocessed) = separate_data(data_array)
@@ -217,7 +253,8 @@ def pre_process_for_counting(block, scale=(0,1,1024)):
         processed_data_array = np.append(processed_data_array, np.array([v_processed]), axis=0)
     results = (processed_lorentz_arrays_list, processed_data_array, scale_list)
     count_labels = []
-    for i in range(0, len(processed_lorentz_arrays_list)):
+    pro_length = len(processed_lorentz_arrays_list)
+    for i in progressbar(range(pro_length), "Labeling: ", 40):
         labels = disect_lorentz_params_array(processed_lorentz_arrays_list[i])
         count_labels.append(labels[0])
     count_labels = np.transpose(np.array([count_labels]))
@@ -230,7 +267,7 @@ def pre_process_for_classifying(block, scale=(0,1,1024)):
     block_size = len(lorentz_arrays_list)
     cluster_labels = np.empty((0, 1))
     cluster_data = np.empty((0, scale[2]))
-    for i in range(0, block_size):
+    for i in progressbar(range(block_size), "Classifying: ", 40):
         lorentz_params = lorentz_arrays_list[i]
         f_v_data = data_arrays_list[i]
         fit_range_list = disect_lorentz_params_array(lorentz_params)[1]
@@ -238,6 +275,16 @@ def pre_process_for_classifying(block, scale=(0,1,1024)):
         cluster_labels = np.append(cluster_labels, labels, axis=0)
         cluster_data = np.append(cluster_data, v, axis=0)
     return cluster_labels, cluster_data
+
+
+def pre_process_for_equal_classifying(block, scale=(0,1,1024)):
+    class_labels, class_data = pre_process_for_classifying(block, scale)
+    eq_labels, eq_data = equalize_data(class_labels, class_data)
+    return eq_labels, eq_data
+
+def pre_process_for_check_classifying(block, scale=(0,1,1024)):
+    class_labels, class_data = pre_process_for_classifying(block, scale)
+    pass
 
 def pre_process_for_range(block, scale=(0,1,1024), cluster_data=None):
     lorentz_arrays_list = block[1]

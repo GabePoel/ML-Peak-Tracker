@@ -2,15 +2,13 @@
 
 ## What Works
 
-The program is currently broken down into three steps:
-
-1. Figure out *how many* clusters of Lorentzians there are. This is how many multi-Lorentz fits will be needed.
-2. Figure out *where* those Lorentzian clusters are.
-3. Figure out how many Lorentzians are within a given cluster.
-
-After all this is done, fitting can easily happen. Versions of the first and third step are done and semi-functional. The current models can consistently get above 90% accuracy with figuring out how many clusters there are. But, they have yet to crack 70% for figuring out how many are clumped together at any one point. No attempt has yet been made at figuring out where the clusters are.
+Run the code in `train_test.ipynb` to see a more or less completely working Lorentzian peak generation model in action!
 
 ## Data Generation
+
+There are several types of data generation that work now. The simplest types are called `single` and `simple` and they can be found in `efficient_data_generation.py`. Currently, all the models rely on these two types of data generation. But, it's also possible to generate an entire complete set of data as detailed below.
+
+### Full Data Set Generation
 
 To make a bunch of data run `generate_data.py` . This creates a `generated_data` directory and fills it with 1000 randomly generated data sets. Each one is composed of the following three files:
 

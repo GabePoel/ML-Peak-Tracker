@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import classify_data as cd
 
 def in_phase_lorentz(A, f0, FWHM, f):
     # Out of phase Lorentzian with amplitude A centered at f0
@@ -18,7 +19,7 @@ def generate_lorentz(f):
     f_distance = max(f) - min(f)
     f0 = f_distance * np.random.random() + min(f)
     phase = 2 * np.pi * np.random.random()
-    A = 50 * np.random.random()
+    A = (50 * (np.random.random() + 0.3))
     FWHM = f_distance * (np.random.random() + 0.1) / 50
     params = np.array([[A, f0, FWHM, phase]])
     return complex_lorentz(A, f0, FWHM, f, phase), params
@@ -44,13 +45,23 @@ def generate_background(f):
     params = np.array([[A, f0, FWHM, phase]])
     return complex_lorentz(A, f0, FWHM, f, phase), params
 
-def generate_noise(f):
+def generate_noise(f, amount=1):
     # Returns slight background noise
-    return np.random.normal(0, 1, f.shape)
+    return np.random.normal(0, amount, f.shape)
 
-def generate_data(include_noise=True):
+def generate_normalized_data(include_noise=True, max_num_lorentz=16, scale=(0,1,1024)):
+    bg, l, f, v = generate_data(include_noise=include_noise, max_num_lorentz=max_num_lorentz)
+    bg, l, f, v = cd.normalize_data(bg, l, f, v, scale=scale)
+    return bg, l, f, v
+
+def generate_data(include_noise=True, max_num_lorentz=16):
     # Returns randomly generated data set and all its defining parameters
-    num_lorentz = np.random.randint(15) + 1
+    if max_num_lorentz < 1:
+        num_lorentz = 0
+    elif max_num_lorentz == 1:
+        num_lorentz = 1
+    else:
+        num_lorentz = np.random.randint(max_num_lorentz - 1) + 1
     f1, f2 = 0, 0
     while f1 == f2:
         f1 = np.random.random() * 4000 - 4000
@@ -64,3 +75,13 @@ def generate_data(include_noise=True):
     lorentz, lorentz_params = generate_multi_lorentz(f, num_lorentz)
     displacement = noise + background + lorentz
     return background_params, lorentz_params, f, displacement
+
+def multi_lorentz(f, A_arr, f0_arr, FWHM_arr, phase_arr):
+    return np.sum(complex_lorentz(A_arr, f0_arr, FWHM_arr, f, phase_arr), axis=0)
+
+def multi_lorentz_2d(f, params):
+    A_arr = params[:,[0]]
+    f0_arr = params[:,[1]]
+    FWHM_arr = params[:,[2]]
+    phase_arr = params[:,[3]]
+    return multi_lorentz(f, A_arr, f0_arr, FWHM_arr, phase_arr)

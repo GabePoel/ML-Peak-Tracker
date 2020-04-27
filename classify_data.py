@@ -3,6 +3,8 @@ import scipy.interpolate as interp
 import efficient_data_generation as ed
 from utilities import progressbar
 
+# Generally handles most/all of the preprocessing.
+
 def arr_to_tup(a):
     return tuple(a.reshape(1, -1)[0])
 

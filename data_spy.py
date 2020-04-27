@@ -2,6 +2,8 @@ import numpy as np
 import classify_data as cd
 import matplotlib.pyplot as plt
 
+# Let's you 'spy' into the data you're working with to see how the models are working.
+
 def plot_count(i, count_predictions, count_label, count_data):
     true_label = int(count_label[i][0])
     predictions_array = count_predictions[i]

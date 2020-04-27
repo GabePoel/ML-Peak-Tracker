@@ -1,6 +1,8 @@
 import sys
 import time
 
+# Holds utilities that many parts of the peak tracker use.
+
 def progressbar(it, prefix="", size=60, file=sys.stdout):
     count = len(it)
     def show(j):

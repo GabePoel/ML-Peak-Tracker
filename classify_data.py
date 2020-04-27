@@ -214,18 +214,18 @@ def equalize_data(class_labels, class_data):
     a3 = class_data[np.where(class_labels == 3)[0]]
     a4 = class_data[np.where(class_labels == 4)[0]]
     max_len = min(len(a1), len(a2), len(a3), len(a4))
-    a0 = ed.make_blank_data_set(max_len)[1]
+    # a0 = ed.make_blank_data_set(max_len)[1]
     a1 = a1[0:max_len]
     a2 = a2[0:max_len]
     a3 = a3[0:max_len]
     a4 = a4[0:max_len]
-    arr = np.concatenate((a0, a1, a2, a3, a4))
-    b0 = np.zeros((max_len, 1))
-    b1 = np.ones((max_len, 1))
-    b2 = np.ones((max_len, 1)) * 2
-    b3 = np.ones((max_len, 1)) * 3
-    b4 = np.ones((max_len, 1)) * 4
-    brr = np.concatenate((b0, b1, b2, b3, b4))
+    arr = np.concatenate((a1, a2, a3, a4))
+    # b0 = np.zeros((max_len, 1))
+    b1 = np.ones((max_len, 1)) * 0
+    b2 = np.ones((max_len, 1)) * 1
+    b3 = np.ones((max_len, 1)) * 2
+    b4 = np.ones((max_len, 1)) * 3
+    brr = np.concatenate((b1, b2, b3, b4))
     combined_arr = np.append(brr, arr, axis=1)
     combined_arr = np.random.permutation(combined_arr)
     labels = np.transpose(combined_arr)[0]

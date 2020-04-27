@@ -2,6 +2,9 @@ import generate_lorentz as gl
 import numpy as np
 import os
 
+# Generates complete data sets with all the Lorentzians, background, parameters, etc. listed.
+# Generally overkill for model training. Use efficient_data_generation.
+
 def mag_round(x, base=10):
     val = 1
     while x > val:

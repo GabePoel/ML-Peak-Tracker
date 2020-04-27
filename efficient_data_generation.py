@@ -10,13 +10,14 @@ import zipfile
 import utilities
 from utilities import progressbar
 
+# Makes smaller data sets than generate_data that provide the minimum information needed for model fitting.
+# Generally use this unless you need everything else that generate_data provides.
+
 def make_massive_data_set(number, scale=(0,1,1024), noise=True):
     background_arrays_list = []
     data_arrays_list = []
     lorentz_list = []
     for i in progressbar(range(number), "Generating Data: ", 40):
-        # sys.stdout.flush()
-        # time.sleep(0.1)
         background_params, lorentz_params, f, v = gl.generate_data(noise)
         background_arrays_list.append(background_params)
         lorentz_list.append(lorentz_params)

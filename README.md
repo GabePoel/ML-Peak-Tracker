@@ -1,5 +1,9 @@
 # ML Peak Tracker
 
+## Message for Sylvia
+
+Please run `scripts/count_hidden_layer_1024.py` for as long as you can. It passively generates and trains from data. The model it makes is `models/count_hidden_layer_1024`. The script will save the model periodically, so you can start and stop the script as need be. After a bunch of training, send me the `models/count_hidden_layer_1024` or push it here if that's easier. Thanks!
+
 ## What Works
 
 Run the code in `train_test.ipynb` to see a more or less completely working Lorentzian peak generation model in action!

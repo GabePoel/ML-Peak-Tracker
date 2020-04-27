@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import classify_data as cd
 
+# Generates Lorentzians and provides functional forms for fitting.
+
 def in_phase_lorentz(A, f0, FWHM, f):
     # Out of phase Lorentzian with amplitude A centered at f0
     return (A / (2 * FWHM)) * (f - f0) / (((f - f0) / FWHM) **2 + 1 / 4)

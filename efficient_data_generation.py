@@ -31,10 +31,10 @@ def associate_lorentz(lorentz_array, index):
         associated_lorentz_array = np.append(associated_lorentz_array, np.array([associated_lorentz]), axis=0)
     return associated_lorentz_array
 
-def make_simple_data_set(number, scale=(0,1,1024), noise=True):
+def make_simple_data_set(number, scale=(0,1,1024), noise=True, progress=True):
     all_data = np.empty((0,scale[2]))
     all_lorentz = np.empty((0,5)) # Associated Data, A, f0, FWHM, Phase
-    for i in progressbar(range(number), "Generating Data: ", 40):
+    for i in progressbar(range(number), "Generating Data: ", 40, progress=progress):
         background_params, lorentz_params, f, v = gl.generate_data(noise)
         old_f_scale = cd.scale_1d(f)
         old_v_scale = cd.scale_1d(v)
@@ -45,9 +45,9 @@ def make_simple_data_set(number, scale=(0,1,1024), noise=True):
         all_lorentz = np.append(all_lorentz, l_associated, axis=0)
     return (all_lorentz, all_data)
 
-def make_blank_data_set(number, scale=(0,1,1024), noise=True):
+def make_blank_data_set(number, scale=(0,1,1024), noise=True, progress=True):
     all_data = np.empty((0,scale[2]))
-    for i in progressbar(range(number), "Generating Data: ", 40):
+    for i in progressbar(range(number), "Generating Data: ", 40, progress=progress):
         background_params, lorentz_params, f, v = gl.generate_data(noise)
         v_norm = cd.normalize_1d(v, scale)
         all_data = np.append(all_data, np.array([v_norm]), axis=0)
@@ -95,22 +95,28 @@ def convert_simple_data_set(simp):
         lorentz_arrays_list[association] = l_arr
     return (background_arrays_list, lorentz_arrays_list, data_arrays_list)
 
-def make_single_data_set(number, scale=(0,1,1024), noise=True):
+def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True):
     all_data = np.empty((0, scale[2]))
     all_lorentz = np.empty((0, 1))
     F = np.linspace(scale[0], scale[1], scale[2])
-    for i in progressbar(range(number), "Generating Data: ", 40):
+    for i in progressbar(range(number), "Generating Data: ", 40, progress=progress):
         has_lorentz = 1
         v, params = gl.generate_lorentz(F)
         if noise:
-            v += gl.generate_noise(F, amount=1)
+            noise_amp = np.random.uniform(min_noise_amp, max_noise_amp)
+            noise_width = np.random.uniform(min_noise_width, max_noise_width)
+            v += gl.generate_noise(F, amount=noise_amp, width=noise_width)
         else:
             v += gl.generate_noise(F, amount=0)
         f = np.linspace(scale[0], scale[1], scale[2])
         old_f_scale = cd.scale_1d(f)
         old_v_scale = cd.scale_1d(v)
-        np.putmask(f, F < params[0][1] - (2 * params[0][2]), f * 0 - 1)
-        np.putmask(f, F > params[0][1] + (2 * params[0][2]), f * 0 - 1)
+        left_wiggle = (np.random.random() - 0.5) * wiggle
+        right_wiggle = (np.random.random() - 0.5) * wiggle
+        left_expansion = np.random.random() * wiggle + expansion
+        right_expansion = np.random.random() * wiggle + expansion
+        np.putmask(f, F < params[0][1] - (left_expansion * params[0][2]), f * 0 - 1)
+        np.putmask(f, F > params[0][1] + (right_expansion * params[0][2]), f * 0 - 1)
         v = v[f > 0]
         f = f[f > 0]
         if np.random.random() > .5:

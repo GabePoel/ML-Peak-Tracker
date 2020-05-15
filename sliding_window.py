@@ -32,14 +32,13 @@ def find_regions(has_lorentz):
 def decompose_by_scale(v, zoom, scale=(0,1,1024), overlap=1/4):
     windows = np.empty((0,scale[2]))
     v = cd.normalize_1d(v, scale=scale)
-    window_size = np.ceil(scale[2] / zoom)
-    offset = window_size * overlap
+    window_size = 1 / zoom
+    # offset = window_size * overlap
     num_windows = int(np.ceil(zoom / overlap))
     for i in range(0, num_windows):
-        start_index = int(i * offset)
-        end_index = int(start_index + window_size)
-        if end_index <= scale[2]:
-            window = v[start_index:end_index]
+        if i / num_windows + window_size <= 1:
+            # print('Window Region: ' + str(i / num_windows) + ' --> ' + str(i / num_windows + window_size))
+            window = cd.scale_zoom(v, i / num_windows, i / num_windows + window_size)
             window = cd.normalize_1d(window, scale=scale)
             windows = np.append(windows, np.array([window]), axis=0)
     return windows
@@ -74,6 +73,8 @@ def compose_all(labels_list, scale=(0,1,1024), overlap=1/4, zoom_level=2):
     return regions
 
 def slide_scale(model, v, num_zooms=5, min_zoom=0, scale=(0,1,1024), overlap=1/4, zoom_level=2, confidence_tolerance=0.9, merge_tolerance=None, compress=True):
+    min_zoom -= 1
+    final_scale = cd.scale_1d(v)
     if merge_tolerance is None:
         merge_tolerance = 0.8 * (1 - overlap)
     window_list = decompose_all(v, num_zooms, scale, overlap, zoom_level=zoom_level)
@@ -90,6 +91,7 @@ def slide_scale(model, v, num_zooms=5, min_zoom=0, scale=(0,1,1024), overlap=1/4
     regions.sort(axis=0)
     if compress:
         regions = compress_regions(regions, merge_tolerance=merge_tolerance)
+    regions = cd.normalize_index(regions, scale, final_scale)
     return regions
 
 def check_overlap(r1, r2, merge_tolerance=0.6):
@@ -139,3 +141,23 @@ def compress_regions(regions, merge_tolerance=0.6):
         full_region = np.array([[r1, r2]])
         final_regions = np.append(final_regions, full_region, axis=0)
     return final_regions
+
+def quick_reduce(v, reduce_zoom):
+    num_outputs = int(1 / reduce_zoom)
+    start = np.arange(0, num_outputs) * reduce_zoom
+    end = np.arange(1, num_outputs + 1) * reduce_zoom
+    v_list = []
+    for i in range(0, num_outputs):
+        v_list.append(cd.scale_zoom(v, start[i], end[i]))
+    return v_list
+
+def reduce_window_plot(model, f, v, reduce_zoom=0.05, num_zooms=7, min_zoom=0, overlap=1/4, zoom_level=2, confidence_tolerance=0.95, merge_tolerance=0.4, compress=True):
+    v_list = quick_reduce(v, reduce_zoom=reduce_zoom)
+    regions_list = []
+    counted_indices = 0
+    for cut_v in v_list:
+        cut_regions = slide_scale(model=model, v=cut_v, num_zooms=num_zooms, min_zoom=min_zoom, overlap=overlap, zoom_level=zoom_level)
+        regions_list.append(cut_regions)
+    for i in range(0, len(regions_list)):
+        regions_list[i] = regions_list[i] + (i * 1024)
+    return regions_list, v_list

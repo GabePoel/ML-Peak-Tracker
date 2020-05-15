@@ -21,8 +21,8 @@ def generate_lorentz(f):
     f_distance = max(f) - min(f)
     f0 = f_distance * np.random.random() + min(f)
     phase = 2 * np.pi * np.random.random()
-    A = (50 * (np.random.random() + 0.3))
-    FWHM = f_distance * (np.random.random() + 0.1) / 50
+    A = (100 * (np.random.random() + 0.3))
+    FWHM = f_distance * (np.random.random() + 0.05) / 50
     params = np.array([[A, f0, FWHM, phase]])
     return complex_lorentz(A, f0, FWHM, f, phase), params
     
@@ -47,9 +47,12 @@ def generate_background(f):
     params = np.array([[A, f0, FWHM, phase]])
     return complex_lorentz(A, f0, FWHM, f, phase), params
 
-def generate_noise(f, amount=1):
+def generate_noise(f, amount=1, width=1):
     # Returns slight background noise
-    return np.random.normal(0, amount, f.shape)
+    sample = np.random.normal(0, amount, f.shape)
+    reduced_sample = sample[0:int(np.round(len(sample) / width))]
+    reduced_sample = cd.normalize_1d(reduced_sample, scale=(min(sample), max(sample), len(sample)))
+    return reduced_sample
 
 def generate_normalized_data(include_noise=True, max_num_lorentz=16, scale=(0,1,1024)):
     bg, l, f, v = generate_data(include_noise=include_noise, max_num_lorentz=max_num_lorentz)

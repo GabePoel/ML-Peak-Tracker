@@ -142,6 +142,9 @@ def disect_lorentz_params_array(lorentz_params_array):
 def scale_1d(x):
     return (min(x), max(x), len(x))
 
+def normalize_index(x, input_scale, output_scale):
+    return np.round(x / input_scale[2] * output_scale[2])
+
 def normalize_data(background_params, lorentz_params, f, v, scale=(0,1,1024)):
     old_f_scale = scale_1d(f)
     old_v_scale = scale_1d(v)
@@ -297,3 +300,9 @@ def pre_process_for_range(block, scale=(0,1,1024), cluster_data=None):
         cluster_labels, cluster_data = pre_process_for_classifying(block, scale)
     for i in range(0, block_size):
         pass
+
+def scale_zoom(x, start, end):
+    length = len(x)
+    start_index = int(np.round(length * start))
+    end_index = int(np.round(length * end))
+    return normalize_1d(x[start_index:end_index])

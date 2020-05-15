@@ -14,10 +14,11 @@ import train_model as tm
 model = tf.keras.Sequential([
     tf.keras.layers.Dense(1024, activation='relu'),
     tf.keras.layers.Dense(1024, activation='relu'),
+    tf.keras.layers.Dense(1024, activation='relu'),
     tf.keras.layers.Dropout(0.2),
     tf.keras.layers.Dense(2, activation='softmax')
 ])
 
 root = os.getcwd()
 location = os.path.join(parent, 'models')
-tm.passive_train(name='wiggle_hidden_layer_1024', location=location, data_size=10000, scale=(0,1,1024), expansion=1.5, noise=True, epochs=10, model_design=model, steps=100, wiggle=1)
+tm.passive_train(name='wide_wiggle', location=location, data_size=1000, scale=(0,1,1024), expansion=1, noise=True, epochs=1, model_design=model, steps=1, wiggle=10, min_noise_amp=0.01, max_noise_amp=5, min_noise_width=1, max_noise_width=10, no_quit=True, verbose=1, progress=True)

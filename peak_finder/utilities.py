@@ -91,3 +91,25 @@ def order_difference(val_1, val_2):
     Returns how many orders of magnitude val_1 and val_2 differ by.
     """
     return np.abs(np.log10(val_1) - np.log10(val_2))
+
+def compare_lorentz(l1, l2, f):
+    """
+    Input: Two Lorentzian parameter arrays ([A, f0, FWHM, phase]) and frequency data.
+    Output: A numercial value of how similiar the Lorentzians are to each other.
+    """
+    f1 = l1[1]
+    f2 = l2[1]
+    delta_f0 = np.abs(f2 - f1)
+    delta_f = max(f) - min(f)
+    ind_per_f = len(f) / delta_f
+    delta_ind = ind_per_f * delta_f0
+    return delta_ind
+
+def find_nearest_index(arr, val):
+    """
+    Input: An array and a value.
+    Output: The index of the value in the array closest to that value.
+    """
+    reduced_arr = np.abs(arr - val)
+    min_reduced_val = min(reduced_arr)
+    return np.where(reduced_arr == min_reduced_val)[0][0]

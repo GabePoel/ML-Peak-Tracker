@@ -200,24 +200,29 @@ def reduce_window_plot(model, f, v, reduce_zoom=0.05, max_zoom=7, min_zoom=0, ov
         regions_list[i] = regions_list[i] + (i * 1024)
     return regions_list, v_list
 
-def split_peaks(f, v, model, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95):
+def split_peaks(model, f, v, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95, single_zoom=False):
     """
     Given a specified model, will try and return a new set of regions with peaks separated apart.
     """
     regions_by_zoom_list = []
     for i in range(min_zoom, max_zoom + 1):
         regions_by_zoom_list.append(util.drop_region(slide_scale(model, v, min_zoom=i, max_zoom=i, confidence_tolerance=confidence_tolerance, fix_zoom=True, target=1, overlap=1/4, zoom_level=2), min_length=min_data_points))
-    selected_regions = max(regions_by_zoom_list, key=lambda r: r.shape[0])
+    if single_zoom:
+        selected_regions = max(regions_by_zoom_list, key=lambda r: r.shape[0])
+    else:
+        selected_regions = np.empty((0, 2))
+        for r in regions_by_zoom_list:
+            selected_regions = np.append(selected_regions, r, axis=0)
     return selected_regions
     
-def split_all_peaks(f, v, model, regions, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95):
+def split_all_peaks(model, f, v, regions, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95, single_zoom=False):
     """
     Given a specified model, will try and return a new set of regions with peaks separated apart for all the provided regions.
     """
     split_regions = np.empty((0, 2))
     for i in range(0, len(regions)):
         split_f, split_v = util.extract_region(i, regions, f, v)
-        split_regions = np.append(split_regions, split_peaks(split_f, split_v, model, min_zoom=min_zoom, max_zoom=max_zoom, min_data_points=min_data_points, confidence_tolerance=confidence_tolerance) + regions[i][0], axis=0)
+        split_regions = np.append(split_regions, split_peaks(model, split_f, split_v, min_zoom=min_zoom, max_zoom=max_zoom, min_data_points=min_data_points, confidence_tolerance=confidence_tolerance, single_zoom=single_zoom) + regions[i][0], axis=0)
     return util.drop_region(split_regions, min_length=min_data_points)
 
 def extract_noise(v, depth=8):

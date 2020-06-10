@@ -1,4 +1,4 @@
-# Things that Need Doing
+# Things That Need Doing
 
 ## Docstrings
 

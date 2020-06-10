@@ -47,11 +47,11 @@ This is a 4 by n array with the parameters for a bunch of Lorentzians. Each row 
 
 Note that the definition of Lorentzians I am using is the following.
 
-![eq1](./images/equation_1.png)
+![eq1](./images/equation_2.png)
 
 Where the individual terms are as below.
 
-![eq2](./images/equation_2.png)
+![eq2](./images/equation_1.png)
 
 ### Useful Functions and Classes
 

@@ -42,10 +42,10 @@ class Live_Instance():
         self.component_height = 1.5
         self.projection_height = -2
 
-    def import_all_data(self, x, y, data_to_analyze=None):
+    def import_all_data(self, x, y, data_to_analyze='r'):
         self.x = x[np.logical_not(np.isnan(x))]
         self.y = y[np.logical_not(np.isnan(y))]
-        r = x ** 2 + y ** 2
+        r = np.sqrt(x ** 2 + y ** 2)
         self.r = r[np.logical_not(np.isnan(r))]
         self.all_data = True
         if data_to_analyze == 'r':

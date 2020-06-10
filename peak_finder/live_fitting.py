@@ -5,9 +5,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.widgets import RectangleSelector
 from matplotlib.widgets import Cursor
+from scipy.optimize import curve_fit
 from . import fit_lorentz as fl
 from . import generate_lorentz as gl
 from . import utilities as util
+
+def lin(x, a, b):
+    return x * b + a
 
 class Live_Lorentz():
     def __init__(self, p):
@@ -30,9 +34,26 @@ class Selection():
 
 class Live_Instance():
     def __init__(self, f, v):
-        self.f = f
-        self.v = v
+        self.f = f[np.logical_not(np.isnan(f))]
+        self.v = v[np.logical_not(np.isnan(v))]
         self.live_lorentzians = {}
+        self.all_data = False
+        self.show_components = False
+        self.component_height = 1.5
+        self.projection_height = -2
+
+    def import_all_data(self, x, y, data_to_analyze=None):
+        self.x = x[np.logical_not(np.isnan(x))]
+        self.y = y[np.logical_not(np.isnan(y))]
+        r = x ** 2 + y ** 2
+        self.r = r[np.logical_not(np.isnan(r))]
+        self.all_data = True
+        if data_to_analyze == 'r':
+            self.v = self.r
+        elif data_to_analyze == 'x':
+            self.v = self.x
+        elif data_to_analyze == 'y':
+            self.v = self.y
     
     def import_lorentzians(self, p_table):
         for i in range(0, len(p_table)):
@@ -53,6 +74,11 @@ class Live_Instance():
         self.make_button("Reset Axes", command=self.reset_axes)
         self.make_button("Add Lorentzians", command=self.add_lorentz)
         self.make_button("Remove Lorentzians", command=self.remove_lorentz)
+        self.make_button("Show/Hide Components", command=self.components_bool)
+        self.make_button("Raise Components", command=self.raise_components)
+        self.make_button("Lower Components", command=self.lower_components)
+        self.make_button("Raise Projection", command=self.raise_projection)
+        self.make_button("Lower Projection", command=self.lower_projection)
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side="bottom", expand=True)
@@ -99,7 +125,7 @@ class Live_Instance():
         self.ax.cla()
         p_table = self.get_all_params()
         full_v = gl.multi_lorentz_2d(self.f, p_table)
-        offset = 2 * min(self.v) - max(self.v)
+        offset = self.projection_height * np.abs(min(self.v) - max(self.v))
         for i in range(0, len(p_table)):
             ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
             self.ax.axvline(x=min(ex_f), color='pink')
@@ -109,6 +135,15 @@ class Live_Instance():
         for i in range(0, len(p_table)):
             og_f, og_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
             ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, full_v, expansion=2)
+            if self.all_data and self.show_components:
+                small_f, small_x = fl.lorentz_bounds_to_data(p_table[i], self.f, self.x, expansion=2)
+                x_opt, x_cov = curve_fit(lin, small_f, small_x)
+                x_fit = lin(small_f, *x_opt)
+                self.ax.plot(small_f, small_x - x_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='y')
+                small_f, small_y = fl.lorentz_bounds_to_data(p_table[i], self.f, self.y, expansion=2)
+                y_opt, y_cov = curve_fit(lin, small_f, small_y)
+                y_fit = lin(small_f, *y_opt)
+                self.ax.plot(small_f, small_y - y_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='g')
             self.ax.plot(og_f, og_v, color='r')
             self.ax.plot(ex_f, ex_v + offset, color='r')
         if not self.first_load:
@@ -205,3 +240,22 @@ class Live_Instance():
         y_pos = min(y1, y2)
         self.selection = Selection(x_delta, y_delta, x_pos, y_pos)
 
+    def components_bool(self):
+        self.show_components = not self.show_components
+        self.plot_lorentzians()
+
+    def raise_components(self):
+        self.component_height += 0.5
+        self.plot_lorentzians()
+
+    def lower_components(self):
+        self.component_height -= 0.5
+        self.plot_lorentzians()
+
+    def raise_projection(self):
+        self.projection_height += 0.5
+        self.plot_lorentzians()
+
+    def lower_projection(self):
+        self.projection_height -= 0.5
+        self.plot_lorentzians()

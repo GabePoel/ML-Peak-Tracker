@@ -16,7 +16,7 @@ class DataFile:
         self.x = x
         self.y = y
         self.f = f
-        self.v = np.sqrt(x ** 2 + y ** 2)
+        self.r = np.sqrt(x ** 2 + y ** 2)
 
 def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
     """Use with an iteratore as 'it' to show a progress bar while waiting."""
@@ -24,13 +24,21 @@ def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
     def show(j):
         x = int(size*j/count)
         if progress:
-            file.write("%s[%s%s] %i/%i\r\r" % (prefix, "="*x, "-"*(size-x), j, count))
+            print('\r\r', end='')
+            print('\033[' + "%s[%s%s] %i/%i\r\r" % (prefix, "="*x, "-"*(size-x), j, count), end='\r')
     show(0)
     for i, item in enumerate(it):
         yield item
         show(i+1)
 
-def import_file(path=None):
+def load_file(path=None):
+    if path is None:
+        root = tk.Tk()
+        root.withdraw()
+        path = filedialog.askopenfilename()
+    return path
+
+def import_file(path=None, show=False):
     """
     Import a tdms file. Returns a 
     Leave path blank to open a file dialog window and select the file manually. Otherwise pass in a path.
@@ -43,6 +51,8 @@ def import_file(path=None):
     tdms_f = tdmsFile.object('Untitled', 'freq (Hz)').data
     tdms_x = tdmsFile.object('Untitled', 'X1 (V)').data
     tdms_y = tdmsFile.object('Untitled', 'Y1 (V)').data
+    if show:
+        print(path)
     return DataFile(tdms_x, tdms_y, tdms_f)
 
 def plot_region(i, regions, f, v, color=None, show_boundaries=False, min_color='g', max_color='g'):
@@ -75,14 +85,16 @@ def bit_invert(b):
     """
     return np.abs(b - 1)
 
-def drop_region(regions, min_length=10):
+def drop_region(regions, min_length=10, max_length=None):
     """
     Given a region array, will return only the regions with more than the min_length number of indices.
     """
     kept_regions = np.empty((0, 2))
+    if max_length is None:
+        max_length = np.inf
     for i in range(0, len(regions)):
         region = regions[i]
-        if region[1] - region[0] >= min_length:
+        if region[1] - region[0] >= min_length and region[1] - region[0] <= max_length:
             kept_regions = np.append(kept_regions, np.array([region]), axis=0)
     return kept_regions
 
@@ -103,7 +115,7 @@ def compare_lorentz(l1, l2, f):
     delta_f = max(f) - min(f)
     ind_per_f = len(f) / delta_f
     delta_ind = ind_per_f * delta_f0
-    return delta_ind
+    return np.abs(delta_ind)
 
 def find_nearest_index(arr, val):
     """
@@ -113,3 +125,42 @@ def find_nearest_index(arr, val):
     reduced_arr = np.abs(arr - val)
     min_reduced_val = min(reduced_arr)
     return np.where(reduced_arr == min_reduced_val)[0][0]
+
+def simplify_regions(regions):
+    region_line = []
+    for i in range(0, len(regions)):
+        region_line.append([regions[i][0], 'start', False])
+        region_line.append([regions[i][1], 'end', False])
+    def take_first(elem):
+        return elem[0]
+    region_line.sort(key=take_first)
+    j = 0
+    last_index = None
+    while j < len(region_line):
+        if j == len(region_line) - 1:
+            next_index = None
+        else:
+            next_index = region_line[j + 1][1]
+        this_index = region_line[j][1]
+        if last_index is None or next_index is None:
+            region_line[j][2] = True
+        elif this_index == 'start' and last_index == 'end':
+            region_line[j][2] = True
+        elif this_index == 'end' and next_index == 'start':
+            region_line[j][2] = True
+        last_index = this_index
+        j += 1
+    region_starts = []
+    region_ends = []
+    for i in range(0, len(region_line)):
+        if region_line[i][2]:
+            if region_line[i][1] == 'start':
+                region_starts.append(region_line[i][0])
+            else:
+                region_ends.append(region_line[i][0])
+    simplified_regions = np.empty((0, 2))
+    for i in range(0, len(region_starts)):
+        start = region_starts[i]
+        end = region_ends[i]
+        simplified_regions = np.append(simplified_regions, np.array([[start, end]]), axis=0)
+    return simplified_regions

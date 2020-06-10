@@ -7,12 +7,33 @@ from . import utilities as util
 def arr_to_tup(a):
     """
     Turns an array into a tuple.
+
+    Parameters
+    ----------
+    a : arr
+        The array to be turned into a tuple.
+
+    Returns
+    -------
+    tuple
+        The tuple form of the converted array.
     """
     return tuple(a.reshape(1, -1)[0])
 
 def find_single_fit_range(lorentz_params):
     """
     Finds the fit range for a single Lorentzian.
+
+    Parameters
+    ----------
+    lorentz_params : arr
+        A 1D lorentzian parameter array.
+
+    Returns
+    -------
+    tuple
+        A two item tuple with the 0 index value being the start of the range 
+        and the 1 index being the end.
     """
     f0 = lorentz_params[1]
     FWHM = lorentz_params[2]
@@ -20,7 +41,17 @@ def find_single_fit_range(lorentz_params):
 
 def find_full_fit_range(lorentz_params_array):
     """
-    Finds the fit range for any number of Lorentzians.
+    Finds a single fit range given an array defining a group of Lorentzians.
+
+    Parameters
+    ----------
+    lorentz_params_array : arr
+        A 2D Lorentzian parameter array.
+
+    Returns
+    -------
+    tuple
+        A combined fit range tuple.
     """
     (f_low_stop_list, f_low_list, f_high_list, f_high_stop_list) = find_all_fit_ranges(lorentz_params_array)
     f_low_stop = min(f_low_stop_list)
@@ -32,6 +63,18 @@ def find_full_fit_range(lorentz_params_array):
 def find_all_fit_ranges(lorentz_params_array):
     """
     Returns a list of fit ranges for any number of Lorentzians.
+
+    Parameters
+    ----------
+    lorentz_params_array : arr
+        A 2D Lorentzian parameter array.
+
+    Returns
+    -------
+    tuple
+        A four element tuple that's analagous to a fit range. But each item
+        is a list containing the corresponding item in a fit range for a given
+        Lorentzian.
     """
     f_low_stop_list = []
     f_low_list = []
@@ -48,6 +91,16 @@ def find_all_fit_ranges(lorentz_params_array):
 def check_overlap(lorentz_params_1, lorentz_params_2):
     """
     Checks if two Lorentzians overlap.
+
+    Parameters
+    ----------
+    lorentz_params_1 : arr
+    lorentz_params_2 : arr
+
+    Returns
+    -------
+    bool
+        True if the two Lorentzians sufficiently overlap. False if they don't.
     """
     if lorentz_params_1 is None or lorentz_params_2 is None:
         return False
@@ -59,6 +112,16 @@ def check_overlap(lorentz_params_1, lorentz_params_2):
 def partition_lorentz_params_array(lorentz_params_array):
     """
     Returns list of Lorentz arrays.
+
+    Parameters
+    ----------
+    lorentz_params_array : arr
+
+    Returns
+    -------
+    list
+        Each element in the list is a set of Lorentzians that are clustered
+        together.
     """
     lorentz_sets = []
     lorentz_parent = []
@@ -89,7 +152,28 @@ def partition_lorentz_params_array(lorentz_params_array):
 
 def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1024)):
     """
-    Partitions a 2D Lorentzian array.
+    Partitions a complete generated data set and gives a tuple which has all
+    the corresponding data for each Lorentzian cluster as well as how many
+    Lorentzians are in each of these clusters.
+
+    Parameters
+    ----------
+    data_array : arr
+        An unedited array of generated data.
+    fit_range_list : list
+        A tuple of lists corresponding to parts of fit ranges. See
+        find_all_fit_ranges for more details.
+    lorentz_array_2d : arr
+        A 2D Lorentzian array.
+    scale : tuple, optional
+        The scale to normalize the output data to.
+
+    Returns
+    -------
+        tuple
+            Element 0 is a 2D array with all the data for each Lorentzian
+            cluster normalized by the scale factor. Element 1 is the number
+            of Lorentzians in each cluster of the same row.
     """
     scale_len = scale[2]
     lorentz_count_array = np.empty((0, 1))
@@ -118,6 +202,18 @@ def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1
 def count_lorentz(fit_range, lorentz_array_2d):
     """
     Counts how many Lorentzians from the 2D array are within the fit range.
+
+    Parameters
+    ----------
+    fit_range : tuple
+        A fit range tuple.
+    lorentz_array_2d : arr
+        A 2D Lorentzian array.
+
+    Returns
+    -------
+    int
+        How many of the Lorentzians in the 2D array land within the fit range.
     """
     counter = 0
     for i in range(0, lorentz_array_2d.shape[0]):
@@ -129,6 +225,15 @@ def count_lorentz(fit_range, lorentz_array_2d):
 def find_partitioned_fit_ranges(lorentz_params_list):
     """
     Returns a list of fit ranges from the provided Lorentzians.
+
+    Parameters
+    ----------
+    lorentz_params_list : list
+
+    Returns
+    -------
+    list
+        A list of all the fit ranges after partitioning the input Lorentzians.
     """
     fit_range_list = []
     for a in lorentz_params_list:

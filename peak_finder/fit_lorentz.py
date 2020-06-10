@@ -96,8 +96,8 @@ def set_n_least_squares(f, v, n=1, noise_filter=0, delta_f=None):
         bounds[1][i] = 2 * max_A
         bounds[0][i + n] = min_f - (max_f - min_f)
         bounds[1][i + n] = max_f + (max_f - min_f)
-        bounds[0][i + 2 * n] = -3 * (max_f - min_f)
-        bounds[1][i + 2 * n] = 3 * (max_f - min_f)
+        bounds[0][i + 2 * n] = -1.5 * (max_f - min_f)
+        bounds[1][i + 2 * n] = 1.5 * (max_f - min_f)
         bounds[0][i + 3 * n] = -np.inf
         bounds[1][i + 3 * n] = np.inf
     bounds[0][-2] = -np.inf
@@ -136,7 +136,7 @@ def fit_regions(f, v, regions, max_n=3, noise_filter=0):
     Given frequency data, displacement data, and a regions array, will return a list of proposed Lorentzian parameters.
     """
     p_list = []
-    for i in range(0, len(regions)):
+    for i in util.progressbar(range(0, len(regions)), prefix="Fitting: "):
         region_f, region_v = util.extract_region(i, regions, f, v)
         fit = free_n_least_squares(region_f, region_v, noise_filter=noise_filter)
         if fit is not None:
@@ -156,6 +156,16 @@ def extract_parameters(p_list, noise_filter=0):
             if np.abs(working_p[j][0]) >= noise_filter:
                 p_table = np.append(p_table, working_p, axis=0)
     return p_table[p_table[:,1].argsort()]
+
+def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degeneracies=True):
+    """
+    Given regions for analysis, frequency, displacement, will return parameters for the fit Lorentzians.
+    """
+    p_list = fit_regions(f, v, regions, max_n=max_n, noise_filter=noise_filter)
+    p_table = extract_parameters(p_list, noise_filter=noise_filter)
+    if catch_degeneracies:
+        p_table = remove_degeneracies(p_table, f)
+    return p_table
 
 def check_bounds(p, bounds, noise_filter=0, delta_f=None):
     """
@@ -258,7 +268,7 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     """
     degeneracy_table = []
     new_p_tabel = np.empty((0, 4))
-    for i in range(0, len(p_table)):
+    for i in util.progressbar(range(0, len(p_table)), prefix="Checking for Degeneracies: "):
         degeneracy_table.append([])
         for j in range(0, len(p_table)):
             if catch_degeneracies(p_table[i], p_table[j], f, allowed_delta_ind=allowed_delta_ind):
@@ -266,8 +276,9 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     for i in range(0, len(degeneracy_table)):
         if len(degeneracy_table[i]) > 1:
             for k in range(1, len(degeneracy_table[i])):
-                j = degeneracy_table[i][k]
-                degeneracy_table[j] = []
+                if len(degeneracy_table[i]) > 1:
+                    j = degeneracy_table[i][k]
+                    degeneracy_table[j] = []
     for i in range(0, len(degeneracy_table)):
         if len(degeneracy_table[i]) > 0:
             new_p_tabel = np.append(new_p_tabel, np.array([p_table[i]]), axis=0)

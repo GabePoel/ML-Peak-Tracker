@@ -7,7 +7,19 @@ from . import generate_lorentz as gl
 
 def mag_round(x, base=10):
     """
-    Rounds to the nearest order of magnitude.
+    Rounds a number to the nearest order of magnitude.
+    
+    Parameters
+    ----------
+    x : float
+        The number to be rounded.
+    base : int
+        The base that the number should be rounded with respect to.
+
+    Returns
+    -------
+    float
+        The number rounded to the nearest order of magnitude.
     """
     val = 1
     while x > val:

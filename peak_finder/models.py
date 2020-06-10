@@ -1,5 +1,8 @@
+import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras.models import load_model
 import os
+from . import utilities as util
 
 def simple_lorentzian():
     """
@@ -29,4 +32,9 @@ def wide_lorentzian():
         model = load_model(os.path.join(os.getcwd(), 'peak_finder', 'trained_models',  'wide_wiggle'))
     except:
         model = load_model(os.path.join(os.getcwd(), 'peak_finder', 'trained_models',  'wide_wiggle_backup'))
+    return model
+
+def import_model(path=None):
+    if path is None:
+        model = load_model(util.load_file(path=path))
     return model

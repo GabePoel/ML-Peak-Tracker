@@ -7,8 +7,18 @@ from . import utilities as util
 
 def flip_bool(a):
     """
-    Flips the bit of the provided input.
-    It's recommended to use bit_invert() in utilities instead.
+    Flips the bit of the provided input. It's recommended to use bit_invert() 
+    in utilities instead.
+
+    Parameters
+    ----------
+    a : int
+        Either 0 or 1.
+
+    Returns
+    -------
+    int
+        The flipped value: 0 goes to 1 and 1 goes to 0.
     """
     return (a + 1 - 2) * -1
 
@@ -91,11 +101,11 @@ def compose_all(labels_list, scale=(0,1,1024), overlap=1/4, zoom_level=2):
             regions = np.append(regions, compose_by_scale(labels_list[i], zoom_level ** i, scale=scale, overlap=overlap), axis=0)
     return regions
 
-def slide_scale(model, v, max_zoom=5, min_zoom=0, scale=(0,1,1024), overlap=1/4, zoom_level=2, confidence_tolerance=0.9, merge_tolerance=None, compress=True, target=1, fix_zoom=False):
+def slide_scale(model, v,  min_zoom=5, max_zoom=7, scale=(0,1,1024), overlap=1/4, zoom_level=2, confidence_tolerance=0.95, merge_tolerance=None, compress=False, target=1, single_zoom=False, progress=True, simplify=False):
     """
     Uses the specified model, displacement, and parameters to return all the detected Lorentzian regions.
     """
-    if fix_zoom:
+    if single_zoom:
         max_zoom = min_zoom
     min_zoom -= 1
     final_scale = cd.scale_1d(v)
@@ -103,7 +113,7 @@ def slide_scale(model, v, max_zoom=5, min_zoom=0, scale=(0,1,1024), overlap=1/4,
         merge_tolerance = 0.8 * (1 - overlap)
     window_list = decompose_all(v, max_zoom, scale, overlap, zoom_level=zoom_level)
     prediction_list = []
-    for i in range(0, len(window_list)):
+    for i in util.progressbar(range(0, len(window_list)), 'Zooming: ', progress=progress):
         prediction_scores = model.predict(window_list[i])
         if target == 0:
             prediction_scores = util.bit_invert(prediction_scores)
@@ -117,7 +127,9 @@ def slide_scale(model, v, max_zoom=5, min_zoom=0, scale=(0,1,1024), overlap=1/4,
     regions.sort(axis=0)
     if compress:
         regions = compress_regions(regions, merge_tolerance=merge_tolerance)
-    regions = cd.normalize_index(regions, scale, final_scale)
+    regions = util.drop_region(cd.normalize_index(regions, scale, final_scale))
+    if simplify:
+        regions = util.drop_region(util.simplify_regions(regions))
     return regions
 
 def check_overlap(r1, r2, merge_tolerance=0.6):
@@ -200,13 +212,13 @@ def reduce_window_plot(model, f, v, reduce_zoom=0.05, max_zoom=7, min_zoom=0, ov
         regions_list[i] = regions_list[i] + (i * 1024)
     return regions_list, v_list
 
-def split_peaks(model, f, v, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95, single_zoom=False):
+def split_single_peaks(model, f, v, min_length, max_length, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95, single_zoom=False, progress=False):
     """
     Given a specified model, will try and return a new set of regions with peaks separated apart.
     """
     regions_by_zoom_list = []
     for i in range(min_zoom, max_zoom + 1):
-        regions_by_zoom_list.append(util.drop_region(slide_scale(model, v, min_zoom=i, max_zoom=i, confidence_tolerance=confidence_tolerance, fix_zoom=True, target=1, overlap=1/4, zoom_level=2), min_length=min_data_points))
+        regions_by_zoom_list.append(util.drop_region(slide_scale(model, v, min_zoom=i, max_zoom=i, confidence_tolerance=confidence_tolerance, single_zoom=True, target=1, overlap=1/4, zoom_level=2, progress=progress), min_length=min_length))
     if single_zoom:
         selected_regions = max(regions_by_zoom_list, key=lambda r: r.shape[0])
     else:
@@ -215,15 +227,20 @@ def split_peaks(model, f, v, min_zoom=3, max_zoom=6, min_data_points=10, confide
             selected_regions = np.append(selected_regions, r, axis=0)
     return selected_regions
     
-def split_all_peaks(model, f, v, regions, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95, single_zoom=False):
+def split_peaks(model, f, v, regions, min_zoom=2, max_zoom=7, min_data_points=10, confidence_tolerance=0.0, single_zoom=False):
     """
     Given a specified model, will try and return a new set of regions with peaks separated apart for all the provided regions.
     """
     split_regions = np.empty((0, 2))
+    region_sizes = []
     for i in range(0, len(regions)):
+        region_sizes.append(regions[i][1] - regions[i][0])
+    max_length = max(region_sizes) / (2 ** (min_zoom - 1))
+    min_length = max(max(region_sizes) / (2 ** (max_zoom - 1)), min_data_points)
+    for i in util.progressbar(range(0, len(regions)), 'Splitting: '):
         split_f, split_v = util.extract_region(i, regions, f, v)
-        split_regions = np.append(split_regions, split_peaks(model, split_f, split_v, min_zoom=min_zoom, max_zoom=max_zoom, min_data_points=min_data_points, confidence_tolerance=confidence_tolerance, single_zoom=single_zoom) + regions[i][0], axis=0)
-    return util.drop_region(split_regions, min_length=min_data_points)
+        split_regions = np.append(split_regions, split_single_peaks(model, split_f, split_v, min_length, max_length, min_zoom=min_zoom, max_zoom=max_zoom, min_data_points=min_data_points, confidence_tolerance=confidence_tolerance, single_zoom=single_zoom, progress=False) + regions[i][0], axis=0)
+    return util.drop_region(util.simplify_regions(split_regions), min_data_points)
 
 def extract_noise(v, depth=8):
     """

@@ -28,7 +28,7 @@ The following files still need to be written with scikit docstring format:
  
  And these ones need to be fixed or removed.
  - [ ] `scripts/multi_class_train.py`
- - [ ] `scripts/train_simple_count.py``
+ - [ ] `scripts/train_simple_count.py`
  
  ## Other Documentation
  - [ ] Guide on training models.

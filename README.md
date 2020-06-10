@@ -183,7 +183,7 @@ live.activate()
 live.get_all_params()
 ```
 
-The `Live_Instance` class keeps track of what the current parameters are as well as the data to work with. The code above shows what you need to do to use and extract parameters from it. To look at the x and y data while working with it, just run `live.import_all_data(x, y)` and then `live.activate()`. The live interface is shown below. Not that you should click the "Reset Axes" button if the home button isn't working. There's a slightly sketchy hack going on to make the interface reload properly that causes the home to reset every time new things are plotted.
+The `Live_Instance` class keeps track of what the current parameters are as well as the data to work with. The code above shows what you need to do to use and extract parameters from it. To look at the x and y data while working with it, just run `live.import_all_data(x, y)` and then `live.activate()`. The live interface is shown below. Note that you should click the "Reset Axes" button if the home button isn't working. There's a slightly sketchy hack going on to make the interface reload properly that causes the home to reset every time new things are plotted. _Also_ note that all the Lorentzians in the figure below were detected entirely with the machine learning model. There was no human input involved at all. The robots are taking over!
 
 ![](./images/live_1.png)
 

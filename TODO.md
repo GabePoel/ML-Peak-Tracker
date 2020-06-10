@@ -30,6 +30,6 @@ The following files still need to be written with scikit docstring format:
  - [ ] `scripts/multi_class_train.py`
  - [ ] `scripts/train_simple_count.py`
  
- ## Other Studd
+ ## Other Stuff
  - [ ] Write guide on training models.
  - [ ] Rewrite peak _tracker_.

@@ -18,11 +18,33 @@ class DataFile:
         self.f = f
         self.r = np.sqrt(x ** 2 + y ** 2)
 
+    def import_probe_temp(self, probe_temp):
+        self.probe_temp = probe_temp
+
+    def import_cryo_temp(self, cryo_temp):
+        self.cryo_temp = cryo_temp
+
+    def import_meta(self, stamp):
+        self.date, self.time, self.start_temp, self.end_temp = stamp.split('_')
+
+def remove_nans(arr):
+    if len(arr.shape) == 1:
+        return arr[~np.isnan(arr)]
+    elif len(arr.shape) == 2:
+        new_arr = np.empty((0, len(arr[0])))
+        for i in range(0, len(arr)):
+            if not any(np.isnan(arr[i])):
+                new_arr = np.append(new_arr, np.array([arr[i]]), axis=0)
+        return new_arr
+
 def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
     """Use with an iteratore as 'it' to show a progress bar while waiting."""
     count = len(it)
     def show(j):
-        x = int(size*j/count)
+        try:
+            x = int(size*j/count)
+        except:
+            x = 0
         if progress:
             print('\r\r', end='')
             print('\033[' + "%s[%s%s] %i/%i\r\r" % (prefix, "="*x, "-"*(size-x), j, count), end='\r')
@@ -38,6 +60,13 @@ def load_file(path=None):
         path = filedialog.askopenfilename()
     return path
 
+def load_dir(path=None):
+    if path is None:
+        root = tk.Tk()
+        root.withdraw()
+        path = filedialog.askdirectory()
+    return path
+
 def import_file(path=None, show=False):
     """
     Import a tdms file. Returns a 
@@ -47,13 +76,20 @@ def import_file(path=None, show=False):
         root = tk.Tk()
         root.withdraw()
         path = filedialog.askopenfilename()
-    tdmsFile = TdmsFile(path)
-    tdms_f = tdmsFile.object('Untitled', 'freq (Hz)').data
-    tdms_x = tdmsFile.object('Untitled', 'X1 (V)').data
-    tdms_y = tdmsFile.object('Untitled', 'Y1 (V)').data
+    tdms_file = TdmsFile.read(path)
+    channels = tdms_file.groups()[0].channels()
+    tdms_f = remove_nans(channels[0][:])
+    tdms_x = remove_nans(channels[1][:])
+    tdms_y = remove_nans(channels[2][:])
+    tdms_file = DataFile(tdms_x, tdms_y, tdms_f)
+    if len(channels) >= 5:
+        tdms_probe_temp = remove_nans(channels[3][:])
+        tdms_cryo_temp = remove_nans(channels[4][:])
+        tdms_file.import_probe_temp(tdms_probe_temp)
+        tdms_file.import_cryo_temp(tdms_cryo_temp)
     if show:
-        print(path)
-    return DataFile(tdms_x, tdms_y, tdms_f)
+        print('Imported file from ' + str(path))
+    return tdms_file
 
 def plot_region(i, regions, f, v, color=None, show_boundaries=False, min_color='g', max_color='g'):
     """

@@ -42,10 +42,10 @@ class Live_Instance():
         self.component_height = 1.5
         self.projection_height = -2
 
-    def import_all_data(self, x, y, data_to_analyze='r'):
+    def import_all_data(self, x, y, data_to_analyze=None):
         self.x = x[np.logical_not(np.isnan(x))]
         self.y = y[np.logical_not(np.isnan(y))]
-        r = np.sqrt(x ** 2 + y ** 2)
+        r = x ** 2 + y ** 2
         self.r = r[np.logical_not(np.isnan(r))]
         self.all_data = True
         if data_to_analyze == 'r':
@@ -216,6 +216,12 @@ class Live_Instance():
             self.add_lorentz()
         elif event.key == 'escape':
             self.end_interactive()
+        elif event.key == 'a':
+            self.add_lorentz()
+        elif event.key == 'd':
+            self.remove_lorentz()
+        elif event.key == 's':
+            self.reset_axes()
 
     def on_press_rem(self, event):
         if event.key == 'enter':

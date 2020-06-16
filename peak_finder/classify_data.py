@@ -308,6 +308,9 @@ def normalize_1d(x, scale=(0,1,1024)):
     x_norm = (x - min_x) / (max_x - min_x)
     old_baseline = np.linspace(0, 1, old_size)
     new_baseline = np.linspace(0, 1, new_len)
+    if len(old_baseline) <= 1:
+        old_baseline = np.array([0, 1])
+        x_norm = np.array([1, 0])
     x_interp = interp.interp1d(old_baseline, x_norm)
     x_resized = (x_interp(new_baseline) * (new_max - new_min)) + new_min
     return x_resized
@@ -472,4 +475,10 @@ def scale_zoom(x, start, end):
     length = len(x)
     start_index = int(np.round(length * start))
     end_index = int(np.round(length * end))
+    if start_index >= end_index:
+        if start_index <= 3:
+            start_index = 0
+            end_index = 3
+        else:
+            start_index = end_index - 3
     return normalize_1d(x[start_index:end_index])

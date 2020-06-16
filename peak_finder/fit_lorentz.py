@@ -161,11 +161,40 @@ def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degene
     """
     Given regions for analysis, frequency, displacement, will return parameters for the fit Lorentzians.
     """
+    if len(regions) == 0:
+        return np.empty((0, 4))
     p_list = fit_regions(f, v, regions, max_n=max_n, noise_filter=noise_filter)
+    if len(p_list) == 0:
+        return np.empty((0, 4))
     p_table = extract_parameters(p_list, noise_filter=noise_filter)
     if catch_degeneracies:
         p_table = remove_degeneracies(p_table, f)
-    return p_table
+    return correct_parameters(p_table)
+
+def correct_parameters(p_table):
+    parameters = np.empty((0, 4))
+    for i in range(0, len(p_table)):
+        if p_table[i][2] < 0:
+            A = p_table[i][0]
+            f0 = p_table[i][1]
+            FWHM = -p_table[i][2]
+            phase = np.pi - p_table[i][3]
+            p = np.array([A, f0, FWHM, phase])
+        else:
+            p = p_table[i]
+        parameters = np.append(parameters, np.array([p]), axis=0)
+    return parameters
+    
+def regions_from_parameters(f, p):
+    regions = np.empty((0, 2))
+    for i in range(0, len(p)):
+        f_min = p[i][1] - 2 * p[i][2]
+        f_max = p[i][1] + 2 * p[i][2]
+        ind_min = util.find_nearest_index(f, f_min)
+        ind_max = util.find_nearest_index(f, f_max)
+        region = np.array([[ind_min, ind_max]])
+        regions = np.append(regions, region, axis=0)
+    return regions
 
 def check_bounds(p, bounds, noise_filter=0, delta_f=None):
     """

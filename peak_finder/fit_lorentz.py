@@ -1,4 +1,5 @@
 import numpy as np
+import PySimpleGUI as sg
 from scipy.optimize import least_squares
 from . import utilities as util
 
@@ -326,3 +327,26 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
         if len(degeneracy_table[i]) > 0:
             new_p_tabel = np.append(new_p_tabel, np.array([p_table[i]]), axis=0)
     return new_p_tabel[new_p_tabel[:,1].argsort()]
+
+
+def parameters_from_selections(data_files, region_selections):
+    sg.one_line_progress_meter_cancel('-key-')
+    all_peaks = []
+    counter = 0
+    for i in util.progressbar(range(0, len(data_files)), "Fitting: ", progress=False):
+        all_peaks.append(np.empty((0, 4)))
+        for j in range(0, len(region_selections)):
+            try:
+                sg.one_line_progress_meter('Overall Fitting Progress', counter, len(data_files) * len(region_selections), '-key-')
+                f = data_files[i].f
+                v = data_files[i].r
+                regions = region_selections[j][i]
+                params = parameters_from_regions(f, v, regions)
+                if len(params) == 0:
+                    params = np.array([[np.nan, np.nan, np.nan, np.nan]])
+            except:
+                params = np.array([[np.nan, np.nan, np.nan, np.nan]])
+            all_peaks[i] = np.append(all_peaks[i], params, axis=0)
+            counter += 1
+    sg.one_line_progress_meter_cancel('-key-')
+    return np.array(all_peaks)

@@ -8,23 +8,6 @@ from . import utilities as util
 from . import models
 from . import automatic
 
-def import_tdms_files(path=None):
-    """
-    Makes a list out of all the imported tdms files in chosen directory.
-    """
-    path = util.load_dir(path)
-    names = os.listdir(path)
-    data_files = []
-    for name in names:
-        if name[-5:] == '.tdms':
-            stamp = name[:-5]
-            file_path = os.path.join(path, name)
-            data_file = util.import_file(file_path)
-            data_file.import_meta(stamp)
-            data_files.append(data_file)
-    data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
-    return data_files
-
 def get_temperatures(data_files):
     """
     Get a temperature array from a list of data files.
@@ -555,25 +538,3 @@ def final_sorting(params_3d):
         matched_params, counts = get_reference_params(combined_params)
         final_params = np.append(final_params, [matched_params], axis=0)
     return final_params
-
-def fit_from_dict(data_files, region_selections):
-    sg.one_line_progress_meter_cancel('-key-')
-    all_peaks = []
-    counter = 0
-    for i in util.progressbar(range(0, len(data_files)), "Fitting: "):
-        all_peaks.append(np.empty((0, 4)))
-        for j in range(0, len(region_selections)):
-            try:
-                sg.one_line_progress_meter('Overall Fitting Progress', counter, len(data_files) * len(region_selections), '-key-')
-                f = data_files[i].f
-                v = data_files[i].r
-                regions = region_selections[j][i]
-                params = fl.parameters_from_regions(f, v, regions)
-                if len(params) == 0:
-                    params = np.array([[np.nan, np.nan, np.nan, np.nan]])
-            except:
-                params = np.array([[np.nan, np.nan, np.nan, np.nan]])
-            all_peaks[i] = np.append(all_peaks[i], params, axis=0)
-            counter += 1
-    sg.one_line_progress_meter_cancel('-key-')
-    return np.array(all_peaks)

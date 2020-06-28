@@ -4,12 +4,12 @@
 
 To get things to work, you probably want to have the peak_finder directory in whatever directory you're running terminal or other python scripts or whathaveyou from. If this doesn't work for some reason, you can try using `from __future__ import absolute_import` before importing all the `peak_finder` stuff. If that doesn't work, let me know and I'll see if I screwed something up. You can also add `peak_finder` to PATH if you want to be able to call it from anywhere. That's technically the "preferred" way to run it.
 
-## Extremely Quick Start Guide for Data Analysis
+## Extremely Quick Start Guide for Peak Finding
 
 In an extreme rush? Lucky for you, there's an already set up configuration for you to work with. I promise you it will be better to manually go through and kajiggle parameters. But, if you just want to get a quick taste of stuff then you can use the following script:
 
 ```python
-from peak_finder import automatic
+from peak_finder import automatic as auto
 from peak_finder import utilities as util
 
 # You'll have to pick which tdms file you look at tho.
@@ -17,13 +17,13 @@ tdms_file = util.import_file()
 f = tdms_file.f
 r = tdms_file.r
 
-parameters = automatic.quick_analyze(f, r)
+parameters = auto.quick_analyze(f, r)
 print(parameters)
 ```
 
 Now that that's out of the way, let's go into how you _actually_ do stuff.
 
-## Quick Start Guide for Data Analysis
+## Quick Start Guide for Peak Finding
 
 To do the data analysis, there's not actually that much that you need to be aware of. For 99% of the stuff that actually involves data analysis, the functions listed here can just be used as black boxes that hopefully magically produce what they promise they do. I've also detailed the data types that they take and receive to hopefully prevent causing unnecesary headaches.
 
@@ -71,12 +71,30 @@ You can also use `model = models.import_model()` to open a file dialog and impor
 You can of course import a tdms file however you please. But, there's an included way to do it with a file dialog if you want. From there it's easy to snag the frequency data, x, y, or r=sqrt(xz^2 + y^2).
 
 ```python
-tdms_file = utilities.import_file()
+tdms_file = util.import_tdms_file()
 f = tdms_file.f
 x = tdms_file.x
 y = tdms_file.y
 r = tdms_file.r
 ```
+
+You can also save and load any object you end up creating (such as a 3D parameter array) like so:
+
+```python
+# Saving without a file path opens a dialog window.
+file_path_of_save = util.save(some_object)
+
+# Can also save with a file path to not get a dialog window.
+file_path_of_save = util.save(some_object, some_path)
+
+# To load the object without a dialog window, pass in the file path.
+that_same_object = util.load(file_path_of_save)
+
+# Can also load the object without a file path. This opens a dialog window.
+that_same_object = util.load()
+```
+
+The file created this way is not necesarily readible by other programs. So, the final exported data should probably not be handled in this way.
 
 #### Using Models
 
@@ -84,12 +102,12 @@ Any time you want to use the models, you're either going to use the `slide_scale
 
 ```python
 from peak_finder import models
-from peak_finder import utilities
+from peak_finder import utilities as util
 from peak_finder.sliding_window import slide_scale
 from peak_finder.sliding_window import split_peaks
 
 wide_model = models.wide_lorentzian()
-tdms_file = utilities.import_file()
+tdms_file = util.import_file()
 r = tdms_file.r
 
 regions = slide_scale(wide_model, r)
@@ -205,7 +223,60 @@ A complete workflow example is shown in the [included notebook](./train_and_test
 
 ### Other Potentially Helpful Things
 
-WiP. Will probably fill in as needed.
+WiP. Feel free to check the `utilities` docstrings in the meantime.
+
+## Extremely Quick Start Guide for Peak Tracking
+
+The quickest, easiest, and _usually_ the most effective way to do peak tracking is to do a `color_selection`.
+
+```python
+from peak_finder.live_fitting import color_selection
+from peak_finder.fit_lorentz import parameters_from_selections
+from peak_finder import utilities as util
+
+data_files = util.import_tdms_files()
+selections = color_selection(data_files)
+tracked_peaks = parameters_from_selections(selections)
+```
+
+The `import_tdms_files()` call creates a list of `Data_File` objects from the chosen directory. These then get passed into `color_selection` which opens the following window.
+
+![](./images/color_1.png)
+
+This is a color plot of imported files, but likely drastically scaled down to load faster and be easier to manipulate. You can change the resolution or the color map of the plot by passing `x_res`, `y_res`, and `cmap` into `color_selection`. Default values are `x_res=1000`, `y_res=100` and `cmap="cool"`. From here you can just zoom in around the path of some peak and select around to highlight it. There's no button to activate the selector, it's on by default.
+
+![](./images/color_2.png)
+
+If you're not 100% satisfied with your selection, you can press the control key to move around old vertices or the escape key to start over. When you're satisfied with your selection, either hit return/enter or click on "Another!" to start selecting a new peak. 
+
+![](./images/color_3.png)
+
+This turns the previously selected peak blue and saves it so it can no longer be interacted with. If you're trying to select around peaks that overlap and get frustrated with seeing all the selections, you can hit the spacebar or click "Toggle Selections" to turn on/off the display of all the previous selections made. You can select as many paths as you like.
+
+![](./images/color_4.png)
+
+When you're satisfied with your work, click "Done." You don't have to worry about the output, but it's a dictionary of regions corresponding to all of the different temperatures and peaks selected. You can just pass this into `parameters_from_selections`, sit back, and wait for the program to fit to your peaks. Depending on how many peaks you select and how many original tdms files there were, this can take quite a while. So, grab a book or stress about over getting something else done in the meantime while you watch the loading window slowly tick by.
+
+![](./images/color_5.png)
+
+When the fittting is done, the output is a 3D array of parameters. The columns and rows are just like the 2D parameter arrays. But, each "table" is a different temperature step. So, if we want to plot the center frequency of the Lorentzians from the example above, we could just use the code below.
+
+```python
+x = util.get_temperatures(data_files)
+for i in range(0, len(tracked_peaks[0])):
+    y = tracked_peaks[...,i,1]
+    plt.plot(x, y)
+```
+
+And this spits out the following plot.
+
+![](./images/color_6.png)
+
+And since the parameters are preserved in full, we can also see their amplitudes, full widths at half maximum, or phases just as easily.
+
+![](./images/color_7.png)
+
+The phases above may _look_ like they jump around. But, that's just because they're shown modulo 2 pi.
 
 ## Quick Start Guide for Peak Tracking
 

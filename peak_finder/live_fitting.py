@@ -394,13 +394,13 @@ class Color_Selector:
         self.canvas.draw_idle()
 
     def slight_zoom_out(self):
-        x_lim = self.ax.get_xlim()
+        # x_lim = self.ax.get_xlim()
         y_lim = self.ax.get_ylim()
-        x_delta = x_lim[1] - x_lim[0]
+        # x_delta = x_lim[1] - x_lim[0]
         y_delta = y_lim[1] - y_lim[0]
-        new_x_lim = (x_lim[0] - 0.1 * x_delta, x_lim[1] + 0.1 * x_delta)
+        # new_x_lim = (x_lim[0] - 0.1 * x_delta, x_lim[1] + 0.1 * x_delta)
         new_y_lim = (y_lim[0] - 0.1 * y_delta, y_lim[1] + 0.1 * y_delta)
-        self.ax.set_xlim(new_x_lim[0], new_x_lim[1])
+        # self.ax.set_xlim(new_x_lim[0], new_x_lim[1])
         self.ax.set_ylim(new_y_lim[0], new_y_lim[1])
 
 def color_selection(data_files, x_res=1000, y_res=100, cmap='cool'):

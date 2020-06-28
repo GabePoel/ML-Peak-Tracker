@@ -21,6 +21,14 @@ parameters = auto.quick_analyze(f, r)
 print(parameters)
 ```
 
+Or if you don't want any machine learning, but just want to use the selection tool while also seeing the x and y data, there's a super easy way to run that as well.
+
+```python
+from peak_finder.live_fitting import live_selection
+
+parameters = live_selection(tdms_file)
+```
+
 Now that that's out of the way, let's go into how you _actually_ do stuff.
 
 ## Quick Start Guide for Peak Finding

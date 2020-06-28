@@ -276,3 +276,10 @@ def get_temperatures(data_files):
     for i in range(0, len(data_files)):
         temperatures.append(float(data_files[i].start_temp[0:-1]))
     return np.array(temperatures)
+
+def matplotlib_mac_fix():
+    import matplotlib
+    import importlib
+    matplotlib.use("TkAgg")
+    import matplotlib.pyplot as plt
+    importlib.reload(plt)

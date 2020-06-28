@@ -1,4 +1,5 @@
 import sys
+import os
 import pickle
 import tkinter as tk
 import numpy as np
@@ -8,7 +9,7 @@ from nptdms import TdmsFile
 
 # Holds utilities that many parts of the peak tracker use.
 
-class DataFile:
+class Data_File:
     """
     Stores the x, y, f, and v data for an imported tdms file.
     Here v is defined as v = sqrt(x ** 2 + y ** 2).
@@ -47,8 +48,7 @@ def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
         except:
             x = 0
         if progress:
-            print('\r\r', end='')
-            print('\033[' + "%s[%s%s] %i/%i\r\r" % (prefix, "="*x, "-"*(size-x), j, count), end='\r')
+            print("%s[%s%s] %i/%i\r\r" % (prefix, "="*x, "-"*(size-x), j, count), end='\r')
     show(0)
     for i, item in enumerate(it):
         yield item
@@ -64,9 +64,16 @@ def load_dir(path=None):
         path = filedialog.askdirectory()
     return path
 
+def import_tdms_file(path=None, show=False):
+    """
+    Just a wrapper for import_file. Calling it from its original name is depricated and will be removed.
+    """
+    return import_file(path=path, show=show)
+
 def import_file(path=None, show=False):
     """
-    Import a tdms file. Returns a 
+    This is deprecated and will be removed. Please call import_tdms_file() instead.
+    Import a tdms file. Returns a Data_File object.
     Leave path blank to open a file dialog window and select the file manually. Otherwise pass in a path.
     """
     if path is None:
@@ -78,7 +85,7 @@ def import_file(path=None, show=False):
     tdms_f = remove_nans(channels[0][:])
     tdms_x = remove_nans(channels[1][:])
     tdms_y = remove_nans(channels[2][:])
-    tdms_file = DataFile(tdms_x, tdms_y, tdms_f)
+    tdms_file = Data_File(tdms_x, tdms_y, tdms_f)
     if len(channels) >= 5:
         tdms_probe_temp = remove_nans(channels[3][:])
         tdms_cryo_temp = remove_nans(channels[4][:])
@@ -243,3 +250,29 @@ def load(path=None):
     if path is None:
         path = filedialog.askopenfilename()
     return pickle.load(open(path, "rb"))
+
+def import_tdms_files(path=None):
+    """
+    Makes a list out of all the imported tdms files in chosen directory.
+    """
+    path = load_dir(path)
+    names = os.listdir(path)
+    data_files = []
+    for name in names:
+        if name[-5:] == '.tdms':
+            stamp = name[:-5]
+            file_path = os.path.join(path, name)
+            data_file = import_file(file_path)
+            data_file.import_meta(stamp)
+            data_files.append(data_file)
+    data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
+    return data_files
+
+def get_temperatures(data_files):
+    """
+    Get a temperature array from a list of data files.
+    """
+    temperatures = []
+    for i in range(0, len(data_files)):
+        temperatures.append(float(data_files[i].start_temp[0:-1]))
+    return np.array(temperatures)

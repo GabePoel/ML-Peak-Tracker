@@ -1,3 +1,5 @@
+from . import utilities as util
+util.matplotlib_mac_fix()
 import numpy as np
 import tkinter as tk
 import PySimpleGUI as sg
@@ -13,7 +15,6 @@ from scipy.optimize import curve_fit
 from . import fit_lorentz as fl
 from . import generate_lorentz as gl
 from . import classify_data as cd
-from . import utilities as util
 
 def lin(x, a, b):
     return x * b + a

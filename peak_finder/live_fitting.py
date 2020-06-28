@@ -459,3 +459,13 @@ def points_to_ranges(points, data_files, res):
         except:
             pass
     return range_dict
+
+def live_selection(data_file):
+    f = data_file.f
+    x = data_file.x
+    y = data_file.y
+    r = data_file.r
+    live = Live_Instance(f, r)
+    live.import_all_data(x, y)
+    live.activate()
+    return live.get_all_params()

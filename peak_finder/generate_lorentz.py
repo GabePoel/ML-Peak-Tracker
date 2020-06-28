@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from . import classify_data as cd
+from . import utilities as util
 
 # Generates Lorentzians and provides functional forms for fitting.
 
@@ -110,6 +111,7 @@ def multi_lorentz_2d(f, params):
     """
     Generates a combined sum of numerous Lorentzians given a single 2D array of parameters.
     """
+    params = util.remove_nans(params)
     A_arr = params[:,[0]]
     f0_arr = params[:,[1]]
     FWHM_arr = params[:,[2]]

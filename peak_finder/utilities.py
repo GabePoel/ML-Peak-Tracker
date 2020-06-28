@@ -1,4 +1,5 @@
 import sys
+import pickle
 import tkinter as tk
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,15 +56,11 @@ def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
 
 def load_file(path=None):
     if path is None:
-        root = tk.Tk()
-        root.withdraw()
         path = filedialog.askopenfilename()
     return path
 
 def load_dir(path=None):
     if path is None:
-        root = tk.Tk()
-        root.withdraw()
         path = filedialog.askdirectory()
     return path
 
@@ -200,3 +197,49 @@ def simplify_regions(regions):
         end = region_ends[i]
         simplified_regions = np.append(simplified_regions, np.array([[start, end]]), axis=0)
     return simplified_regions
+
+def param_sort(params_2d):
+    not_nan_params = np.empty((0, 4))
+    nan_params = np.empty((0, 4))
+    nan_indices = []
+    for i in range(0, len(params_2d)):
+        if any(np.isnan(params_2d[i])):
+            nan_indices.append(i)
+            nan_params = np.append(nan_params, [params_2d[i]], axis=0)
+        else:
+            not_nan_params = np.append(not_nan_params, [params_2d[i]], axis=0)
+    not_nan_params = not_nan_params[not_nan_params[:,1].argsort()]
+    final_params = np.empty((0, 4))
+    offset = 0
+    for i in range(0, len(params_2d)):
+        if i in nan_indices:
+            offset += 1
+            final_params = np.append(final_params, [[np.nan, np.nan, np.nan, np.nan]], axis=0)
+        else:
+            final_params = np.append(final_params, [not_nan_params[i - offset]], axis=0)
+    return final_params
+
+def append_params_3d(p1, p2):
+    """
+    Adds new Lorentzians to an existing set of parameters.
+    Does not add later data points of existing Lorentzians!
+    """
+    p3 = []
+    if not len(p1) == len(p2):
+        raise ValueError("Parameters not of the same length.")
+    else:
+        for i in range(0, len(p1)):
+            combined = np.append(p1[i], p2[i], axis=0)
+            p3.append(combined)
+    return np.array(p3)
+
+def save(object, path=None):
+    if path is None:
+        path = filedialog.asksaveasfilename(filetypes = (("python objects", "*.pkl"), ("all files", "*.*")))
+    pickle.dump(object, open(path, "wb"))
+    return path
+
+def load(path=None):
+    if path is None:
+        path = filedialog.askopenfilename()
+    return pickle.load(open(path, "rb"))

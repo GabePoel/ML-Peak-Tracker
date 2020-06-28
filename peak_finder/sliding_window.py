@@ -114,11 +114,18 @@ def slide_scale(model, v,  min_zoom=5, max_zoom=7, scale=(0,1,1024), overlap=1/4
     window_list = decompose_all(v, max_zoom, scale, overlap, zoom_level=zoom_level)
     prediction_list = []
     for i in util.progressbar(range(0, len(window_list)), 'Zooming: ', progress=progress):
-        prediction_scores = model.predict(window_list[i])
-        if target == 0:
-            prediction_scores = util.bit_invert(prediction_scores)
-        prediction_scores[:, 1] -= confidence_tolerance
-        predictions = np.argmax(prediction_scores, axis=1)
+        if not 1024 in window_list[i].shape:
+            print('Oh No!')
+            print('zoom level is ' + str(min_zoom + i))
+            print('v length is ' + str(len(v)))
+            print(window_list[i])
+            predictions = np.array([])
+        else:
+            prediction_scores = model.predict(window_list[i])
+            if target == 0:
+                prediction_scores = util.bit_invert(prediction_scores)
+            prediction_scores[:, 1] -= confidence_tolerance
+            predictions = np.argmax(prediction_scores, axis=1)
         if i >= min_zoom:
             prediction_list.append(predictions)
         else:

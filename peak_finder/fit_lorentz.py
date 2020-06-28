@@ -172,16 +172,30 @@ def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degene
     return correct_parameters(p_table)
 
 def correct_parameters(p_table):
+    """
+    Puts Lorentzians into a somewhat more standard and consistent form.
+    """
     parameters = np.empty((0, 4))
     for i in range(0, len(p_table)):
-        if p_table[i][2] < 0:
-            A = p_table[i][0]
-            f0 = p_table[i][1]
-            FWHM = -p_table[i][2]
-            phase = np.pi - p_table[i][3]
+        p = p_table[i]
+        if p[2] < 0:
+            A = p[0]
+            f0 = p[1]
+            FWHM = -p[2]
+            phase = np.pi - p[3]
             p = np.array([A, f0, FWHM, phase])
-        else:
-            p = p_table[i]
+        if p[0] < 0:
+            A = -p[0]
+            f0 = p[1]
+            FWHM = p[2]
+            phase = p[3] + np.pi
+            p = np.array([A, f0, FWHM, phase])
+        if p[3] > 2 * np.pi or p[3] < 0:
+            A = p[0]
+            f0 = p[1]
+            FWHM = p[2]
+            phase = np.mod(p[3], 2 * np.pi)
+            p = np.array([A, f0, FWHM, phase])
         parameters = np.append(parameters, np.array([p]), axis=0)
     return parameters
     

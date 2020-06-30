@@ -286,6 +286,54 @@ And since the parameters are preserved in full, we can also see their amplitudes
 
 The phases above may _look_ like they jump around. But, that's just because they're shown modulo 2 pi.
 
+### Other Assorted Features and Keyboard Shortcuts
+
+In the day since the Extremely Quick Guide was written, several other useful features have been added.
+
+![](./images/color_8.png)
+
+You can click "Toggle Enhance" or press "e" to turn on/off Enhance! mode. This enables you to click and drag a rectangular region that gets re-rendered at the maximum resolution. 
+
+![](./images/color_9.png)
+
+It also re-normalizes the color map over this region to reveal things that might have been too small to reveal in genera.
+
+![](./images/color_10.png)
+
+Enhance! mode stays active until you toggle it off. So you can trace out many small regions in one go. If you enhance completely over a region that has already been enhanced then the original region is un-rendered to keep things snappy.
+
+![](./images/color_11.png)
+
+If you enhance so much that things start feeling getting too slow, you can click "(Un)Enhance!" or press "x" to un-render all the enhanced areas. But be warned, they are forgotten. You'll have to manually re-enhance them.
+
+You can also fit over a 2D cross section of the color map by clicking "Preview Parameters" or pressing "p." Clicking "Inspire Me!" also does this, but it uses machine learning to try and predict where the Lorentzians are before opening the preview.
+
+![](./images/color_12.png)
+
+Finally, you can pass some fitted parameters _back into color selection_ to see how the fits look over the color plot. For example:
+
+`selections = color_selection(data_files, parameters=tracked_peaks)`
+
+![](./images/color_13.png)
+
+The parameters are included in the outputted selections. So, if you then fit over any new selections the output is a combined 3D array with both the old and new parameters.
+
+### All Keyboard Shortcuts
+
+| Mode | Shortcut | Action |
+| :--- | :------- | :----- |
+| Any | "e" | Toggle Enhance! mode. |
+| Any | "x" | Turn off enhancements. |
+| Any | "space" | Toggle display features. |
+| Any | "p" | Open parameter preview. |
+| Any | "i" | Activate "Inspire Me!" |
+| Selection | "enter" | Save current selection. |
+| Selection | "escape" | Restart current selection. |
+| Selection | "control" | Edit vertices in current selection. |
+| Enhance! | "shift" | Draw square area. |
+| Enhance! | "escape" | Restart drawing enhanced area. |
+| Enhance! | "control" | Draw enhanced area from center point. |
+
 ## Quick Start Guide for Peak Tracking
 
 WiP. Will actually finish shortly!

@@ -343,6 +343,7 @@ class Color_Selector:
         self.y_res = y_res
         self.cmap = cmap
         self.data_files = data_files
+        self.parameters = parameters
         ax, collection, colors = make_colors(data_files, max_res=x_res, y_res=y_res, cmap=cmap)
         self.fig = ax.figure
         self.fig.set_size_inches(16, 9)
@@ -462,6 +463,10 @@ class Color_Selector:
             self.enhance()
         elif event.key == 'x':
             self.unenhance()
+        elif event.key == 'p':
+            self.horizontal_selection()
+        elif event.key == 'i':
+            self.inspire_me()
 
     def disconnect(self):
         self.poly.set_visible(False)
@@ -558,6 +563,11 @@ class Color_Selector:
 
     def find_params(self, index):
         existing_params = self.make_params_from_selection(index)
+        if self.parameters is not None:
+            for i in range(0, len(self.parameters[index])):
+                p = self.parameters[index][i]
+                if not any(np.isnan(p)):
+                    existing_params = np.append(existing_params, [p], axis=0)
         params = live_selection(self.data_files[index], params=existing_params)
         return params
 
@@ -681,7 +691,7 @@ def check_contains(old_area, new_area):
 def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None):
     y_res = min(y_res / len(data_files), 1)
     selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters)
-    return selector.selections
+    return (selector.selections, selector.parameters)
 
 def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     x = np.empty((0,))

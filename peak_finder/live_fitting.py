@@ -17,6 +17,7 @@ from scipy.optimize import curve_fit
 from . import fit_lorentz as fl
 from . import generate_lorentz as gl
 from . import classify_data as cd
+from . import automatic as auto
 
 option_colors = {
     "Cool": "cool",
@@ -29,7 +30,7 @@ option_colors = {
     "Bone": "bone",
     "Pink": "pink",
     "Spring": "spring",
-    "SUmmer": "summer",
+    "Summer": "summer",
     "Autumn": "autumn",
     "Winter": "winter",
     "Wistia": "Wistia",
@@ -51,6 +52,19 @@ option_colors = {
     "GIST Rainbow": "gist_rainbow",
     "Rainbow": "rainbow",
     "Jet": "jet"
+}
+
+option_select_colors = {
+    "Blue": "tab:blue",
+    "Orange": "tab:orange",
+    "Green": "tab:green",
+    "Red": "tab:red",
+    "Purple": "tab:purple",
+    "Brown": "tab:brown",
+    "Pink": "tab:pink",
+    "Grey": "tab:grey",
+    "Olive": "tab:olive",
+    "Cyan": "tab:cyan"
 }
 
 def lin(x, a, b):
@@ -324,7 +338,7 @@ class Color_Selector:
     """
     Literally just the SelectFromCollection example.
     """
-    def __init__(self, data_files, alpha_other=0.0, x_res=1000, y_res=1, cmap='cool'):
+    def __init__(self, data_files, alpha_other=0.0, x_res=1000, y_res=1, cmap='cool', parameters=None):
         self.x_res = x_res
         self.y_res = y_res
         self.cmap = cmap
@@ -335,15 +349,19 @@ class Color_Selector:
         self.ax = ax
         self.root = tk.Tk()
         self.root.wm_title("Color Selector")
+        self.patch_color = "tab:red"
+        self.line_color = "tab:red"
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=True)
         self.make_button("Done", command=self.close_window)
         self.make_button("Another!", command=self.another_selection)
-        self.make_button("Toggle Selections", command=self.toggle_show)
+        self.make_button("Toggle Displays", command=self.toggle_show)
         self.make_button("Parameter Preview", command=self.horizontal_selection)
         self.make_button("Toggle Enhance", command=self.enhance)
         self.make_button("(Un)Enhance!", command=self.unenhance)
+        self.make_button("Inspire Me", command=self.inspire_me)
         self.make_cmap_menu()
+        self.make_color_menus()
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side="bottom", expand=True)
@@ -363,11 +381,14 @@ class Color_Selector:
         self.selectors = []
         self.enhanced_renders = []
         self.enhanced_areas = []
+        self.paths = []
         self.show_patches = True
         self.slight_zoom_out()
         self.enhance_mode = False
         self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=2, linestyle=":")
         self.cursor.set_active(False)
+        if not parameters is None:
+            self.plot_parameters(parameters)
         tk.mainloop()
 
     def make_cmap_menu(self):
@@ -378,6 +399,36 @@ class Color_Selector:
         self.opt.pack(in_=self.controls, side="right")
         self.color_variable.set("Color Map")
         self.color_variable.trace("w", self.update_cmap)
+
+    def make_color_menus(self):
+        options = list(option_select_colors.keys())
+        options.sort()
+        self.face_color_variable = tk.StringVar(self.root)
+        self.param_color_variable = tk.StringVar(self.root)
+        self.face_opt = tk.OptionMenu(self.root, self.face_color_variable, *options)
+        self.param_opt = tk.OptionMenu(self.root, self.param_color_variable, *options)
+        self.face_opt.pack(in_=self.controls, side="right")
+        self.param_opt.pack(in_=self.controls, side="right")
+        self.face_color_variable.set("Selection Color")
+        self.param_color_variable.set("Fit Color")
+        self.face_color_variable.trace("w", self.update_patch_color)
+        self.param_color_variable.trace("w", self.update_line_color)
+
+    def update_patch_color(self, *args):
+        patch_color = option_select_colors[self.face_color_variable.get()]
+        for patch in self.patches:
+            patch.set_facecolor(patch_color)
+        self.patch_color = patch_color
+        self.canvas.draw_idle()
+
+    def update_line_color(self, *args):
+        line_color = option_select_colors[self.param_color_variable.get()]
+        for line in self.lines:
+            line.set_color(line_color)
+        for path in self.paths:
+            path[0].set_color(line_color)
+        self.line_color = line_color
+        self.canvas.draw_idle()
 
     def update_cmap(self, *args):
         self.cmap = option_colors[self.color_variable.get()]
@@ -413,6 +464,7 @@ class Color_Selector:
             self.unenhance()
 
     def disconnect(self):
+        self.poly.set_visible(False)
         self.poly.disconnect_events()
         self.canvas.draw_idle()
 
@@ -452,7 +504,7 @@ class Color_Selector:
     def finish_selection(self):
         selection = points_to_ranges(np.array(self.xys[self.ind]), self.data_files, self.x_res)
         self.selections.append(selection)
-        patch = Polygon(self.poly.verts, facecolor='b', alpha=0.3)
+        patch = Polygon(self.poly.verts, facecolor=self.patch_color, alpha=0.3, edgecolor='black', linestyle=':', linewidth=2)
         self.patches.append(patch)
         self.disconnect()
         self.selectors.append(self.poly)
@@ -472,13 +524,17 @@ class Color_Selector:
                 selector.set_visible(False)
             for line in self.lines:
                 line.set_alpha(0)
+            for path in self.paths:
+                path[0].set_alpha(0)
         else:
             for patch in self.patches:
                 patch.set_alpha(0.3)
-            for selector in self.selectors:
-                selector.set_visible(True)
+            # for selector in self.selectors:
+            #     selector.set_visible(True)
             for line in self.lines:
                 line.set_alpha(1)
+            for path in self.paths:
+                path[0].set_alpha(1)
         self.canvas.draw_idle()
 
     def slight_zoom_out(self):
@@ -507,11 +563,11 @@ class Color_Selector:
 
     def display_params(self, params, index):
         f = self.data_files[index].f
-        regions = fl.regions_from_parameters(f, params, extension=1)
+        regions = fl.regions_from_parameters(f, params, extension=2)
         y = np.array([index, index])
         for i in range(0, len(regions)):
             x = regions[i] * self.x_res / len(f)
-            line = Line2D(x, y, color='r')
+            line = Line2D(x, y, color=self.line_color)
             self.lines.append(line)
             self.ax.add_line(line)
         self.canvas.draw_idle()
@@ -521,7 +577,12 @@ class Color_Selector:
         params = self.find_params(index)
         self.display_params(params, index)
 
-    def update_colors(self, cmap='cool'):
+    def inspire_me(self):
+        index = simpledialog.askinteger("Index Selection", "Which index?")
+        params = auto.quick_analyze(self.data_files[index].f, self.data_files[index].r)
+        self.display_params(params, index)
+
+    def update_colors(self, cmap="viridis"):
         max_res = self.x_res
         y_res = self.y_res
         data_files = self.data_files
@@ -602,6 +663,12 @@ class Color_Selector:
         self.enhanced_areas.append(new_area)
         self.canvas.draw_idle()
 
+    def plot_parameters(self, parameters):
+        for i in range(0, len(parameters[0])):
+            x = self.x_res * (parameters[...,i,1] - min(self.data_files[0].f)) / (max(self.data_files[0].f) - min(self.data_files[0].f))
+            y = np.arange(len(parameters))
+            self.paths.append(self.ax.plot(x, y, color=self.line_color))
+
 def check_contains(old_area, new_area):
     checks = [
         old_area[0] >= new_area[0],
@@ -611,12 +678,12 @@ def check_contains(old_area, new_area):
     ]
     return all(checks)
 
-def color_selection(data_files, x_res=1000, y_res=100, cmap='cool'):
+def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None):
     y_res = min(y_res / len(data_files), 1)
-    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap)
+    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters)
     return selector.selections
 
-def make_colors(data_files, max_res=1000, y_res=1, cmap='cool'):
+def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     x = np.empty((0,))
     y = np.empty((0,))
     z = np.empty((0, max_res))

@@ -292,7 +292,7 @@ In the day since the Extremely Quick Guide was written, several other useful fea
 
 ![](./images/color_8.png)
 
-You can click "Toggle Enhance" or press "e" to turn on/off Enhance! mode. This enables you to click and drag a rectangular region that gets re-rendered at the maximum resolution. 
+You can click "Toggle Enhance!" or press "e" to turn on/off Enhance! mode. This enables you to click and drag a rectangular region that gets re-rendered at the maximum resolution. 
 
 ![](./images/color_9.png)
 

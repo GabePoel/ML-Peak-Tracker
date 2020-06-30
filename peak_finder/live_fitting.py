@@ -363,7 +363,7 @@ class Color_Selector:
         self.make_button("Another!", command=self.another_selection)
         self.make_button("Toggle Displays", command=self.toggle_show)
         self.make_button("Parameter Preview", command=self.horizontal_selection)
-        self.make_button("Toggle Enhance", command=self.enhance)
+        self.make_button("Toggle Enhance!", command=self.enhance)
         self.make_button("(Un)Enhance!", command=self.unenhance)
         self.make_button("Inspire Me", command=self.inspire_me)
         self.make_cmap_menu()

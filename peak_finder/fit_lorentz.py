@@ -200,11 +200,11 @@ def correct_parameters(p_table):
         parameters = np.append(parameters, np.array([p]), axis=0)
     return parameters
     
-def regions_from_parameters(f, p):
+def regions_from_parameters(f, p, extension=2):
     regions = np.empty((0, 2))
     for i in range(0, len(p)):
-        f_min = p[i][1] - 2 * p[i][2]
-        f_max = p[i][1] + 2 * p[i][2]
+        f_min = p[i][1] - extension * p[i][2]
+        f_max = p[i][1] + extension * p[i][2]
         ind_min = util.find_nearest_index(f, f_min)
         ind_max = util.find_nearest_index(f, f_max)
         region = np.array([[ind_min, ind_max]])

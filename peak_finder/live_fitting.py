@@ -3,7 +3,9 @@ util.matplotlib_mac_fix()
 import numpy as np
 import tkinter as tk
 import PySimpleGUI as sg
+from tkinter import simpledialog
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.widgets import RectangleSelector
@@ -15,6 +17,41 @@ from scipy.optimize import curve_fit
 from . import fit_lorentz as fl
 from . import generate_lorentz as gl
 from . import classify_data as cd
+
+option_colors = {
+    "Cool": "cool",
+    "Viridis": "viridis",
+    "Plasma": "plasma",
+    "Inferno": "inferno",
+    "Magma": "magma",
+    "Cividis": "cividis",
+    "Gray": "gray",
+    "Bone": "bone",
+    "Pink": "pink",
+    "Spring": "spring",
+    "SUmmer": "summer",
+    "Autumn": "autumn",
+    "Winter": "winter",
+    "Wistia": "Wistia",
+    "Hot": "hot",
+    "Copper": "copper",
+    "Spectral": "Spectral",
+    "Twilight": "twilight",
+    "Twilight Shifted": "twilight_shifted",
+    "HSV": "hsv",
+    "Ocean": "ocean",
+    "GIST Earth": "gist_earth",
+    "Terrain": "terrain",
+    "GIST Stern": "gist_stern",
+    "GNU Plot": "gnuplot",
+    "GNU Plot 2": "gnuplot2",
+    "CMR Map": "CMRmap",
+    "Cube Helix": "cubehelix",
+    "Blue Red Green": "brg",
+    "GIST Rainbow": "gist_rainbow",
+    "Rainbow": "rainbow",
+    "Jet": "jet"
+}
 
 def lin(x, a, b):
     return x * b + a
@@ -289,9 +326,10 @@ class Color_Selector:
     """
     def __init__(self, data_files, alpha_other=0.0, x_res=1000, y_res=1, cmap='cool'):
         self.x_res = x_res
+        self.y_res = y_res
         self.cmap = cmap
         self.data_files = data_files
-        ax, collection = make_colors(data_files, max_res=x_res, y_res=y_res, cmap=cmap)
+        ax, collection, colors = make_colors(data_files, max_res=x_res, y_res=y_res, cmap=cmap)
         self.fig = ax.figure
         self.fig.set_size_inches(16, 9)
         self.ax = ax
@@ -302,6 +340,10 @@ class Color_Selector:
         self.make_button("Done", command=self.close_window)
         self.make_button("Another!", command=self.another_selection)
         self.make_button("Toggle Selections", command=self.toggle_show)
+        self.make_button("Parameter Preview", command=self.horizontal_selection)
+        self.make_button("Toggle Enhance", command=self.enhance)
+        self.make_button("(Un)Enhance!", command=self.unenhance)
+        self.make_cmap_menu()
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side="bottom", expand=True)
@@ -309,17 +351,37 @@ class Color_Selector:
         self.toolbar.update()
         self.canvas._tkcanvas.pack()
         self.collection = collection
+        self.colors = colors
         self.xys = collection.get_offsets()
         self.Npts = len(self.xys)
-        self.poly = PolygonSelector(ax, self.on_select)
+        self.poly = PolygonSelector(ax, self.on_select, useblit=False)
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
         self.ind = []
         self.selections = []
         self.patches = []
+        self.lines = []
         self.selectors = []
+        self.enhanced_renders = []
+        self.enhanced_areas = []
         self.show_patches = True
         self.slight_zoom_out()
+        self.enhance_mode = False
+        self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=2, linestyle=":")
+        self.cursor.set_active(False)
         tk.mainloop()
+
+    def make_cmap_menu(self):
+        options = list(option_colors.keys())
+        options.sort()
+        self.color_variable = tk.StringVar(self.root)
+        self.opt = tk.OptionMenu(self.root, self.color_variable, *options)
+        self.opt.pack(in_=self.controls, side="right")
+        self.color_variable.set("Color Map")
+        self.color_variable.trace("w", self.update_cmap)
+
+    def update_cmap(self, *args):
+        self.cmap = option_colors[self.color_variable.get()]
+        self.update_colors(cmap=self.cmap)
 
     def reload(self):
         self.canvas._tkcanvas.pack_forget()
@@ -345,10 +407,31 @@ class Color_Selector:
             self.another_selection()
         elif event.key == ' ':
             self.toggle_show()
+        elif event.key == 'e':
+            self.enhance()
+        elif event.key == 'x':
+            self.unenhance()
 
     def disconnect(self):
         self.poly.disconnect_events()
         self.canvas.draw_idle()
+
+    def on_rec_select(self, click, release):
+        if self.enhance_mode:
+            self.cursor.set_active(True)
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+            x1, y1 = click.xdata, click.ydata
+            x2, y2 = release.xdata, release.ydata
+            x_min, x_max = min(x1, x2), max(x1, x2)
+            y_min, y_max = min(y1, y2), max(y1, y2)
+            self.render_enhance(x_min, x_max, y_min, y_max)
+        else:
+            self.cursor.set_active(False)
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+            self.rec_select.disconnect_events()
+            self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
 
     def make_button(self, text, command):
         button = tk.Button(master=self.root, text=text, command=command)
@@ -377,7 +460,7 @@ class Color_Selector:
 
     def another_selection(self):
         self.finish_selection()
-        self.poly = PolygonSelector(self.ax, self.on_select)
+        self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
         self.ind = []
 
     def toggle_show(self):
@@ -387,22 +470,146 @@ class Color_Selector:
                 patch.set_alpha(0)
             for selector in self.selectors:
                 selector.set_visible(False)
+            for line in self.lines:
+                line.set_alpha(0)
         else:
             for patch in self.patches:
                 patch.set_alpha(0.3)
             for selector in self.selectors:
                 selector.set_visible(True)
+            for line in self.lines:
+                line.set_alpha(1)
         self.canvas.draw_idle()
 
     def slight_zoom_out(self):
-        # x_lim = self.ax.get_xlim()
         y_lim = self.ax.get_ylim()
-        # x_delta = x_lim[1] - x_lim[0]
         y_delta = y_lim[1] - y_lim[0]
-        # new_x_lim = (x_lim[0] - 0.1 * x_delta, x_lim[1] + 0.1 * x_delta)
         new_y_lim = (y_lim[0] - 0.1 * y_delta, y_lim[1] + 0.1 * y_delta)
-        # self.ax.set_xlim(new_x_lim[0], new_x_lim[1])
         self.ax.set_ylim(new_y_lim[0], new_y_lim[1])
+
+    def make_params_from_selection(self, index):
+        params = np.empty((0, 4))
+        for i in range(0, len(self.selections)):
+            try:
+                f = self.data_files[index].f
+                v = self.data_files[index].r
+                regions = self.selections[i][index]
+                p = fl.parameters_from_regions(f, v, regions)
+                params = np.append(params, p, axis=0)
+            except:
+                pass
+        return params
+
+    def find_params(self, index):
+        existing_params = self.make_params_from_selection(index)
+        params = live_selection(self.data_files[index], params=existing_params)
+        return params
+
+    def display_params(self, params, index):
+        f = self.data_files[index].f
+        regions = fl.regions_from_parameters(f, params, extension=1)
+        y = np.array([index, index])
+        for i in range(0, len(regions)):
+            x = regions[i] * self.x_res / len(f)
+            line = Line2D(x, y, color='r')
+            self.lines.append(line)
+            self.ax.add_line(line)
+        self.canvas.draw_idle()
+
+    def horizontal_selection(self):
+        index = simpledialog.askinteger("Index Selection", "Which index?")
+        params = self.find_params(index)
+        self.display_params(params, index)
+
+    def update_colors(self, cmap='cool'):
+        max_res = self.x_res
+        y_res = self.y_res
+        data_files = self.data_files
+        z = np.empty((0, max_res))
+        y_skip = int(np.round(1 / y_res))
+        for i in range(0, len(data_files)):
+            if i % y_skip == 0:
+                z0 = data_files[i].r
+                z0 = cd.scale_zoom(z0, 0, 1)
+                z0 = cd.normalize_1d(z0, (min(z0), max(z0), max_res))
+                coef = np.polyfit(np.arange(max_res), z0, 3)
+                bg = np.poly1d(coef)
+                z0 -= bg(np.arange(0, max_res))
+                z = np.append(z, [z0], axis=0)
+        color_x = np.linspace(0, max_res, max_res)
+        color_y = np.linspace(0, len(data_files), len(z))
+        self.colors.remove()
+        self.colors = self.ax.pcolormesh(color_x, color_y, z, cmap=cmap)
+        for render in self.enhanced_renders:
+            render.remove()
+        self.enhanced_renders = []
+        areas_to_enhance = self.enhanced_areas
+        self.enhanced_areas = []
+        for area in areas_to_enhance:
+            self.render_enhance(area[0], area[1], area[2], area[3])
+        self.canvas.draw_idle()
+
+    def enhance(self):
+        self.enhance_mode = not self.enhance_mode
+        try:
+            self.poly.set_visible(False)
+            self.disconnect()
+        except:
+            pass
+        self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box")
+
+    def unenhance(self):
+        for render in self.enhanced_renders:
+            render.remove()
+        self.enhanced_renders = []
+        self.enhanced_areas = []
+        self.canvas.draw_idle()
+
+    def render_enhance(self, x_min, x_max, y_min, y_max):
+        x_min = max(x_min, 0)
+        x_max = min(x_max, self.x_res)
+        y_min = max(y_min, 0)
+        y_max = min(y_max, len(self.data_files))
+        full_res = len(self.data_files[0].f)
+        y_min = int(np.round(y_min))
+        y_max = int(np.round(y_max))
+        full_x_min = int(np.round(x_min / self.x_res * full_res))
+        full_x_max = int(np.round(x_max / self.x_res * full_res))
+        max_res = len(self.data_files[0].f[full_x_min:full_x_max])
+        data_files = self.data_files
+        z = np.empty((0, max_res))
+        for i in range(y_min, y_max):
+            z0 = data_files[i].r[full_x_min:full_x_max]
+            z0 = cd.scale_zoom(z0, 0, 1)
+            z0 = cd.normalize_1d(z0, (min(z0), max(z0), max_res))
+            coef = np.polyfit(np.arange(max_res), z0, 3)
+            bg = np.poly1d(coef)
+            z0 -= bg(np.arange(0, max_res))
+            z = np.append(z, [z0], axis=0)
+        color_x = np.linspace(x_min, x_max, max_res)
+        color_y = np.linspace(y_min, y_max, len(z))
+        self.enhanced_renders.append(self.ax.pcolormesh(color_x, color_y, z, cmap=self.cmap))
+        new_area = (x_min, x_max, y_min, y_max)
+        bad_areas = []
+        for i in range(0, len(self.enhanced_areas)):
+            old_area = self.enhanced_areas[i]
+            if check_contains(old_area, new_area):
+                bad_areas.append(i)
+                self.enhanced_renders[i].remove()
+        for i in range(len(bad_areas) - 1, -1, -1):
+            self.enhanced_renders.pop(bad_areas[i])
+            self.enhanced_areas.pop(bad_areas[i])
+        self.enhanced_areas.append(new_area)
+        self.canvas.draw_idle()
+
+def check_contains(old_area, new_area):
+    checks = [
+        old_area[0] >= new_area[0],
+        old_area[1] <= new_area[1],
+        old_area[2] >= new_area[2],
+        old_area[3] <= new_area[3]
+    ]
+    return all(checks)
 
 def color_selection(data_files, x_res=1000, y_res=100, cmap='cool'):
     y_res = min(y_res / len(data_files), 1)
@@ -431,8 +638,8 @@ def make_colors(data_files, max_res=1000, y_res=1, cmap='cool'):
     fig = Figure()
     ax = fig.add_subplot(111)
     pts = ax.scatter(x, y, alpha=0)
-    ax.pcolormesh(color_x, color_y, z, cmap=cmap)
-    return ax, pts
+    colors = ax.pcolormesh(color_x, color_y, z, cmap=cmap)
+    return ax, pts, colors
 
 def points_to_ranges(points, data_files, res):
     point_matching = []
@@ -461,12 +668,14 @@ def points_to_ranges(points, data_files, res):
             pass
     return range_dict
 
-def live_selection(data_file):
+def live_selection(data_file, params=None):
     f = data_file.f
     x = data_file.x
     y = data_file.y
     r = data_file.r
     live = Live_Instance(f, r)
     live.import_all_data(x, y)
+    if not params is None:
+        live.import_lorentzians(params)
     live.activate()
     return live.get_all_params()

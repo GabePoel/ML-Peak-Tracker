@@ -251,13 +251,15 @@ def load(path=None):
         path = filedialog.askopenfilename()
     return pickle.load(open(path, "rb"))
 
-def import_tdms_files(path=None):
+def import_tdms_files(path=None, show=True):
     """
     Makes a list out of all the imported tdms files in chosen directory.
     """
     path = load_dir(path)
     names = os.listdir(path)
     data_files = []
+    if show:
+        print(path)
     for name in names:
         if name[-5:] == '.tdms':
             stamp = name[:-5]

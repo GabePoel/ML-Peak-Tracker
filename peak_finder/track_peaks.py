@@ -8,15 +8,6 @@ from . import utilities as util
 from . import models
 from . import automatic
 
-def get_temperatures(data_files):
-    """
-    Get a temperature array from a list of data files.
-    """
-    temperatures = []
-    for i in range(0, len(data_files)):
-        temperatures.append(float(data_files[i].start_temp[0:-1]))
-    return np.array(temperatures)
-
 def find_last_peak(params_3d, index):
     """
     Finds the parameters for the last time a given Lorentzian wasn't a nan array.

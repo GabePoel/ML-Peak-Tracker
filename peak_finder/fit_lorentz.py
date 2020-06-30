@@ -333,6 +333,7 @@ def parameters_from_selections(data_files, region_selections):
     sg.one_line_progress_meter_cancel('-key-')
     all_peaks = []
     counter = 0
+    region_selections, params_selections = region_selections[0], region_selections[1]
     for i in util.progressbar(range(0, len(data_files)), "Fitting: ", progress=False):
         all_peaks.append(np.empty((0, 4)))
         for j in range(0, len(region_selections)):
@@ -349,4 +350,7 @@ def parameters_from_selections(data_files, region_selections):
             all_peaks[i] = np.append(all_peaks[i], params, axis=0)
             counter += 1
     sg.one_line_progress_meter_cancel('-key-')
-    return np.array(all_peaks)
+    all_peaks = np.array(all_peaks)
+    if not params_selections is None:
+        all_peaks = util.append_params_3d(all_peaks, params_selections)
+    return all_peaks

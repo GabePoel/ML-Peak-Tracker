@@ -344,10 +344,15 @@ class Color_Selector:
         self.cmap = cmap
         self.data_files = data_files
         self.parameters = parameters
-        ax, collection, colors = make_colors(data_files, max_res=x_res, y_res=y_res, cmap=cmap)
-        self.fig = ax.figure
-        self.fig.set_size_inches(16, 9)
-        self.ax = ax
+        self.setup_plot()
+        self.setup_interface()
+        self.setup_connections()
+        self.setup_trackers()
+        if not parameters is None:
+            self.plot_parameters(parameters)
+        tk.mainloop()
+
+    def setup_interface(self):
         self.root = tk.Tk()
         self.root.wm_title("Color Selector")
         self.patch_color = "tab:red"
@@ -369,12 +374,18 @@ class Color_Selector:
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.root)
         self.toolbar.update()
         self.canvas._tkcanvas.pack()
-        self.collection = collection
-        self.colors = colors
-        self.xys = collection.get_offsets()
+        self.enhance_mode = False
+
+    def setup_plot(self):
+        self.ax, self.collection, self.colors = make_colors(self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
+        self.fig = self.ax.figure
+        self.fig.set_size_inches(16, 9)
+        self.xys = self.collection.get_offsets()
         self.Npts = len(self.xys)
-        self.poly = PolygonSelector(ax, self.on_select, useblit=False)
-        self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
+        self.show_patches = True
+        self.slight_zoom_out()
+
+    def setup_trackers(self):
         self.ind = []
         self.selections = []
         self.patches = []
@@ -383,14 +394,14 @@ class Color_Selector:
         self.enhanced_renders = []
         self.enhanced_areas = []
         self.paths = []
-        self.show_patches = True
-        self.slight_zoom_out()
-        self.enhance_mode = False
+
+    def setup_connections(self):
+        self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
         self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=2, linestyle=":")
         self.cursor.set_active(False)
-        if not parameters is None:
-            self.plot_parameters(parameters)
-        tk.mainloop()
+        self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box")
+        self.rec_select.disconnect_events()
+        self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
 
     def make_cmap_menu(self):
         options = list(option_colors.keys())
@@ -475,20 +486,17 @@ class Color_Selector:
 
     def on_rec_select(self, click, release):
         if self.enhance_mode:
-            self.cursor.set_active(True)
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
-            x1, y1 = click.xdata, click.ydata
-            x2, y2 = release.xdata, release.ydata
-            x_min, x_max = min(x1, x2), max(x1, x2)
-            y_min, y_max = min(y1, y2), max(y1, y2)
-            self.render_enhance(x_min, x_max, y_min, y_max)
-        else:
-            self.cursor.set_active(False)
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
-            self.rec_select.disconnect_events()
-            self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
+            try:
+                self.cursor.set_active(True)
+                self.canvas.draw_idle()
+                self.canvas.flush_events()
+                x1, y1 = click.xdata, click.ydata
+                x2, y2 = release.xdata, release.ydata
+                x_min, x_max = min(x1, x2), max(x1, x2)
+                y_min, y_max = min(y1, y2), max(y1, y2)
+                self.render_enhance(x_min, x_max, y_min, y_max)
+            except:
+                pass
 
     def make_button(self, text, command):
         button = tk.Button(master=self.root, text=text, command=command)
@@ -622,12 +630,18 @@ class Color_Selector:
 
     def enhance(self):
         self.enhance_mode = not self.enhance_mode
-        try:
+        if self.enhance_mode:
+            self.cursor.set_active(True)
+            self.rec_select.connect_default_events()
+            self.rec_select.set_visible(True)
+            self.poly.disconnect_events()
             self.poly.set_visible(False)
-            self.disconnect()
-        except:
-            pass
-        self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box")
+        else:
+            self.cursor.set_active(False)
+            self.rec_select.disconnect_events()
+            self.rec_select.set_visible(False)
+            self.poly.connect_default_events()
+            self.poly.set_visible(True)
 
     def unenhance(self):
         for render in self.enhanced_renders:

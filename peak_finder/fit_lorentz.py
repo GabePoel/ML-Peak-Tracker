@@ -158,7 +158,7 @@ def extract_parameters(p_list, noise_filter=0):
                 p_table = np.append(p_table, working_p, axis=0)
     return p_table[p_table[:,1].argsort()]
 
-def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degeneracies=True):
+def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degeneracies=True, allowed_delta_ind=10):
     """
     Given regions for analysis, frequency, displacement, will return parameters for the fit Lorentzians.
     """
@@ -169,7 +169,7 @@ def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degene
         return np.empty((0, 4))
     p_table = extract_parameters(p_list, noise_filter=noise_filter)
     if catch_degeneracies:
-        p_table = remove_degeneracies(p_table, f)
+        p_table = remove_degeneracies(p_table, f, allowed_delta_ind=10)
     return correct_parameters(p_table)
 
 def correct_parameters(p_table):
@@ -329,7 +329,7 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     return new_p_tabel[new_p_tabel[:,1].argsort()]
 
 
-def parameters_from_selections(data_files, region_selections):
+def parameters_from_selections(data_files, region_selections, allowed_delta_ind=5):
     sg.one_line_progress_meter_cancel('-key-')
     all_peaks = []
     counter = 0
@@ -342,7 +342,7 @@ def parameters_from_selections(data_files, region_selections):
                 f = data_files[i].f
                 v = data_files[i].r
                 regions = region_selections[j][i]
-                params = parameters_from_regions(f, v, regions)
+                params = parameters_from_regions(f, v, regions, allowed_delta_ind=allowed_delta_ind)
                 if len(params) == 0:
                     params = np.array([[np.nan, np.nan, np.nan, np.nan]])
             except:

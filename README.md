@@ -51,7 +51,7 @@ This is a 2 by n array of regions where Lorentzians are supposed to be. Within e
 
 This is a 4 by n array with the parameters for a bunch of Lorentzians. Each row is a different Lorentzian and is sorted like so:
 
-`[ amplitude  center frequency  full width at half maximum  phase ]`
+`[ amplitude, center frequency, full width at half maximum, phase ]`
 
 Note that the definition of Lorentzians I am using is the following.
 

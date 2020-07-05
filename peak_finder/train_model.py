@@ -12,7 +12,7 @@ def set_default(parameter, default, num_models=1):
             parameter.append(default)
     return parameter
 
-def passive_train(name='unnamed_model', location=None, data_size=10000, scale=(0,1,1024), expansion=2, noise=True, epochs=1000, overwrite=False, model_design=None, optimizer='Adadelta', loss=None, metrics=['accuracy'], stop_condition=False, steps=1, wiggle=0, verbose=1, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, no_quit=False, progress=True, backup=True, start_n=0, max_n=np.inf):
+def passive_train(name='unnamed_model', location=None, data_size=10000, scale=(0,1,1024), expansion=2, noise=True, epochs=1000, overwrite=False, model_design=None, optimizer='Adadelta', loss=None, metrics=['accuracy'], stop_condition=False, steps=1, wiggle=0, verbose=1, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, no_quit=False, progress=True, backup=True, start_n=0, max_n=np.inf, split=False):
     """
     Passively trains a model that detects whether or not a Lorentzian is present.
     """
@@ -42,7 +42,10 @@ def passive_train(name='unnamed_model', location=None, data_size=10000, scale=(0
         except:
             pass
         print('\nStarting round ' + str(n))
-        train = ed.make_single_data_set(number=data_size, scale=scale, expansion=expansion, noise=noise, wiggle=wiggle, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, progress=progress)
+        if not split:
+            train = ed.make_single_data_set(number=data_size, scale=scale, expansion=expansion, noise=noise, wiggle=wiggle, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, progress=progress)
+        else:
+            train = ed.make_split_data_set(number=data_size, scale=scale, expansion=expansion, noise=noise, wiggle=wiggle, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, progress=progress)
         for i in range(0, steps):
             try:
                 model.save(backup_path)

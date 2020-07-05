@@ -115,7 +115,7 @@ def convert_simple_data_set(simp):
         lorentz_arrays_list[association] = l_arr
     return (background_arrays_list, lorentz_arrays_list, data_arrays_list)
 
-def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True):
+def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True, force_lorentz=False):
     """
     Makes a simple data set of only single Lorentzians.
     """
@@ -142,7 +142,7 @@ def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, 
         np.putmask(f, F > params[0][1] + (right_expansion * params[0][2]), f * 0 - 1)
         v = v[f > 0]
         f = f[f > 0]
-        if np.random.random() > .5:
+        if np.random.random() > .5 and not force_lorentz:
             v -= gl.multi_lorentz_2d(f, params)
             has_lorentz = 0
             if not noise:
@@ -154,4 +154,16 @@ def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, 
         v_norm = cd.normalize_1d(v_norm, scale)
         all_data = np.append(all_data, np.array([v_norm]), axis=0)
         all_lorentz = np.append(all_lorentz, np.array([[has_lorentz]]), axis=0)
+    return (all_lorentz, all_data)
+
+def make_split_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True):
+    initial_results = make_single_data_set(number, scale=scale, noise=noise, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, expansion=expansion, wiggle=wiggle, progress=progress)
+    additional_results = make_single_data_set(number, scale=scale, noise=False, min_noise_amp=0, max_noise_amp=0, min_noise_width=min_noise_width, max_noise_width=max_noise_width, expansion=expansion, wiggle=wiggle, progress=progress)
+    initial_lorentz = initial_results[0]
+    additional_lorentz = additional_results[0]
+    all_data = initial_results[1]
+    all_lorentz = np.linspace(scale[0], scale[1], scale[2])
+    for i in range(0, len(initial_lorentz)):
+        new_lorentz = cd.normalize_1d(initial_lorentz[i] + additional_lorentz[i], scale)
+        all_lorentz = np.append(all_lorentz, [new_lorentz], axis=0)
     return (all_lorentz, all_data)

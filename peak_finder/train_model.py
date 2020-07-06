@@ -1,8 +1,12 @@
 import tensorflow as tf
 import numpy as np
 import os
-from . import efficient_data_generation as ed
-from . import classify_data as cd
+try:
+    from . import efficient_data_generation as ed
+    from . import classify_data as cd
+except:
+    import efficient_data_generation as ed
+    import classify_data as cd
 
 # This is the framework for the passive model training scripts.
 

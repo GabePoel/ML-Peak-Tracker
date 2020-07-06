@@ -1,4 +1,7 @@
-from . import utilities as util
+try:
+    from . import utilities as util
+except:
+    import utilities as util
 util.matplotlib_mac_fix()
 import numpy as np
 import tkinter as tk
@@ -14,10 +17,16 @@ from matplotlib.widgets import Cursor
 from matplotlib.patches import Polygon
 from matplotlib.path import Path
 from scipy.optimize import curve_fit
-from . import fit_lorentz as fl
-from . import generate_lorentz as gl
-from . import classify_data as cd
-from . import automatic as auto
+try:
+    from . import fit_lorentz as fl
+    from . import generate_lorentz as gl
+    from . import classify_data as cd
+    from . import automatic as auto
+except:
+    import fit_lorentz as fl
+    import generate_lorentz as gl
+    import classify_data as cd
+    import automatic as auto
 
 option_colors = {
     "Cool": "cool",

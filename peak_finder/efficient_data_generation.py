@@ -1,12 +1,19 @@
+import multiprocessing as mp
 import numpy as np
 import sys
 import os
 import shutil
 import zipfile
-from . import classify_data as cd
-from . import generate_data as gd
-from . import generate_lorentz as gl
-from . import utilities as util
+try:
+    from . import classify_data as cd
+    from . import generate_data as gd
+    from . import generate_lorentz as gl
+    from . import utilities as util
+except:
+    import classify_data as cd
+    import generate_data as gd
+    import generate_lorentz as gl
+    import utilities as util
 
 # Makes smaller data sets than generate_data that provide the minimum information needed for model fitting.
 # Generally use this unless you need everything else that generate_data provides.
@@ -36,21 +43,33 @@ def associate_lorentz(lorentz_array, index):
         associated_lorentz_array = np.append(associated_lorentz_array, np.array([associated_lorentz]), axis=0)
     return associated_lorentz_array
 
+def add_set(input):
+    i = input[0]
+    noise = input[1]
+    scale = input[2]
+    background_params, lorentz_params, f, v = gl.generate_data(noise)
+    old_f_scale = cd.scale_1d(f)
+    old_v_scale = cd.scale_1d(v)
+    v_norm = cd.normalize_1d(v, scale)
+    l_norm = cd.normalize_lorentz_2d(lorentz_params, old_f_scale, old_v_scale, scale, scale)
+    l_associated = associate_lorentz(l_norm, i)
+    new_data = np.array([v_norm])
+    new_lorentz = l_associated
+    return [new_data, new_lorentz]
+
 def make_simple_data_set(number, scale=(0,1,1024), noise=True, progress=True):
     """
     Makes a pre-normalized data set for training off of.
     """
     all_data = np.empty((0,scale[2]))
     all_lorentz = np.empty((0,5)) # Associated Data, A, f0, FWHM, Phase
-    for i in util.progressbar(range(number), "Generating Data: ", 40, progress=progress):
-        background_params, lorentz_params, f, v = gl.generate_data(noise)
-        old_f_scale = cd.scale_1d(f)
-        old_v_scale = cd.scale_1d(v)
-        v_norm = cd.normalize_1d(v, scale)
-        l_norm = cd.normalize_lorentz_2d(lorentz_params, old_f_scale, old_v_scale, scale, scale)
-        l_associated = associate_lorentz(l_norm, i)
-        all_data = np.append(all_data, np.array([v_norm]), axis=0)
-        all_lorentz = np.append(all_lorentz, l_associated, axis=0)
+    pool = mp.Pool(mp.cpu_count())
+    results = pool.map(add_set, [(i, noise, scale) for i in range(0, number)])
+    # results = [pool.apply(add_set, args=(i, noise, scale)) for i in util.progressbar(range(number), "Generating Data: ", 40, progress=progress)]
+    pool.close()
+    for result in results:
+        all_data = np.append(all_data, result[0], axis=0)
+        all_lorentz = np.append(all_lorentz, result[1], axis=0)
     return (all_lorentz, all_data)
 
 def make_blank_data_set(number, scale=(0,1,1024), noise=True, progress=True):
@@ -115,7 +134,7 @@ def convert_simple_data_set(simp):
         lorentz_arrays_list[association] = l_arr
     return (background_arrays_list, lorentz_arrays_list, data_arrays_list)
 
-def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True, force_lorentz=False):
+def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True, force_lorentz=False, no_norm=False):
     """
     Makes a simple data set of only single Lorentzians.
     """
@@ -142,7 +161,11 @@ def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, 
         np.putmask(f, F > params[0][1] + (right_expansion * params[0][2]), f * 0 - 1)
         v = v[f > 0]
         f = f[f > 0]
-        if np.random.random() > .5 and not force_lorentz:
+        if force_lorentz:
+            no_lorentz_threshold = 1
+        else:
+            no_lorentz_threshold = .5
+        if np.random.random() > no_lorentz_threshold:
             v -= gl.multi_lorentz_2d(f, params)
             has_lorentz = 0
             if not noise:
@@ -151,19 +174,20 @@ def make_single_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, 
         if noise and has_lorentz == 1:
             v_norm += np.linspace(scale[0], scale[1], scale[2]) * (np.random.random() - 0.5) * 2
         v_norm += ((np.linspace(scale[0], scale[1], scale[2]) + (np.random.random() - 0.5) * 30) ** 2) * (np.random.random() - 0.5) * .5
-        v_norm = cd.normalize_1d(v_norm, scale)
+        if not no_norm:
+            v_norm = cd.normalize_1d(v_norm, scale)
         all_data = np.append(all_data, np.array([v_norm]), axis=0)
         all_lorentz = np.append(all_lorentz, np.array([[has_lorentz]]), axis=0)
     return (all_lorentz, all_data)
 
 def make_split_data_set(number, scale=(0,1,1024), noise=True, min_noise_amp=1, max_noise_amp=1, min_noise_width=1, max_noise_width=1, expansion=2, wiggle=0, progress=True):
-    initial_results = make_single_data_set(number, scale=scale, noise=noise, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, expansion=expansion, wiggle=wiggle, progress=progress)
-    additional_results = make_single_data_set(number, scale=scale, noise=False, min_noise_amp=0, max_noise_amp=0, min_noise_width=min_noise_width, max_noise_width=max_noise_width, expansion=expansion, wiggle=wiggle, progress=progress)
-    initial_lorentz = initial_results[0]
-    additional_lorentz = additional_results[0]
-    all_data = initial_results[1]
-    all_lorentz = np.linspace(scale[0], scale[1], scale[2])
-    for i in range(0, len(initial_lorentz)):
-        new_lorentz = cd.normalize_1d(initial_lorentz[i] + additional_lorentz[i], scale)
-        all_lorentz = np.append(all_lorentz, [new_lorentz], axis=0)
+    initial_results = make_single_data_set(number, scale=scale, noise=noise, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, expansion=expansion, wiggle=wiggle, progress=progress, no_norm=True)
+    additional_results = make_single_data_set(number, scale=scale, noise=noise, min_noise_amp=min_noise_amp, max_noise_amp=max_noise_amp, min_noise_width=min_noise_width, max_noise_width=max_noise_width, expansion=expansion, wiggle=wiggle, progress=progress, force_lorentz=True, no_norm=True)
+    all_lorentz = initial_results[0]
+    additional_data = additional_results[1]
+    initial_data = initial_results[1]
+    all_data = np.empty((0, scale[2]))
+    for i in range(0, len(all_lorentz)):
+        v = cd.normalize_1d(initial_data[i] + additional_data[i], scale)
+        all_data = np.append(all_data, [v], axis=0)
     return (all_lorentz, all_data)

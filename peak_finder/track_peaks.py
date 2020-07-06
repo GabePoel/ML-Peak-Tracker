@@ -1,12 +1,20 @@
 import numpy as np
 import PySimpleGUI as sg
 import os
-from . import live_fitting as lf
-from . import fit_lorentz as fl
-from . import sliding_window as sw
-from . import utilities as util
-from . import models
-from . import automatic
+try:
+    from . import live_fitting as lf
+    from . import fit_lorentz as fl
+    from . import sliding_window as sw
+    from . import utilities as util
+    from . import models
+    from . import automatic
+except:
+    import live_fitting as lf
+    import fit_lorentz as fl
+    import sliding_window as sw
+    import utilities as util
+    import models
+    import automatic
 
 def find_last_peak(params_3d, index):
     """

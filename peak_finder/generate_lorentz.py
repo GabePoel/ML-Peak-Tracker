@@ -1,7 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from . import classify_data as cd
-from . import utilities as util
+try:
+    from . import classify_data as cd
+    from . import utilities as util
+except:
+    import classify_data as cd
+    import utilities as util
 
 # Generates Lorentzians and provides functional forms for fitting.
 

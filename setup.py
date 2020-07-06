@@ -26,22 +26,24 @@ setuptools.setup(
         'scipy',
         'matplotlib', 
         'nptdms', 
+        'pysimplegui',
+        'tensorflow'
         ],
-    package_data = {
-        # Include anything found in the "trained_models" subdirectory
-        'peak_finder': [
-            '*',
-            '*/*',
-            '*/*/*',
-            '*/*/*/*'
-            # 'simple_class/*', 
-            # 'simple_class_backup/*', 
-            # 'simple_count/*', 
-            # 'simple_count_backup/*'
-            # 'tight_wiggle/*',
-            # 'tight_wiggle_backup/*',
-            # 'wide_wiggle/*',
-            # 'wide_wiggle_backup/*'
-            ]
-    }
+    # package_data = {
+    #     # Include anything found in the "trained_models" subdirectory
+    #     'peak_finder': [
+    #         '*',
+    #         '*/*',
+    #         '*/*/*',
+    #         '*/*/*/*'
+    #         # 'simple_class/*', 
+    #         # 'simple_class_backup/*', 
+    #         # 'simple_count/*', 
+    #         # 'simple_count_backup/*'
+    #         # 'tight_wiggle/*',
+    #         # 'tight_wiggle_backup/*',
+    #         # 'wide_wiggle/*',
+    #         # 'wide_wiggle_backup/*'
+    #         ]
+    # }
 )

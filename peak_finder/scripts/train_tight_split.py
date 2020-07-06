@@ -2,9 +2,10 @@ import tensorflow as tf
 import os
 import sys
 root = os.getcwd()
-parent = os.path.join(root, '..')
-sys.path.insert(1, parent)
-import train_model as tm
+parent = os.path.dirname(root)
+from peak_finder import train_model as tm
+
+print('parent: ' + str(parent))
 
 # SYLVIA DON'T RUN THIS ONE, I'M DOING THAT
 # Trains the wiggle_hidden_layer_1024 model.

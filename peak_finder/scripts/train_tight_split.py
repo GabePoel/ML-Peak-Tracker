@@ -21,4 +21,4 @@ model = tf.keras.Sequential([
 
 root = os.getcwd()
 location = os.path.join(parent, 'models')
-tm.passive_train(name='tight_split', location=location, data_size=1000, scale=(0,1,1024), expansion=1, noise=True, epochs=1, model_design=model, steps=1, wiggle=2, min_noise_amp=0.01, max_noise_amp=5, min_noise_width=1, max_noise_width=10, no_quit=True, verbose=1, progress=True, split=True)
+tm.passive_train(name='tight_split', location=location, data_size=1000, scale=(0,1,1024), expansion=1, noise=True, epochs=5, model_design=model, steps=5, wiggle=2, min_noise_amp=0.01, max_noise_amp=5, min_noise_width=1, max_noise_width=10, no_quit=True, verbose=1, progress=True, split=True)

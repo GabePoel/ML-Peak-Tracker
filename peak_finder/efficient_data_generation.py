@@ -61,6 +61,7 @@ def make_simple_data_set(number, scale=(0,1,1024), noise=True, progress=True):
     """
     Makes a pre-normalized data set for training off of.
     """
+    print('Generating Data')
     all_data = np.empty((0,scale[2]))
     all_lorentz = np.empty((0,5)) # Associated Data, A, f0, FWHM, Phase
     pool = mp.Pool(mp.cpu_count())

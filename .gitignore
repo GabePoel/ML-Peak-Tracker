@@ -2,3 +2,13 @@ __pycache__
 build
 dist
 peak_finder.egg-info
+simple_class_data.pkl
+simple_class_labels.pkl
+simple_count_data.pkl
+simple_count_labels.pkl
+tight_split_data.pkl
+tight_split_labels.pkl
+tight_wiggle_data.pkl
+tight_wiggle_labels.pkl
+wide_wiggle_data.pkl
+wide_wiggle_labels.pkl

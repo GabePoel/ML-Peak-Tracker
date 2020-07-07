@@ -1,13 +1,23 @@
-from . import automatic as auto
-from . import utilities as util
-from . import models
-from . import generate_lorentz as gl
-from . import fit_lorentz as fl
-from . import sliding_window as sw
-from . import live_fitting as lf
-from . import classify_data as cd
 import numpy as np
 import PySimpleGUI as sg
+try:
+    from . import automatic as auto
+    from . import utilities as util
+    from . import models
+    from . import generate_lorentz as gl
+    from . import fit_lorentz as fl
+    from . import sliding_window as sw
+    from . import live_fitting as lf
+    from . import classify_data as cd
+except:
+    import automatic as auto
+    import utilities as util
+    import models
+    import generate_lorentz as gl
+    import fit_lorentz as fl
+    import sliding_window as sw
+    import live_fitting as lf
+    import classify_data as cd
 
 def remove_background(data_files, start_index=0):
     model = models.tight_lorentzian()

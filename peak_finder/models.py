@@ -2,7 +2,10 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import load_model
 import os
-from . import utilities as util
+try:
+    from . import utilities as util
+except:
+    import utilities as util
 
 def simple_lorentzian():
     """
@@ -26,12 +29,22 @@ def tight_lorentzian():
 
 def wide_lorentzian():
     """
-    A reobuse model that detects Lorentzians on noisy and non-flat data. But, often has a very wide area around the Lorentzians that might then need futher processing.
+    A robust model that detects Lorentzians on noisy and non-flat data. But, often has a very wide area around the Lorentzians that might then need futher processing.
     """
     try:
         model = load_model(os.path.join(os.getcwd(), 'peak_finder', 'trained_models',  'wide_wiggle'))
     except:
         model = load_model(os.path.join(os.getcwd(), 'peak_finder', 'trained_models',  'wide_wiggle_backup'))
+    return model
+
+def split_lorentzian():
+    """
+    A model that tells whether there are one or two Lorentzians in the given input.
+    """
+    try:
+        model = load_model(os.path.join(os.getcwd(), 'peak_finder', 'trained_models', 'simple_count'))
+    except:
+        model = load_model(os.path.join(os.getcwd(), 'peak_finder', 'trained_models', 'simple_count_backup'))
     return model
 
 def import_model(path=None):

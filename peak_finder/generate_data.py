@@ -1,6 +1,9 @@
 import numpy as np
 import os
-from . import generate_lorentz as gl
+try:
+    from . import generate_lorentz as gl
+except:
+    import generate_lorentz as gl
 
 # Generates complete data sets with all the Lorentzians, background, parameters, etc. listed.
 # Generally overkill for model training. Use efficient_data_generation.

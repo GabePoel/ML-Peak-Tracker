@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from . import classify_data as cd
+try:
+    from . import classify_data as cd
+except:
+    import classify_data as cd
 
 # Let's you 'spy' into the data you're working with to see how the models are working.
 

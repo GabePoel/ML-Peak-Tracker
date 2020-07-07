@@ -1,7 +1,10 @@
 import numpy as np
 import PySimpleGUI as sg
 from scipy.optimize import least_squares
-from . import utilities as util
+try:
+    from . import utilities as util
+except:
+    import utilities as util
 
 def estimate_parameters(f, v, n=1, estimate_background=True):
     """
@@ -81,7 +84,7 @@ def multi_lorentz_residual_fit(p, f, z, w):
     """
     return (multi_lorentz_fit(p, f) - z) * w
 
-def set_n_least_squares(f, v, n=1, noise_filter=0, delta_f=None):
+def set_n_least_squares(f, v, n=1, noise_filter=0, delta_f=None, method='lm', ftol=None, gtol=None, xtol=1e-15):
     """
     A least squares fit using the specified number of Lorentzians.
     """
@@ -106,10 +109,13 @@ def set_n_least_squares(f, v, n=1, noise_filter=0, delta_f=None):
     bounds[1][-2] = np.inf
     bounds[1][-1] = np.inf
     bounds = (np.array(bounds[0]), np.array(bounds[1]))
-    try:
-        fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=None, gtol=None, xtol=1e-15, args=(f, v, np.ones(len(f))), method='lm')
-    except:
-        fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=None, gtol=None, xtol=1e-15, args=(f, v, np.ones(len(f))), bounds=bounds)
+    if method == 'lm':
+        try:
+            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), method='lm')
+        except:
+            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), bounds=bounds)
+    else:
+        fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), bounds=bounds)
     return fit, check_bounds(fit.x, bounds, noise_filter=noise_filter, delta_f=delta_f)
 
 def free_n_least_squares(f, v, max_n=3, noise_filter=0, force_fit=False):

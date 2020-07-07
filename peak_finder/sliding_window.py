@@ -1,6 +1,10 @@
 import numpy as np
-from . import classify_data as cd
-from . import utilities as util
+try:
+    from . import classify_data as cd
+    from . import utilities as util
+except:
+    import classify_data as cd
+    import utilities as util
 
 # Break down into several different size scales
 # For each size scale, slide over window and say if there is a Lorentzian there or not

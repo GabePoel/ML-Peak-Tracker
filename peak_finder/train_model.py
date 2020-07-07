@@ -1,8 +1,15 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import tensorflow as tf
 import numpy as np
-import os
-from . import efficient_data_generation as ed
-from . import classify_data as cd
+try:
+    from . import utilities as util
+    from . import efficient_data_generation as ed
+    from . import classify_data as cd
+except:
+    import utilities as util
+    import efficient_data_generation as ed
+    import classify_data as cd
 
 # This is the framework for the passive model training scripts.
 
@@ -78,6 +85,8 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
     """
     path = os.path.join(location, name)
     backup_path = os.path.join(location, name + '_backup')
+    data_path = os.path.join(location, name + '_data.pkl')
+    labels_path = os.path.join(location, name + '_labels.pkl')
     if model_design is None:
         model = tf.keras.Sequential([
             tf.keras.layers.Dense(scale[2], activation='relu'),
@@ -89,22 +98,32 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
     if os.path.exists(path) and not overwrite:
         try:
             model = tf.keras.models.load_model(path)
+            print('\nModel successfully loaded.')
         except:
-            print('Latest model was corrupted. Loading backup model instead.')
+            print('\nLatest model was corrupted. Loading backup model instead.')
             model = tf.keras.models.load_model(backup_path)
     if loss is None:
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
     n = 0
-    def train_routine():
+    try:
+        running_data = util.load(data_path)
+        running_labels = util.load(labels_path)
+        print('Existing data and labels successfully loaded.')
+    except:
+        running_data = np.empty((0, scale[2]))
+        running_labels = np.empty((0,))
+        print('No existing data and labels found.')
+    def train_routine(running_data, running_labels):
         try:
             model.save(backup_path)
         except:
             pass
-        print('Starting round ' + str(n))
+        print('\n---------- Starting round ' + str(n) + ' ----------\n')
         simp = ed.make_simple_data_set(number=data_size, scale=scale, noise=noise)
         block = ed.convert_simple_data_set(simp)
         labels, data = cd.pre_process_for_equal_classifying(block)
+        print('Now training over new data.')
         for i in range(0, steps):
             try:
                 model.save(backup_path)
@@ -113,17 +132,34 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
             model.fit(data, labels, epochs=epochs, verbose=verbose)
             model.save(path)
             print('Done with step ' + str(i + 1) + ' of ' + str(steps) + ' for round ' + str(n))
+        running_data = last_n(np.append(running_data, data, axis=0))
+        running_labels = last_n(np.append(running_labels, labels, axis=0))
+        print('Now training over old data.')
+        model.fit(running_data, running_labels, verbose=verbose)
+        model.save(path)
+        util.save(running_data, data_path)
+        util.save(running_labels, labels_path)
         print('Done with round ' + str(n))
+        return running_data, running_labels
     print('\n---------- Setup Complete ----------\n')
     if no_quit:
         while not stop_condition:
             try:
                 n += 1
-                train_routine()
+                running_data, running_labels = train_routine(running_data, running_labels)
             except:
                 n -= 1
                 print('An error occured. Restarting round.')
     else:
         while not stop_condition:
             n += 1
-            train_routine()
+            running_data, running_labels = train_routine(running_data, running_labels)
+
+def last_n(arr, n=50000):
+    m = len(arr)
+    n = min(n, m)
+    # print(arr)
+    if len(arr.shape) == 2:
+        return arr[max(m - n, 0):n, :]
+    else:
+        return arr[max(m - n, 0):n]

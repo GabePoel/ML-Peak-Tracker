@@ -2,10 +2,9 @@ import tensorflow as tf
 import os
 import sys
 root = os.getcwd()
-parent = os.path.dirname(root)
-from peak_finder import train_model as tm
-
-print('parent: ' + str(parent))
+parent = os.path.join(root, '..')
+sys.path.insert(1, parent)
+import train_model as tm
 
 # SYLVIA DON'T RUN THIS ONE, I'M DOING THAT
 # Trains the wiggle_hidden_layer_1024 model.
@@ -22,4 +21,4 @@ model = tf.keras.Sequential([
 
 root = os.getcwd()
 location = os.path.join(parent, 'models')
-tm.passive_train(name='tight_split', location=location, data_size=1000, scale=(0,1,1024), expansion=1, noise=True, epochs=1, model_design=model, steps=1, wiggle=2, min_noise_amp=0.01, max_noise_amp=5, min_noise_width=1, max_noise_width=10, no_quit=True, verbose=1, progress=True, split=True)
+tm.passive_train(name='tight_split', location=location, data_size=1000, scale=(0,1,1024), expansion=1, noise=True, epochs=5, model_design=model, steps=5, wiggle=2, min_noise_amp=0.01, max_noise_amp=5, min_noise_width=1, max_noise_width=10, no_quit=True, verbose=1, progress=True, split=True)

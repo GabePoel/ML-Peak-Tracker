@@ -1,8 +1,14 @@
 import numpy as np
-from . import sliding_window as sw
-from . import fit_lorentz as fl
-from . import live_fitting as lf
-from . import models
+try:
+    from . import sliding_window as sw
+    from . import fit_lorentz as fl
+    from . import live_fitting as lf
+    from . import models
+except:
+    import sliding_window as sw
+    import fit_lorentz as fl
+    import live_fitting as lf
+    import models
 
 def quick_analyze(f, v, show=True, learn=True):
     if learn:

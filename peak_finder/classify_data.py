@@ -462,7 +462,7 @@ def pre_process_for_classifying(block, scale=(0,1,1024)):
     """
     Pre-processes a data set so that it's ready for a classifying model to be run or trained on it.
     """
-    print('Classifying Data')
+    print('\nClassifying Data')
     lorentz_arrays_list = block[1]
     data_arrays_list = block[2]
     block_size = len(lorentz_arrays_list)

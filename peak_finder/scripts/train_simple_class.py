@@ -19,4 +19,4 @@ model = tf.keras.Sequential([
 ])
 
 location = os.path.join(parent, 'models')
-tm.passive_train(name='simple_class', location=location, data_size=5000, scale=(0,1,1024), expansion=1.5, noise=True, epochs=50W, model_design=model, steps=1, no_quit=True)
+tm.passive_train(name='simple_class', location=location, data_size=5000, scale=(0,1,1024), expansion=1.5, noise=True, epochs=50, model_design=model, steps=1, no_quit=True)

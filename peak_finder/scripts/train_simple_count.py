@@ -22,4 +22,4 @@ model = tf.keras.Sequential([
 
 root = os.getcwd()
 location = os.path.join(parent, 'models')
-tm.passive_class_train(name='simple_count', location=location, data_size=1090, scale=(0,1,1024), noise=True, epochs=2, model_design=model, steps=1, optimizer='adadelta')
+tm.passive_class_train(name='simple_count', location=location, data_size=1000, scale=(0,1,1024), noise=True, epochs=2, model_design=model, steps=1, optimizer='adadelta')

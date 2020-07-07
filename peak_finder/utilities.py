@@ -27,7 +27,11 @@ class Data_File:
         self.cryo_temp = cryo_temp
 
     def import_meta(self, stamp):
-        self.date, self.time, self.start_temp, self.end_temp = stamp.split('_')
+        try:
+            self.date, self.time, self.start_temp, self.end_temp = stamp.split('_')
+        except:
+            self.date, self.time, self.start_temp = stamp.split('_')
+            self.end_temp = self.start_temp
 
 def remove_nans(arr):
     if len(arr.shape) == 1:

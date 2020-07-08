@@ -87,6 +87,7 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
     backup_path = os.path.join(location, name + '_backup')
     data_path = os.path.join(location, name + '_data.pkl')
     labels_path = os.path.join(location, name + '_labels.pkl')
+    n_path = os.path.join(location, name + '_n.pkl')
     if model_design is None:
         model = tf.keras.Sequential([
             tf.keras.layers.Dense(scale[2], activation='relu'),
@@ -105,7 +106,10 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
     if loss is None:
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-    n = 0
+    try:
+        n = util.load(n_path)
+    except:
+        n = 0
     try:
         running_data = util.load(data_path)
         running_labels = util.load(labels_path)
@@ -140,6 +144,7 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
         util.save(running_data, data_path)
         util.save(running_labels, labels_path)
         print('Done with round ' + str(n))
+        util.save(n, n_path)
         return running_data, running_labels
     print('\n---------- Setup Complete ----------\n')
     if no_quit:

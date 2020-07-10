@@ -141,6 +141,7 @@ class Live_Instance():
         self.root.wm_title("Live Peak Finder")
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=True)
+        self.slow_render = True
         if loop:
             self.make_button("Done", command=self.close_window)
             self.make_button("Refresh", command=self.update_window)
@@ -152,6 +153,7 @@ class Live_Instance():
             self.make_button("Lower Components", command=self.lower_components)
             self.make_button("Raise Projection", command=self.raise_projection)
             self.make_button("Lower Projection", command=self.lower_projection)
+            self.make_button("Toggle Quick Render", command=self.toggle_quick_render)
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side="bottom", expand=True)
@@ -162,6 +164,9 @@ class Live_Instance():
         if loop:
             tk.mainloop()
 
+    def toggle_quick_render(self):
+        self.slow_render = not self.slow_render
+
     def make_button(self, text, command):
         button = tk.Button(master=self.root, text=text, command=command)
         button.pack(in_=self.controls, side="left")
@@ -171,14 +176,14 @@ class Live_Instance():
         self.root.destroy()
 
     def update_window(self):
-        self.canvas._tkcanvas.pack_forget()
-        self.toolbar.pack_forget()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        # self.canvas._tkcanvas.pack_forget()
+        # self.toolbar.pack_forget()
+        # self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack(side="bottom", expand=True)
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.root)
-        self.toolbar.update()
-        self.canvas._tkcanvas.pack()
+        # self.canvas.get_tk_widget().pack(side="bottom", expand=True)
+        # self.toolbar = NavigationToolbar2Tk(self.canvas, self.root)
+        # self.toolbar.update()
+        # self.canvas._tkcanvas.pack()
 
     def reset_axes(self):
         self.ax.set_xlim(self.default_x_lim)
@@ -190,39 +195,57 @@ class Live_Instance():
         for l in self.live_lorentzians:
             p = self.live_lorentzians[l].params()
             p_table = np.append(p_table, np.array([p]), axis=0)
+        p_table = fl.correct_parameters(p_table)
         return p_table
 
     def plot_lorentzians(self):
         if not self.first_load:
             x_lim = self.ax.get_xlim()
             y_lim = self.ax.get_ylim()
-        self.ax.cla()
+        if self.slow_render:
+            self.ax.cla()
         p_table = self.get_all_params()
-        if len(p_table) > 0:
-            full_v = gl.multi_lorentz_2d(self.f, p_table)
+        if self.slow_render:
+            if len(p_table) > 0:
+                full_v = gl.multi_lorentz_2d(self.f, p_table)
+            else:
+                full_v = np.zeros((len(self.f),))
+        if self.slow_render:
+            offset = np.mean(self.v) + self.projection_height * np.abs(min(self.v) - max(self.v))
+        for i in range(0, len(p_table)):
+            try:
+                ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
+                self.ax.axvline(x=min(ex_f), color='pink')
+                self.ax.axvline(x=max(ex_f), color='pink')
+            except:
+                pass
+        if self.slow_render:
+            self.ax.plot(self.f, self.v, color='b')
+        if self.slow_render:
+            self.ax.plot(self.f, full_v + offset, color='b')
+        if self.slow_render:
+            to_render = 0
         else:
-            full_v = np.zeros((len(self.f),))
-        offset = self.projection_height * np.abs(min(self.v) - max(self.v))
-        for i in range(0, len(p_table)):
-            ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
-            self.ax.axvline(x=min(ex_f), color='pink')
-            self.ax.axvline(x=max(ex_f), color='pink')
-        self.ax.plot(self.f, self.v, color='b')
-        self.ax.plot(self.f, full_v + offset, color='b')
-        for i in range(0, len(p_table)):
-            og_f, og_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
-            ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, full_v, expansion=2)
-            if self.all_data and self.show_components:
-                small_f, small_x = fl.lorentz_bounds_to_data(p_table[i], self.f, self.x, expansion=2)
-                x_opt, x_cov = curve_fit(lin, small_f, small_x)
-                x_fit = lin(small_f, *x_opt)
-                self.ax.plot(small_f, small_x - x_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='y')
-                small_f, small_y = fl.lorentz_bounds_to_data(p_table[i], self.f, self.y, expansion=2)
-                y_opt, y_cov = curve_fit(lin, small_f, small_y)
-                y_fit = lin(small_f, *y_opt)
-                self.ax.plot(small_f, small_y - y_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='g')
-            self.ax.plot(og_f, og_v, color='r')
-            self.ax.plot(ex_f, ex_v + offset, color='r')
+            to_render = len(p_table) - 1
+        for i in range(to_render, len(p_table)):
+            try:
+                og_f, og_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
+                if self.slow_render:
+                    ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, full_v, expansion=2)
+                if self.all_data and self.show_components:
+                    small_f, small_x = fl.lorentz_bounds_to_data(p_table[i], self.f, self.x, expansion=2)
+                    x_opt, x_cov = curve_fit(lin, small_f, small_x)
+                    x_fit = lin(small_f, *x_opt)
+                    self.ax.plot(small_f, small_x - x_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='y')
+                    small_f, small_y = fl.lorentz_bounds_to_data(p_table[i], self.f, self.y, expansion=2)
+                    y_opt, y_cov = curve_fit(lin, small_f, small_y)
+                    y_fit = lin(small_f, *y_opt)
+                    self.ax.plot(small_f, small_y - y_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='g')
+                self.ax.plot(og_f, og_v, color='r')
+                if self.slow_render:
+                    self.ax.plot(ex_f, ex_v + offset, color='r')
+            except:
+                pass
         if not self.first_load:
             self.ax.set_xlim(x_lim)
             self.ax.set_ylim(y_lim)

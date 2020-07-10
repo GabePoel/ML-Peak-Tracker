@@ -4,6 +4,7 @@ import pickle
 import tkinter as tk
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.interpolate as interp
 from tkinter import filedialog
 from nptdms import TdmsFile
 
@@ -19,19 +20,84 @@ class Data_File:
         self.y = y
         self.f = f
         self.r = np.sqrt(x ** 2 + y ** 2)
+        self.v = self.r
 
     def import_probe_temp(self, probe_temp):
-        self.probe_temp = probe_temp
+        probe_temp = remove_nans(probe_temp)
+        min_T = min(probe_temp)
+        max_T = max(probe_temp)
+        len_T = len(self.f)
+        self.probe_temp = normalize_1d(probe_temp, (min_T, max_T, len_T))
 
     def import_cryo_temp(self, cryo_temp):
-        self.cryo_temp = cryo_temp
+        cryo_temp = remove_nans(cryo_temp)
+        min_T = min(cryo_temp)
+        max_T = max(cryo_temp)
+        len_T = len(self.f)
+        self.cryo_temp = normalize_1d(cryo_temp, (min_T, max_T, len_T))
 
     def import_meta(self, stamp):
         try:
             self.date, self.time, self.start_temp, self.end_temp = stamp.split('_')
+            self.name = stamp
         except:
             self.date, self.time, self.start_temp = stamp.split('_')
             self.end_temp = self.start_temp
+            self.name = stamp
+        self.start_temp = float(self.start_temp[:-1])
+        self.end_temp = float(self.end_temp[:-1])
+
+    def set_temp(self):
+        try:
+            probe_high = max(self.probe_temp)
+            probe_low = min(self.probe_temp)
+            if np.abs(probe_high - 1.875) < .03 and np.abs(probe_low - 1.875) < .03:
+                self.T = self.cryo_temp
+            elif any(np.isnan(self.probe_temp)):
+                self.T = self.cryo_temp
+            else:
+                self.T = self.probe_temp
+        except:
+            self.T = np.linspace(self.start_temp, self.end_temp, len(self.f))
+
+    def get_temp(self, f0):
+        index = find_nearest_index(self.f, f0)
+        return self.T[index]
+
+def scale_1d(x):
+    """
+    Determines the scale values for the given 1D array of data.
+    Scales are structured as (min value, max value, total number of indices).
+    """
+    return (min(x), max(x), len(x))
+
+def match_lengths(arrs):
+    return_arrs = arrs.copy()
+    arrs.sort(key=lambda a:len(a))
+    length = len(arrs[0])
+    for i in range(0, len(return_arrs)):
+        a = return_arrs[i]
+        a = normalize_1d(a, (min(a), max(a), length))
+        return_arrs[i] = a
+    return return_arrs
+
+def normalize_1d(x, scale=(0,1,1024)):
+    """
+    Normalizes a given array of data around the provided scale factor.
+    """
+    new_min = scale[0]
+    new_max = scale[1]
+    new_len = scale[2]
+    (min_x, max_x, old_size) = scale_1d(x)
+    x_norm = (x - min_x) / (max_x - min_x)
+    old_baseline = np.linspace(0, 1, old_size)
+    new_baseline = np.linspace(0, 1, new_len)
+    if len(old_baseline) <= 1:
+        old_baseline = np.array([0, 1])
+        x_norm = np.array([1, 0])
+    x_interp = interp.interp1d(old_baseline, x_norm)
+    x_resized = (x_interp(new_baseline) * (new_max - new_min)) + new_min
+    return x_resized
 
 def remove_nans(arr):
     if len(arr.shape) == 1:
@@ -72,23 +138,26 @@ def import_tdms_file(path=None, show=False):
     """
     Just a wrapper for import_file. Calling it from its original name is depricated and will be removed.
     """
-    return import_file(path=path, show=show)
+    data_file, path = import_file(path=path, show=show, include_path=True)
+    stamp = os.path.basename(path)[:-5]
+    data_file.import_meta(stamp)
+    data_file.set_temp()
+    return data_file
 
-def import_file(path=None, show=False):
+def import_file(path=None, show=False, include_path=False):
     """
     This is deprecated and will be removed. Please call import_tdms_file() instead.
     Import a tdms file. Returns a Data_File object.
     Leave path blank to open a file dialog window and select the file manually. Otherwise pass in a path.
     """
     if path is None:
-        root = tk.Tk()
-        root.withdraw()
         path = filedialog.askopenfilename()
     tdms_file = TdmsFile.read(path)
     channels = tdms_file.groups()[0].channels()
     tdms_f = remove_nans(channels[0][:])
     tdms_x = remove_nans(channels[1][:])
     tdms_y = remove_nans(channels[2][:])
+    [tdms_f, tdms_x, tdms_y] = match_lengths([tdms_f, tdms_x, tdms_y])
     tdms_file = Data_File(tdms_x, tdms_y, tdms_f)
     if len(channels) >= 5:
         tdms_probe_temp = remove_nans(channels[3][:])
@@ -97,6 +166,8 @@ def import_file(path=None, show=False):
         tdms_file.import_cryo_temp(tdms_cryo_temp)
     if show:
         print('Imported file from ' + str(path))
+    if include_path:
+        return tdms_file, path
     return tdms_file
 
 def plot_region(i, regions, f, v, color=None, show_boundaries=False, min_color='g', max_color='g'):
@@ -244,9 +315,9 @@ def append_params_3d(p1, p2):
             p3.append(combined)
     return np.array(p3)
 
-def save(object, path=None):
+def save(object, path=None, name=''):
     if path is None:
-        path = filedialog.asksaveasfilename(filetypes = (("python objects", "*.pkl"), ("all files", "*.*")))
+        path = filedialog.asksaveasfilename(filetypes = (("python objects", "*.pkl"), ("all files", "*.*")), initialfile=name)
     pickle.dump(object, open(path, "wb"))
     return path
 
@@ -270,6 +341,7 @@ def import_tdms_files(path=None, show=True):
             file_path = os.path.join(path, name)
             data_file = import_file(file_path)
             data_file.import_meta(stamp)
+            data_file.set_temp()
             data_files.append(data_file)
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     return data_files

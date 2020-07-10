@@ -160,7 +160,7 @@ def passive_class_train(name='unnamed_model', location=None, data_size=10000, sc
             n += 1
             running_data, running_labels = train_routine(running_data, running_labels)
 
-def last_n(arr, n=50000):
+def last_n(arr, n=10000):
     m = len(arr)
     n = min(n, m)
     # print(arr)

@@ -2,8 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 try:
     from . import classify_data as cd
+    from . import utilities as util
 except:
     import classify_data as cd
+    import utilities as util
 
 # Let's you 'spy' into the data you're working with to see how the models are working.
 
@@ -64,3 +66,17 @@ def preview_data(i, data_set):
     v = cd.normalize_1d(v, (0,1,1024))
     plt.plot(f, v)
     print(cd.disect_lorentz_params_array(lorentz_params)[0])
+
+def scatter_data_files(data_files):
+    for i in range(0, len(data_files)):
+        scale = (0, 1, len(data_files[i].r))
+        f = data_files[i].f
+        r = cd.normalize_1d(data_files[i].r, scale)
+        just_plotted = plt.plot(f, r + i, alpha=0.5)
+        color = just_plotted[0].get_color()
+        if not data_files[i].params is None:
+            pts_f = data_files[i].params[...,1]
+            pts_r = util.scatter_pts(pts_f, f, r)
+            plt.scatter(pts_f, pts_r + i, color=color)
+        plt.text(f[0], r[0] + i, str(data_files[i].T[0]) + ' K ', color=color, ha='right')
+        plt.text(f[-1], r[-1] + i, ' ' + str(data_files[i].T[-1]) + ' K', color=color, ha='left')

@@ -367,9 +367,6 @@ class Live_Instance():
         self.plot_lorentzians()
 
 class Color_Selector:
-    """
-    Literally just the SelectFromCollection example.
-    """
     def __init__(self, data_files, alpha_other=0.0, x_res=1000, y_res=1, cmap='cool', parameters=None):
         self.x_res = x_res
         self.y_res = y_res
@@ -429,7 +426,7 @@ class Color_Selector:
 
     def setup_connections(self):
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
-        self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=2, linestyle=":")
+        self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
         self.cursor.set_active(False)
         self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box")
         self.rec_select.disconnect_events()
@@ -725,6 +722,64 @@ class Color_Selector:
             y = np.arange(len(parameters))
             self.paths.append(self.ax.plot(x, y, color=self.line_color))
 
+class Point_Selector:
+    def __init__(self, data_files):
+        self.data_files = data_files
+        self.chosen_frequencies = []
+        self.setup_interface()
+
+    def setup_interface(self):
+        self.root = tk.Tk()
+        self.root.wm_title("Frequency Selector")
+        self.controls = tk.Frame(self.root)
+        self.controls.pack(side="top", fill="both", expand=True)
+        self.make_button("Done", command=self.close_window)
+        self.fig = Figure()
+        self.ax = self.fig.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.fig, self.root)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack(side="bottom", expand=True)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.root)
+        self.toolbar.update()
+        self.canvas._tkcanvas.pack()
+        self.plot_points()
+        self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        tk.mainloop()
+    
+    def make_button(self, text, command):
+        button = tk.Button(master=self.root, text=text, command=command)
+        button.pack(in_=self.controls, side="left")
+
+    def close_window(self):
+        self.canvas._tkcanvas.pack_forget()
+        self.toolbar.pack_forget()
+        self.canvas.mpl_disconnect(self.on_pick)
+        self.root.quit()
+        self.root.destroy()
+
+    def plot_points(self):
+        for i in range(len(self.data_files)):
+            scale = (0, 1, len(self.data_files[i].r))
+            f = self.data_files[i].f
+            v = cd.normalize_1d(self.data_files[i].r, scale)
+            just_plotted = self.ax.plot(f, v + i, alpha=0.5)
+            color = just_plotted[0].get_color()
+            if not self.data_files[i].params is None:
+                pts_f = self.data_files[i].params[...,1]
+                pts_v = util.scatter_pts(pts_f, f, v)
+                self.ax.scatter(pts_f, pts_v + i, color=color, picker=5)
+            self.ax.text(f[0], v[0] + i, str(self.data_files[i].T[0]) + ' K ', color=color, ha='right')
+            self.ax.text(f[-1], v[-1] + i, ' ' + str(self.data_files[i].T[-1]) + ' K', color=color, ha='left')
+        self.canvas.mpl_connect('pick_event', self.on_pick)
+
+    def on_pick(self, event):
+        coords = event.artist.get_offsets()[event.ind][0]
+        f0 = coords[0]
+        v0 = coords[1]
+        self.chosen_frequencies.append(f0)
+        self.ax.scatter([f0], [v0], color='black')
+        self.canvas.draw_idle()
+
 def check_contains(old_area, new_area):
     checks = [
         old_area[0] >= new_area[0],
@@ -802,3 +857,7 @@ def live_selection(data_file, params=None):
         live.import_lorentzians(params)
     live.activate()
     return live.get_all_params()
+
+def point_selection(data_files, params=None):
+    selector = Point_Selector(data_files)
+    return np.array(selector.chosen_frequencies)

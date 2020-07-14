@@ -21,6 +21,7 @@ class Data_File:
         self.f = f
         self.r = np.sqrt(x ** 2 + y ** 2)
         self.v = self.r
+        self.params = None
 
     def import_probe_temp(self, probe_temp):
         probe_temp = remove_nans(probe_temp)
@@ -63,6 +64,28 @@ class Data_File:
     def get_temp(self, f0):
         index = find_nearest_index(self.f, f0)
         return self.T[index]
+
+    def set_params(self, params):
+        self.params = params
+
+def set_all_params(data_files, params):
+    if type(data_files) is list:
+        for i in range(len(data_files)):
+            data_files[i].set_params(params[i])
+    else:
+        data_files.set_params(params)
+
+def get_all_params(data_files):
+    params = []
+    if type(data_files) is list:
+        for i in range(len(data_files)):
+            params.append(data_files[i].params)
+    else:
+        params = data_files.params
+    try:
+        return np.array(params)
+    except:
+        return params
 
 def scale_1d(x):
     """
@@ -361,3 +384,14 @@ def matplotlib_mac_fix():
     matplotlib.use("TkAgg")
     import matplotlib.pyplot as plt
     importlib.reload(plt)
+
+def scatter_pts(pts, ref_arr, tar_arr):
+    arr = np.empty((0,))
+    for i in range(len(pts)):
+        j = find_nearest_index(pts[i], ref_arr)
+        arr = np.append(arr, [tar_arr[j]])
+    return arr
+
+def save_freqs(f):
+    path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("all files", "*.*")), initialfile=name)
+    np.savetxt(path, f, delimiter='\n', fmt='%10.15f')

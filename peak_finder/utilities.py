@@ -397,7 +397,8 @@ def scatter_pts(pts, ref_arr, tar_arr):
         arr = np.append(arr, [tar_arr[j]])
     return arr
 
-def save_freqs(f):
+def save_freqs(f, name='freqs_kHz.txt'):
+    f = np.sort(f) / 1000
     tk.Tk().withdraw()
     path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("all files", "*.*")), initialfile=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')

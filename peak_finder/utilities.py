@@ -149,11 +149,13 @@ def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
 
 def load_file(path=None):
     if path is None:
+        tk.Tk().withdraw()
         path = filedialog.askopenfilename()
     return path
 
 def load_dir(path=None):
     if path is None:
+        tk.Tk().withdraw()
         path = filedialog.askdirectory()
     return path
 
@@ -174,6 +176,7 @@ def import_file(path=None, show=False, include_path=False):
     Leave path blank to open a file dialog window and select the file manually. Otherwise pass in a path.
     """
     if path is None:
+        tk.Tk().withdraw()
         path = filedialog.askopenfilename()
     tdms_file = TdmsFile.read(path)
     channels = tdms_file.groups()[0].channels()
@@ -340,12 +343,14 @@ def append_params_3d(p1, p2):
 
 def save(object, path=None, name=''):
     if path is None:
+        tk.Tk().withdraw()
         path = filedialog.asksaveasfilename(filetypes = (("python objects", "*.pkl"), ("all files", "*.*")), initialfile=name)
     pickle.dump(object, open(path, "wb"))
     return path
 
 def load(path=None):
     if path is None:
+        tk.Tk().withdraw()
         path = filedialog.askopenfilename()
     return pickle.load(open(path, "rb"))
 
@@ -393,5 +398,6 @@ def scatter_pts(pts, ref_arr, tar_arr):
     return arr
 
 def save_freqs(f):
+    tk.Tk().withdraw()
     path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("all files", "*.*")), initialfile=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')

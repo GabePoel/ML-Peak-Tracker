@@ -723,9 +723,11 @@ class Color_Selector:
             self.paths.append(self.ax.plot(x, y, color=self.line_color))
 
 class Point_Selector:
-    def __init__(self, data_files):
+    def __init__(self, data_files, fs=[]):
         self.data_files = data_files
-        self.chosen_frequencies = []
+        self.picked = []
+        self.pick = True
+        self.chosen_frequencies = fs
         self.setup_interface()
 
     def setup_interface(self):
@@ -734,7 +736,9 @@ class Point_Selector:
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=True)
         self.make_button("Done", command=self.close_window)
+        self.make_button("Delete", command=self.toggle_delete)
         self.fig = Figure()
+        self.fig.set_size_inches(16, 9)
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         self.canvas.draw()
@@ -744,6 +748,9 @@ class Point_Selector:
         self.canvas._tkcanvas.pack()
         self.plot_points()
         self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        if len(self.chosen_frequencies) > 0:
+            for f0 in self.chosen_frequencies:
+                self.picked.append((f0, self.ax.axvline(f0, color='black', linewidth=1)))
         tk.mainloop()
     
     def make_button(self, text, command):
@@ -756,6 +763,14 @@ class Point_Selector:
         self.canvas.mpl_disconnect(self.on_pick)
         self.root.quit()
         self.root.destroy()
+
+    def toggle_delete(self):
+        self.cursor.set_active(False)
+        self.pick = not self.pick
+        if self.pick:
+            self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        else:
+            self.cursor = Cursor(self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
 
     def plot_points(self):
         for i in range(len(self.data_files)):
@@ -774,10 +789,23 @@ class Point_Selector:
 
     def on_pick(self, event):
         coords = event.artist.get_offsets()[event.ind][0]
+        color = event.artist.get_facecolors()[0].tolist()
         f0 = coords[0]
         v0 = coords[1]
-        self.chosen_frequencies.append(f0)
-        self.ax.scatter([f0], [v0], color='black')
+        if self.pick:
+            self.chosen_frequencies.append(f0)
+            self.ax.scatter([f0], [v0], color='black')
+            self.picked.append((f0, self.ax.axvline(f0, color='black', linewidth=1)))
+        else:
+            ind_1 = util.find_nearest_index(np.array(self.chosen_frequencies), f0)
+            f = []
+            for i in range(0, len(self.picked)):
+                f.append(self.picked[i][0])
+            ind_2 = util.find_nearest_index(np.array(f), f0)
+            self.picked[ind_2][1].set_alpha(0)
+            self.picked.pop(ind_2)
+            self.ax.scatter([f0], [v0], color=color)
+            self.toggle_delete()
         self.canvas.draw_idle()
 
 def check_contains(old_area, new_area):
@@ -858,6 +886,9 @@ def live_selection(data_file, params=None):
     live.activate()
     return live.get_all_params()
 
-def point_selection(data_files, params=None):
-    selector = Point_Selector(data_files)
+def point_selection(data_files, params=None, fs=[]):
+    fs = list(fs)
+    if not params is None:
+        util.set_all_params(data_files, params)
+    selector = Point_Selector(data_files, fs)
     return np.array(selector.chosen_frequencies)

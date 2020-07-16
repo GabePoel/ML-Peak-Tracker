@@ -2,8 +2,10 @@ import numpy as np
 import PySimpleGUI as sg
 from scipy.optimize import least_squares
 try:
+    from . import generate_lorentz as gl
     from . import utilities as util
 except:
+    import generate_lorentz as gl
     import utilities as util
 
 def estimate_parameters(f, v, n=1, estimate_background=True):
@@ -360,3 +362,33 @@ def parameters_from_selections(data_files, region_selections, allowed_delta_ind=
     if not params_selections is None:
         all_peaks = util.append_params_3d(all_peaks, params_selections)
     return all_peaks
+
+def spider_fit(data_file, params=None):
+    if params is None:
+        params = data_file.params
+    regions = regions_from_parameters(data_file.f, params)
+    x_params = parameters_from_regions(data_file.f, data_file.x, regions)
+    y_params = parameters_from_regions(data_file.f, data_file.y, regions)
+    return x_params, y_params
+
+def data_file_fit(data_file, params=None, resolution=None):
+    x_params, y_params = spider_fit(data_file, params)
+    f = data_file.f
+    if not resolution is None:
+        f = np.linspace(min(f), max(f), resolution)
+    x = gl.multi_lorentz_2d(f, x_params)
+    y = gl.multi_lorentz_2d(f, y_params)
+    new_data_file = util.Data_File(x, y, f)
+    new_data_file.import_meta(data_file.name)
+    new_data_file.T = data_file.T
+    new_data_file.set_params(params)
+    return new_data_file
+
+def data_from_region(data_file, region):
+    x = data_file.x
+    y = data_file.y
+    return x[int(region[0]):int(region[1])], y[int(region[0]):int(region[1])]
+
+def data_from_parameters(data_file, params, index=0):
+    regions = regions_from_parameters(data_file.f, params)
+    return data_from_region(data_file, regions[index])

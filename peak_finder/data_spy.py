@@ -2,9 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 try:
     from . import classify_data as cd
+    from . import fit_lorentz as fl
     from . import utilities as util
 except:
     import classify_data as cd
+    import fit_lorentz as fl
     import utilities as util
 
 # Let's you 'spy' into the data you're working with to see how the models are working.
@@ -80,3 +82,13 @@ def scatter_data_files(data_files):
             plt.scatter(pts_f, pts_r + i, color=color)
         plt.text(f[0], r[0] + i, str(data_files[i].T[0]) + ' K ', color=color, ha='right')
         plt.text(f[-1], r[-1] + i, ' ' + str(data_files[i].T[-1]) + ' K', color=color, ha='left')
+
+def spider_plot(data_file, params=None, bg=True, color_1=None, color_2=None):
+    if bg:
+        plt.plot(data_file.x, data_file.y, color=color_1)
+    if params is None:
+        params = data_file.params
+    if not params is None:
+        regions = fl.regions_from_parameters(data_file.f, params)
+        for region in regions:
+            plt.plot(data_file.x[int(region[0]):int(region[1])], data_file.y[int(region[0]):int(region[1])], color=color_2)

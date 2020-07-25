@@ -402,3 +402,10 @@ def save_freqs(f, name='freqs_kHz.txt'):
     tk.Tk().withdraw()
     path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("all files", "*.*")), initialfile=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')
+
+def load_freqs(path=None):
+    if path is None:
+        tk.Tk().withdraw()
+        path = filedialog.askopenfilename()
+    f = np.loadtxt(path, delimiter='\n')
+    return f * 1000

@@ -402,6 +402,9 @@ class Color_Selector:
         self.make_button("Toggle Enhance!", command=self.enhance)
         self.make_button("(Un)Enhance!", command=self.unenhance)
         self.make_button("Inspire Me", command=self.inspire_me)
+        self.make_button("Delete", command=self.enable_delete)
+        self.make_button("Pre-Render", command=self.prerender)
+        self.make_button("Save", command=self.save)
         self.make_cmap_menu()
         self.make_color_menus()
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
@@ -413,6 +416,8 @@ class Color_Selector:
         self.toolbar.update()
         self.canvas._tkcanvas.pack()
         self.enhance_mode = False
+        self.clean_mode = False
+        self.path = None
 
     def setup_plot(self):
         self.ax, self.collection, self.colors = make_colors(self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
@@ -432,14 +437,83 @@ class Color_Selector:
         self.enhanced_renders = []
         self.enhanced_areas = []
         self.paths = []
+        self.toggle_delete = False
 
     def setup_connections(self):
-        self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
+        self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
         self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
         self.cursor.set_active(False)
+        self.del_cursor = Cursor(self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
+        self.del_cursor.set_active(False)
         self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box")
         self.rec_select.disconnect_events()
+        self.alt_rec_select = RectangleSelector(self.ax, self.on_rec_delete, useblit=True, drawtype="box", 
+            rectprops = dict(facecolor='grey', edgecolor = 'red', alpha=0.2, fill=True))
+        self.alt_rec_select.disconnect_events()
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
+
+    def enable_delete(self):
+        self.autosave()
+        self.toggle_delete = not self.toggle_delete
+        if self.toggle_delete:
+            self.clean_mode = True
+            self.alt_rec_select.connect_default_events()
+            if self.cursor.get_active():
+                self.cursor.set_active(False)
+                self.rec_select.disconnect_events()
+                self.rec_select.set_visible(False)
+                self.last_mode = 'enhance'
+            else:
+                self.poly.disconnect_events()
+                self.poly.set_visible(False)
+                self.last_mode = 'select'
+            self.del_cursor.set_active(True)
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+            self.pick = self.canvas.mpl_connect('pick_event', self.on_delete)
+        else:
+            self.clean_mode = False
+            try:
+                self.alt_rec_select.disconnect_events()
+            except:
+                pass
+            if self.last_mode == 'enhance':
+                self.cursor.set_active(True)
+                self.rec_select.connect_default_events()
+                self.rec_select.set_visible(True)
+            else:
+                self.poly.connect_default_events()
+                self.poly.set_visible(True)
+            self.del_cursor.set_active(False)
+            try:
+                self.canvas.mpl_disconnect('pick_event')
+            except:
+                pass
+            self.setup_connections()
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+
+    def on_delete(self, event):
+        if self.toggle_delete:
+            patch = event.artist
+            try:
+                i = self.patches.index(patch)
+                source = 'patch'
+            except:
+                i = self.paths.index(patch)
+                source = 'path'
+            if source == 'patch':
+                self.selections.pop(i)
+                self.patches.pop(i)
+            else:
+                self.paths.pop(i)
+                self.parameters = util.delete_parameters(self.parameters, i)
+            patch.remove()
+            self.canvas.mpl_disconnect('pick_event')
+            self.del_cursor.set_active(False)
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+            self.enable_delete()
 
     def make_cmap_menu(self):
         options = list(option_colors.keys())
@@ -476,7 +550,7 @@ class Color_Selector:
         for line in self.lines:
             line.set_color(line_color)
         for path in self.paths:
-            path[0].set_color(line_color)
+            path.set_color(line_color)
         self.line_color = line_color
         self.canvas.draw_idle()
 
@@ -485,6 +559,7 @@ class Color_Selector:
         self.update_colors(cmap=self.cmap)
 
     def reload(self):
+        self.autosave()
         self.canvas._tkcanvas.pack_forget()
         ax, collection = make_colors(self.data_files, max_res=self.x_res, cmap=self.cmap)
         self.fig = ax.figure
@@ -516,11 +591,78 @@ class Color_Selector:
             self.horizontal_selection()
         elif event.key == 'i':
             self.inspire_me()
+        elif event.key == 'd':
+            self.enable_delete()
+        elif event.key == 'r':
+            self.prerender()
+        elif event.key == 'q':
+            self.show_stuff()
+        elif event.key == 'f':
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+            self.canvas.draw_idle()
+        elif event.key == 's':
+            self.save()
 
     def disconnect(self):
+        self.autosave()
         self.poly.set_visible(False)
         self.poly.disconnect_events()
         self.canvas.draw_idle()
+
+    def refresh_parameters(self):
+        self.autosave()
+        for path in self.paths:
+            try:
+                path.remove()
+            except:
+                pass
+        self.parameters = fl.denan_parameters(self.parameters, 0.99)
+        self.plot_parameters(self.parameters)
+        self.canvas.draw_idle()
+
+    def on_rec_delete(self, click, release):
+        if self.clean_mode:
+            self.del_cursor.set_active(True)
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+            x1, y1 = click.xdata, click.ydata
+            x2, y2 = release.xdata, release.ydata
+            x_min, x_max = min(x1, x2), max(x1, x2)
+            y_min, y_max = min(y1, y2), max(y1, y2)
+            full_res = len(self.data_files[0].f)
+            y_min = int(np.round(y_min))
+            y_max = int(np.round(y_max))
+            x_min = int(np.round(x_min / self.x_res * full_res))
+            x_max = int(np.round(x_max / self.x_res * full_res))
+            f_regions = []
+            for i in range(len(self.data_files)):
+                if i < y_min or i > y_max:
+                    f_regions.append([np.inf, -np.inf])
+                else:
+                    # print(len(self.data_files[i].f))
+                    # print(x_min)
+                    # print(x_max)
+                    # print()
+                    if x_min < 0:
+                        f_min = -np.inf
+                    elif x_min > self.x_res:
+                        f_min = self.data_files[i].f[-1]
+                    else:
+                        f_min = self.data_files[i].f[x_min]
+                    if x_max > self.x_res:
+                        f_max = np.inf
+                    elif x_max < 0:
+                        f_max = self.data_files[i].f[0]
+                    else:
+                        f_max = self.data_files[i].f[x_max]
+                    f_regions.append([f_min, f_max])
+            f_regions = np.array(f_regions)
+            # print(f_regions)
+            # print(self.parameters.shape)
+            self.parameters = util.delete_parameters_from_f_regions_3d(self.parameters, f_regions)
+            # print(self.parameters.shape)
+            self.refresh_parameters()
 
     def on_rec_select(self, click, release):
         if self.enhance_mode:
@@ -555,7 +697,7 @@ class Color_Selector:
     def finish_selection(self):
         selection = points_to_ranges(np.array(self.xys[self.ind]), self.data_files, self.x_res)
         self.selections.append(selection)
-        patch = Polygon(self.poly.verts, facecolor=self.patch_color, alpha=0.3, edgecolor='black', linestyle=':', linewidth=2)
+        patch = Polygon(self.poly.verts, facecolor=self.patch_color, alpha=0.3, edgecolor='black', linestyle=':', linewidth=2, picker=True)
         self.patches.append(patch)
         self.disconnect()
         self.selectors.append(self.poly)
@@ -563,10 +705,11 @@ class Color_Selector:
 
     def another_selection(self):
         self.finish_selection()
-        self.poly = PolygonSelector(self.ax, self.on_select, useblit=False)
+        self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
         self.ind = []
 
     def toggle_show(self):
+        self.autosave()
         self.show_patches = not self.show_patches
         if self.show_patches:
             for patch in self.patches:
@@ -576,16 +719,14 @@ class Color_Selector:
             for line in self.lines:
                 line.set_alpha(0)
             for path in self.paths:
-                path[0].set_alpha(0)
+                path.set_alpha(0)
         else:
             for patch in self.patches:
                 patch.set_alpha(0.3)
-            # for selector in self.selectors:
-            #     selector.set_visible(True)
             for line in self.lines:
                 line.set_alpha(1)
             for path in self.paths:
-                path[0].set_alpha(1)
+                path.set_alpha(1)
         self.canvas.draw_idle()
 
     def slight_zoom_out(self):
@@ -601,7 +742,7 @@ class Color_Selector:
                 f = self.data_files[index].f
                 v = self.data_files[index].r
                 regions = self.selections[i][index]
-                p = fl.parameters_from_regions(f, v, regions)
+                p = fl.parameters_from_regions(f, v, regions, catch_degeneracies=False)
                 params = np.append(params, p, axis=0)
             except:
                 pass
@@ -634,6 +775,7 @@ class Color_Selector:
         self.display_params(params, index)
 
     def inspire_me(self):
+        self.autosave()
         index = simpledialog.askinteger("Index Selection", "Which index?")
         params = auto.quick_analyze(self.data_files[index].f, self.data_files[index].r)
         self.display_params(params, index)
@@ -667,8 +809,10 @@ class Color_Selector:
         self.canvas.draw_idle()
 
     def enhance(self):
+        self.autosave()
         self.enhance_mode = not self.enhance_mode
         if self.enhance_mode:
+            self.del_cursor.set_active(False)
             self.cursor.set_active(True)
             self.rec_select.connect_default_events()
             self.rec_select.set_visible(True)
@@ -680,6 +824,8 @@ class Color_Selector:
             self.rec_select.set_visible(False)
             self.poly.connect_default_events()
             self.poly.set_visible(True)
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
 
     def unenhance(self):
         for render in self.enhanced_renders:
@@ -729,7 +875,42 @@ class Color_Selector:
         for i in range(0, len(parameters[0])):
             x = self.x_res * (parameters[...,i,1] - min(self.data_files[0].f)) / (max(self.data_files[0].f) - min(self.data_files[0].f))
             y = np.arange(len(parameters))
-            self.paths.append(self.ax.plot(x, y, color=self.line_color))
+            self.paths.append(self.ax.plot(x, y, color=self.line_color, picker=False)[0])
+
+    def prerender(self):
+        self.autosave()
+        self.parameters = fl.parameters_from_selections(self.data_files, (self.selections, self.parameters))
+        self.refresh_parameters()
+        self.selections = []
+        for patch in self.patches:
+            patch.remove()
+        self.patches = []
+        self.canvas.draw_idle()
+
+    def show_stuff(self):
+        print()
+        print('----- debug -----')
+        print()
+        print('selections:')
+        print(len(self.selections))
+        print()
+        print('parameters:')
+        print(self.parameters.shape)
+        print()
+        print('paths')
+        print(len(self.paths))
+    
+    def save(self):
+        if self.path is None:
+            name = 'selections'
+        else:
+            name = self.path.split('/')[-1]
+        self.path = util.save((self.selections, self.parameters), name=name)
+
+    def autosave(self):
+        if not self.path is None:
+            path = self.path[:-4] + '_autosave' + '.pkl'
+            util.save((self.selections, self.parameters), path)
 
 class Point_Selector:
     def __init__(self, data_files, fs=[]):

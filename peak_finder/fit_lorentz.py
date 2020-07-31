@@ -140,16 +140,16 @@ def free_n_least_squares(f, v, max_n=3, noise_filter=0, force_fit=False):
     else:
         return None
 
-def fit_regions(f, v, regions, max_n=3, noise_filter=0):
+def fit_regions(f, v, regions, max_n=3, noise_filter=0, force_fit=False):
     """
     Given frequency data, displacement data, and a regions array, will return a list of proposed Lorentzian parameters.
     """
     p_list = []
     for i in util.progressbar(range(0, len(regions)), prefix="Fitting: "):
         region_f, region_v = util.extract_region(i, regions, f, v)
-        fit = free_n_least_squares(region_f, region_v, noise_filter=noise_filter)
+        fit = free_n_least_squares(region_f, region_v, noise_filter=noise_filter, force_fit=force_fit)
         if fit is not None:
-            p_list.append(free_n_least_squares(region_f, region_v, noise_filter=noise_filter).x)
+            p_list.append(fit.x)
     return p_list
 
 def extract_parameters(p_list, noise_filter=0):
@@ -166,13 +166,13 @@ def extract_parameters(p_list, noise_filter=0):
                 p_table = np.append(p_table, working_p, axis=0)
     return p_table[p_table[:,1].argsort()]
 
-def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degeneracies=True, allowed_delta_ind=10):
+def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degeneracies=True, allowed_delta_ind=10, force_fit=False):
     """
     Given regions for analysis, frequency, displacement, will return parameters for the fit Lorentzians.
     """
     if len(regions) == 0:
         return np.empty((0, 4))
-    p_list = fit_regions(f, v, regions, max_n=max_n, noise_filter=noise_filter)
+    p_list = fit_regions(f, v, regions, max_n=max_n, noise_filter=noise_filter, force_fit=force_fit)
     if len(p_list) == 0:
         return np.empty((0, 4))
     p_table = extract_parameters(p_list, noise_filter=noise_filter)
@@ -337,7 +337,8 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     return new_p_tabel[new_p_tabel[:,1].argsort()]
 
 
-def parameters_from_selections(data_files, region_selections, allowed_delta_ind=5):
+def parameters_from_selections(data_files, region_selections, allowed_delta_ind=0, noise_filter=0, force_fit=True):
+    region_selections = clean_selections(region_selections)
     sg.one_line_progress_meter_cancel('-key-')
     all_peaks = []
     counter = 0
@@ -350,7 +351,7 @@ def parameters_from_selections(data_files, region_selections, allowed_delta_ind=
                 f = data_files[i].f
                 v = data_files[i].r
                 regions = region_selections[j][i]
-                params = parameters_from_regions(f, v, regions, allowed_delta_ind=allowed_delta_ind)
+                params = parameters_from_regions(f, v, regions, allowed_delta_ind=allowed_delta_ind, catch_degeneracies=False, noise_filter=noise_filter, force_fit=force_fit)
                 if len(params) == 0:
                     params = np.array([[np.nan, np.nan, np.nan, np.nan]])
             except:
@@ -361,7 +362,7 @@ def parameters_from_selections(data_files, region_selections, allowed_delta_ind=
     all_peaks = np.array(all_peaks)
     if not params_selections is None:
         all_peaks = util.append_params_3d(all_peaks, params_selections)
-    return all_peaks
+    return denan_parameters(all_peaks)
 
 def spider_fit(data_file, params=None):
     if params is None:
@@ -392,3 +393,33 @@ def data_from_region(data_file, region):
 def data_from_parameters(data_file, params, index=0):
     regions = regions_from_parameters(data_file.f, params)
     return data_from_region(data_file, regions[index])
+
+def denan_parameters(params, nan_level=0.8):
+    nan_counters = []
+    for i in range(len(params[0])):
+        nan_counters.append(0)
+    for i in range(len(params)):
+        for j in range(len(params[i])):
+            if np.isnan(params[i][j][0]):
+                nan_counters[j] += 1
+    p = []
+    for i in range(len(nan_counters)):
+        if nan_counters[i] / len(params) > nan_level:
+            nan_counters[i] = False
+        else:
+            nan_counters[i] = True
+    for i in range(len(params)):
+        p.append([])
+        for j in range(len(params[i])):
+            if nan_counters[j]:
+                p[i].append(params[i][j])
+    return np.array(p)
+
+def clean_selections(selections):
+    s = selections[0]
+    t = []
+    p = selections[1]
+    for i in range(len(s)):
+        if len(s[i]) > 0:
+            t.append(s[i])
+    return (t, p)

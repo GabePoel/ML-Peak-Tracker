@@ -327,18 +327,24 @@ def param_sort(params_2d):
             final_params = np.append(final_params, [not_nan_params[i - offset]], axis=0)
     return final_params
 
-def append_params_3d(p1, p2):
+def append_params_3d(p1, p2, force=False):
     """
     Adds new Lorentzians to an existing set of parameters.
     Does not add later data points of existing Lorentzians!
     """
     p3 = []
-    if not len(p1) == len(p2):
-        raise ValueError("Parameters not of the same length.")
+    if not force:
+        if not len(p1) == len(p2):
+            raise ValueError("Parameters not of the same length.")
+        else:
+            for i in range(0, len(p1)):
+                combined = np.append(p1[i], p2[i], axis=0)
+                p3.append(combined)
     else:
-        for i in range(0, len(p1)):
-            combined = np.append(p1[i], p2[i], axis=0)
-            p3.append(combined)
+        if len(p1) > len(p2):
+            p3 = p1
+        else:
+            p3 = p2
     return np.array(p3)
 
 def save(object, path=None, name=''):
@@ -409,3 +415,28 @@ def load_freqs(path=None):
         path = filedialog.askopenfilename()
     f = np.loadtxt(path, delimiter='\n')
     return f * 1000
+
+def delete_parameters(params_3d, index):
+    p = []
+    for i in range(len(params_3d)):
+        p.append([])
+        for j in range(len(params_3d[i])):
+            if not j == index:
+                p[i].append(params_3d[i][j])
+    return np.array(p)
+
+def delete_parameters_from_f_regions_3d(parameters_3d, f_regions):
+    p = []
+    for i in range(len(parameters_3d)):
+        p_2d = delete_parameters_from_f_regions_2d(parameters_3d[i], f_regions[i])
+        p.append(p_2d)
+    return np.array(p)
+
+def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
+    p = []
+    for i in range(len(parameters_2d)):
+        if parameters_2d[i][1] > f_region[0] and parameters_2d[i][1] < f_region[1]:
+            p.append([np.nan, np.nan, np.nan, np.nan])
+        else:
+            p.append(parameters_2d[i])
+    return np.array(p)

@@ -117,6 +117,7 @@ class Live_Instance():
         self.show_components = False
         self.component_height = 1.5
         self.projection_height = -1
+        self.vlines = []
 
     def import_all_data(self, x, y, data_to_analyze=None):
         self.x = x[np.logical_not(np.isnan(x))]
@@ -260,7 +261,12 @@ class Live_Instance():
             self.default_x_lim = self.ax.get_xlim()
             self.default_y_lim = self.ax.get_ylim()
         self.first_load = False
+        for vline in self.vlines:
+            self.ax.axvline(vline, color='g', linestyle=':', linewidth=2)
         self.update_window()
+
+    def set_vline(self, vline):
+        self.vlines.append(vline)
 
     def add_lorentz(self):
         self.end_interactive()
@@ -418,6 +424,7 @@ class Color_Selector:
         self.enhance_mode = False
         self.clean_mode = False
         self.path = None
+        self.mode = 'select' # Modes: select, enhance, preview, delete, move
 
     def setup_plot(self):
         self.ax, self.collection, self.colors = make_colors(self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
@@ -441,60 +448,63 @@ class Color_Selector:
 
     def setup_connections(self):
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
-        self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        self.cursor = Cursor(self.ax, useblit=True, color='blue', linewidth=1, linestyle=":")
         self.cursor.set_active(False)
+        self.pre_cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        self.pre_cursor.set_active(False)
         self.del_cursor = Cursor(self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
         self.del_cursor.set_active(False)
-        self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box")
+        self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box",
+            rectprops = dict(facecolor='grey', edgecolor = 'blue', alpha=0.2, fill=True))
         self.rec_select.disconnect_events()
         self.alt_rec_select = RectangleSelector(self.ax, self.on_rec_delete, useblit=True, drawtype="box", 
             rectprops = dict(facecolor='grey', edgecolor = 'red', alpha=0.2, fill=True))
         self.alt_rec_select.disconnect_events()
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
 
-    def enable_delete(self):
+    def set_mode(self, mode):
+        self.last_mode = self.mode
         self.autosave()
-        self.toggle_delete = not self.toggle_delete
-        if self.toggle_delete:
-            self.clean_mode = True
-            self.alt_rec_select.connect_default_events()
-            if self.cursor.get_active():
-                self.cursor.set_active(False)
-                self.rec_select.disconnect_events()
-                self.rec_select.set_visible(False)
-                self.last_mode = 'enhance'
-            else:
-                self.poly.disconnect_events()
-                self.poly.set_visible(False)
-                self.last_mode = 'select'
+        self.disconnect_all()
+        self.mode = mode
+        if self.mode == 'select':
+            self.poly.connect_default_events()
+            self.poly.set_visible(True)
+        elif self.mode == self.last_mode:
+            self.set_mode('select')
+        elif self.mode == 'enhance':
+            self.cursor.set_active(True)
+            self.rec_select.connect_default_events()
+            self.rec_select.set_visible(True)
+        elif self.mode == 'preview':
+            self.pre_cursor.set_active(True)
+            self.pick = self.canvas.mpl_connect('button_release_event', self.on_pre_click)
+        elif self.mode == 'delete':
             self.del_cursor.set_active(True)
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
+            self.alt_rec_select.connect_default_events()
+            self.alt_rec_select.set_visible(True)
             self.pick = self.canvas.mpl_connect('pick_event', self.on_delete)
-        else:
-            self.clean_mode = False
-            try:
-                self.alt_rec_select.disconnect_events()
-            except:
-                pass
-            if self.last_mode == 'enhance':
-                self.cursor.set_active(True)
-                self.rec_select.connect_default_events()
-                self.rec_select.set_visible(True)
-            else:
-                self.poly.connect_default_events()
-                self.poly.set_visible(True)
-            self.del_cursor.set_active(False)
-            try:
-                self.canvas.mpl_disconnect('pick_event')
-            except:
-                pass
-            self.setup_connections()
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
+        # elif self.mode == 'move':
+        #     self.toolbar.pan()
+        #     print('no more pan')
+        self.canvas.draw_idle()
+        self.canvas.flush_events()
+
+    def disconnect_all(self):
+        self.cursor.set_active(False)
+        self.del_cursor.set_active(False)
+        self.pre_cursor.set_active(False)
+        self.poly.disconnect_events()
+        self.rec_select.disconnect_events()
+        self.alt_rec_select.disconnect_events()
+        self.canvas.mpl_disconnect('pick_event')
+        self.canvas.mpl_disconnect('button_release_event')
+
+    def enable_delete(self):
+        self.set_mode('delete')
 
     def on_delete(self, event):
-        if self.toggle_delete:
+        if self.mode == 'delete':
             patch = event.artist
             try:
                 i = self.patches.index(patch)
@@ -603,10 +613,17 @@ class Color_Selector:
             self.canvas.draw_idle()
         elif event.key == 's':
             self.save()
+        elif event.key == 'm':
+            self.toolbar.pan()
+        elif event.key == 'z':
+            self.toolbar.zoom()
+        elif event.key == 'h':
+            self.toolbar.home()
+        elif event.key == 'c':
+            self.close_window()
 
     def disconnect(self):
         self.autosave()
-        self.poly.set_visible(False)
         self.poly.disconnect_events()
         self.canvas.draw_idle()
 
@@ -622,10 +639,7 @@ class Color_Selector:
         self.canvas.draw_idle()
 
     def on_rec_delete(self, click, release):
-        if self.clean_mode:
-            self.del_cursor.set_active(True)
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
+        if self.mode == 'delete':
             x1, y1 = click.xdata, click.ydata
             x2, y2 = release.xdata, release.ydata
             x_min, x_max = min(x1, x2), max(x1, x2)
@@ -646,11 +660,11 @@ class Color_Selector:
                     # print()
                     if x_min < 0:
                         f_min = -np.inf
-                    elif x_min > self.x_res:
+                    elif x_min > full_res:
                         f_min = self.data_files[i].f[-1]
                     else:
                         f_min = self.data_files[i].f[x_min]
-                    if x_max > self.x_res:
+                    if x_max > full_res:
                         f_max = np.inf
                     elif x_max < 0:
                         f_max = self.data_files[i].f[0]
@@ -665,7 +679,7 @@ class Color_Selector:
             self.refresh_parameters()
 
     def on_rec_select(self, click, release):
-        if self.enhance_mode:
+        if self.mode == 'enhance':
             try:
                 self.cursor.set_active(True)
                 self.canvas.draw_idle()
@@ -706,6 +720,7 @@ class Color_Selector:
     def another_selection(self):
         self.finish_selection()
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
+        self.set_mode('select')
         self.ind = []
 
     def toggle_show(self):
@@ -748,14 +763,14 @@ class Color_Selector:
                 pass
         return params
 
-    def find_params(self, index):
+    def find_params(self, index, x):
         existing_params = self.make_params_from_selection(index)
         if self.parameters is not None:
             for i in range(0, len(self.parameters[index])):
                 p = self.parameters[index][i]
                 if not any(np.isnan(p)):
                     existing_params = np.append(existing_params, [p], axis=0)
-        params = live_selection(self.data_files[index], params=existing_params)
+        params = live_selection(self.data_files[index], params=existing_params, vline=x)
         return params
 
     def display_params(self, params, index):
@@ -770,9 +785,18 @@ class Color_Selector:
         self.canvas.draw_idle()
 
     def horizontal_selection(self):
-        index = simpledialog.askinteger("Index Selection", "Which index?")
-        params = self.find_params(index)
-        self.display_params(params, index)
+        self.set_mode('preview')
+
+    def on_pre_click(self, event):
+        if self.mode == 'preview':
+            index = int(np.round(event.ydata))
+            if index >= 0 and index < len(self.data_files):
+                f = self.data_files[index].f
+                x = (event.xdata / self.x_res) * (f[-1] - f[0]) + f[0]
+                self.canvas.mpl_disconnect('button_release_event')
+                self.set_mode('select')
+                params = self.find_params(index, x)
+                self.display_params(params, index)
 
     def inspire_me(self):
         self.autosave()
@@ -810,22 +834,7 @@ class Color_Selector:
 
     def enhance(self):
         self.autosave()
-        self.enhance_mode = not self.enhance_mode
-        if self.enhance_mode:
-            self.del_cursor.set_active(False)
-            self.cursor.set_active(True)
-            self.rec_select.connect_default_events()
-            self.rec_select.set_visible(True)
-            self.poly.disconnect_events()
-            self.poly.set_visible(False)
-        else:
-            self.cursor.set_active(False)
-            self.rec_select.disconnect_events()
-            self.rec_select.set_visible(False)
-            self.poly.connect_default_events()
-            self.poly.set_visible(True)
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
+        self.set_mode('enhance')
 
     def unenhance(self):
         for render in self.enhanced_renders:
@@ -1066,7 +1075,7 @@ def points_to_ranges(points, data_files, res):
             pass
     return range_dict
 
-def live_selection(data_file, params=None):
+def live_selection(data_file, params=None, vline=None):
     f = data_file.f
     x = data_file.x
     y = data_file.y
@@ -1075,6 +1084,8 @@ def live_selection(data_file, params=None):
     live.import_all_data(x, y)
     if not params is None:
         live.import_lorentzians(params)
+    if not vline is None:
+        live.set_vline(vline)
     live.activate()
     return live.get_all_params()
 

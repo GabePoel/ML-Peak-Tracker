@@ -337,7 +337,7 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     return new_p_tabel[new_p_tabel[:,1].argsort()]
 
 
-def parameters_from_selections(data_files, region_selections, allowed_delta_ind=0, noise_filter=0, force_fit=True):
+def parameters_from_selections(data_files, region_selections, allowed_delta_ind=0, noise_filter=0, force_fit=False):
     region_selections = clean_selections(region_selections)
     sg.one_line_progress_meter_cancel('-key-')
     all_peaks = []

@@ -347,11 +347,11 @@ def append_params_3d(p1, p2, force=False):
             p3 = p2
     return np.array(p3)
 
-def save(object, path=None, name=''):
+def save(some_object, path=None, name=''):
     if path is None:
         tk.Tk().withdraw()
         path = filedialog.asksaveasfilename(filetypes = (("python objects", "*.pkl"), ("all files", "*.*")), initialfile=name)
-    pickle.dump(object, open(path, "wb"))
+    pickle.dump(some_object, open(path, "wb"))
     return path
 
 def load(path=None):
@@ -403,11 +403,23 @@ def scatter_pts(pts, ref_arr, tar_arr):
         arr = np.append(arr, [tar_arr[j]])
     return arr
 
-def save_freqs(f, name='freqs_kHz.txt'):
-    f = np.sort(f) / 1000
+def save_freqs(f, name='freqs_kHz', alter=True):
+    if alter:
+        f = np.sort(f) / 1000
     tk.Tk().withdraw()
     path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("all files", "*.*")), initialfile=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')
+
+def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
+    T = []
+    for i in range(len(data_files)):
+        T.append(np.mean(data_files[i].T))
+    p = get_all_params(data_files)
+    f = p[:,:,1] / 1000
+    arr = np.append(np.transpose([T]), f, axis=1)
+    tk.Tk().withdraw()
+    path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), initialfile=name)
+    np.savetxt(path, arr, delimiter=',', fmt='%10.15f')
 
 def load_freqs(path=None):
     if path is None:
@@ -415,6 +427,23 @@ def load_freqs(path=None):
         path = filedialog.askopenfilename()
     f = np.loadtxt(path, delimiter='\n')
     return f * 1000
+
+def attach_temps_to_parameters(data_files):
+    p = get_all_params(data_files)
+    q = []
+    for i in range(len(p)):
+        q.append([])
+        for j in range(len(p[i])):
+            p0 = p[i][j]
+            f0 = p0[1]
+            if np.isnan(f0):
+                T0 = np.nan
+            else:
+                index = find_nearest_index(data_files[i].f, f0)
+                T0 = data_files[i].T[index]
+            p0 = np.append(p0, [T0])
+            q[i].append(p0)
+    return np.array(q)
 
 def delete_parameters(params_3d, index):
     p = []

@@ -464,7 +464,7 @@ def delete_parameters_from_f_regions_3d(parameters_3d, f_regions):
 def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
     p = []
     for i in range(len(parameters_2d)):
-        if parameters_2d[i][1] > f_region[0] and parameters_2d[i][1] < f_region[1]:
+        if parameters_2d[i][1] >= f_region[0] and parameters_2d[i][1] <= f_region[1]:
             p.append([np.nan, np.nan, np.nan, np.nan])
         else:
             p.append(parameters_2d[i])

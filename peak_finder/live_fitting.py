@@ -10,6 +10,7 @@ from tkinter import simpledialog
 from tkinter import ttk
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.gridspec import GridSpec
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg,
     NavigationToolbar2Tk
@@ -1009,6 +1010,241 @@ class Point_Selector:
             self.toggle_delete()
         self.canvas.draw_idle()
 
+class Mistake_Selector():
+    def __init__(self, data_files, parameters=None):
+        self.data_files = data_files
+        if parameters is None:
+            parameters = util.get_all_params(data_files)
+        self.parameters = parameters
+        self.setup_interface()
+
+    def setup_interface(self):
+        self.path = None
+        self.root = tk.Tk()
+        self.root.wm_title("Mistake Selector")
+        self.controls = tk.Frame(self.root)
+        self.controls.pack(side="top", fill="both", expand=False)
+        self.make_button("Done", self.close_window)
+        self.entry = ttk.Combobox(master=self.root,
+            takefocus=False,
+            values = ['Curve to Plot'] + [str(i) for i in range(len(self.parameters[0]))])
+        self.entry.bind("<<ComboboxSelected>>", self.callback)
+        self.entry.pack(in_=self.controls, side="left")
+        self.entry.insert(0, 'Curve to Plot')
+        self.make_button("Remove Selected", self.remove)
+        self.make_button("Refit Selected", self.refit)
+        self.make_button("Save", self.save)
+        self.fig = Figure()
+        self.canvas = FigureCanvasTkAgg(self.fig, self.root)
+        gs = GridSpec(3, 2)
+        self.ax0 = self.fig.add_subplot(gs[0,0])
+        self.ax1 = self.fig.add_subplot(gs[0,1])
+        self.ax2 = self.fig.add_subplot(gs[1,0])
+        self.ax3 = self.fig.add_subplot(gs[1,1])
+        self.ax4 = self.fig.add_subplot(gs[2,:])
+        self.clear_axs()
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.controls)
+        self.toolbar.update()
+        self.widget = self.canvas.get_tk_widget()
+        self.widget.pack(side="top", fill="both", expand=True)
+        self.canvas._tkcanvas.pack()
+        self.canvas.mpl_connect('button_release_event', self.on_click)
+        self.cs0 = Cursor(self.ax0, useblit=True, color='r', linewidth=1, linestyle=":")
+        self.cs1 = Cursor(self.ax1, useblit=True, color='r', linewidth=1, linestyle=":")
+        self.cs2 = Cursor(self.ax2, useblit=True, color='r', linewidth=1, linestyle=":")
+        self.cs3 = Cursor(self.ax3, useblit=True, color='r', linewidth=1, linestyle=":")
+        self.cs4 = RectangleSelector(self.ax4, self.on_select, 
+            drawtype='box', 
+            useblit=True, 
+            button=[1, 3], 
+            minspanx=5, 
+            minspany=5, 
+            spancoords='pixels', 
+            interactive=True,
+            rectprops = dict(facecolor='grey', edgecolor = 'green', alpha=0.2, fill=True))
+        self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
+        self.p_ind = 0
+        self.T_ind = 0
+        self.curve_plot(self.p_ind)
+        self.mark_curves(self.T_ind)
+        tk.mainloop()
+
+    def save(self):
+        self.path = util.save(self.parameters)
+
+    def autosave(self):
+        if not self.path is None:
+            path = self.path[:-4] + '_autosave' + '.pkl'
+            util.save(self.parameters, path)
+
+    def new_curve(self):
+        s = self.entry.get()
+        if s == 'Curve to Plot':
+            pass
+        else:
+            self.clear_axs()
+            self.p_ind = int(s)
+            self.curve_plot(self.p_ind)
+
+    def remove(self):
+        self.correct_p([np.nan, np.nan, np.nan, np.nan])
+
+    def correct_p(self, p0):
+        p = self.parameters.astype("float")
+        p[self.T_ind][self.p_ind] = p0
+        self.parameters = np.array(p)
+        self.mark_curves(self.T_ind)
+        self.peak_plot(self.T_ind, self.p_ind)
+
+    def refit(self):
+        self.autosave()
+        f = self.data_files[self.T_ind].f
+        v = self.data_files[self.T_ind].r
+        min_ind = util.find_nearest_index(f, self.selection.f_min)
+        max_ind = util.find_nearest_index(f, self.selection.f_max)
+        region = np.array([[min_ind, max_ind]])
+        p0 = fl.parameters_from_regions(f, v, region, max_n=1)
+        self.correct_p(p0)
+
+    def curve_plot(self, p_ind):
+        self.autosave()
+        self.ax0.plot(self.parameters[:,p_ind,0], picker=True)
+        self.ax1.plot(self.parameters[:,p_ind,1], picker=True)
+        self.ax2.plot(self.parameters[:,p_ind,2], picker=True)
+        self.ax3.plot(self.parameters[:,p_ind,3], picker=True)
+        self.ax0.relim()
+        self.ax1.relim()
+        self.ax2.relim()
+        self.ax3.relim()
+        self.ax0.autoscale_view()
+        self.ax1.autoscale_view()
+        self.ax2.autoscale_view()
+        self.ax3.autoscale_view()
+        self.canvas.draw_idle()
+
+    def mark_curves(self, T_ind):
+        self.autosave()
+        self.clear_curves()
+        self.ax0.axvline(T_ind, color='r')
+        self.ax1.axvline(T_ind, color='r')
+        self.ax2.axvline(T_ind, color='r')
+        self.ax3.axvline(T_ind, color='r')
+        self.curve_plot(self.p_ind)
+        self.canvas.draw_idle()
+
+    def peak_plot(self, T_ind, p_ind):
+        self.autosave()
+        self.ax4.cla()
+        self.ax4.set_title('Preview')
+        try:
+            p = self.parameters[T_ind][p_ind]
+            region = fl.regions_from_parameters(self.data_files[T_ind].f, [p])[0]
+            region = [int(region[0]), int(region[1])]
+            f_reg = self.data_files[T_ind].f[region[0]:region[1]]
+            r_reg = self.data_files[T_ind].r[region[0]:region[1]]
+            v_reg = gl.multi_lorentz_2d(f_reg, np.array([p]))
+            v_reg += (np.mean(r_reg) - np.mean(v_reg))
+            self.ax4.plot(f_reg, r_reg)
+            self.ax4.plot(f_reg, v_reg, color='r')
+            self.cs4.connect_default_events()
+            self.canvas.draw_idle()
+        except:
+            self.ax4.text(0.5, 0.5, 'No parameters at this temperature.', ha='center')
+            self.cs4.disconnect_events()
+            self.canvas.draw_idle()
+
+    def clear_curves(self):
+        self.autosave()
+        self.ax0.cla()
+        self.ax1.cla()
+        self.ax2.cla()
+        self.ax3.cla()
+        self.ax0.set_title('Amplitude')
+        self.ax1.set_title('Position')
+        self.ax2.set_title('Full Width at Half Maximum')
+        self.ax3.set_title('Phase')
+
+    def clear_axs(self):
+        self.autosave()
+        self.clear_curves()
+        self.ax4.cla()
+        self.ax4.set_title('Preview')
+
+    def make_button(self, text, command):
+        button = ttk.Button(master=self.root, text=text, command=command, takefocus=False)
+        button.pack(in_=self.controls, side="left")
+
+    def close_window(self):
+        if self.path is None:
+            try:
+                self.save()
+            except:
+                pass
+        self.autosave()
+        self.canvas._tkcanvas.pack_forget()
+        self.toolbar.pack_forget()
+        self.canvas.mpl_disconnect(self.on_click)
+        self.root.quit()
+        self.root.destroy()
+
+    def on_click(self, event):
+        T_ind = int(np.round(event.xdata))
+        self.widget.focus_set()
+        if T_ind < len(self.data_files):
+            self.T_ind = T_ind
+            self.mark_curves(self.T_ind)
+            try:
+                self.peak_plot(self.T_ind, self.p_ind)
+            except:
+                self.ax4.cla()
+                self.ax4.set_title('Preview')
+                self.ax4.text(0.5, 0.5, 'No parameters at this temperature.', ha='center')
+
+    def on_select(self, click, release):
+        x1, y1 = click.xdata, click.ydata
+        x2, y2 = release.xdata, release.ydata
+        x_delta = np.abs(x1 - x2)
+        y_delta = np.abs(y1 - y2)
+        x_pos = min(x1, x2)
+        y_pos = min(y1, y2)
+        self.selection = Selection(x_delta, y_delta, x_pos, y_pos)
+
+    def callback(self, event):
+        self.new_curve()
+
+    def on_press(self, event):
+        self.autosave()
+        if event.key == 'enter':
+            self.refit()
+        elif event.key == 'backspace':
+            self.remove()
+        elif event.key == 'right':
+            self.T_ind += 1
+            self.T_ind %= len(self.data_files)
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
+        elif event.key == 'left':
+            self.T_ind -= 1
+            self.T_ind %= len(self.data_files)
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
+        elif event.key == 'up':
+            self.p_ind += 1
+            self.p_ind %= len(self.parameters[0])
+            self.entry.set(str(self.p_ind))
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
+        elif event.key == 'down':
+            self.p_ind -= 1
+            self.p_ind %= len(self.parameters[0])
+            self.entry.set(str(self.p_ind))
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
+        elif event.key == 'escape':
+            self.close_window()
+        elif event.key == 's':
+            self.save()
+
 def check_contains(old_area, new_area):
     checks = [
         old_area[0] >= new_area[0],
@@ -1022,6 +1258,10 @@ def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameter
     y_res = min(y_res / len(data_files), 1)
     selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters)
     return (selector.selections, selector.parameters)
+
+def mistake_selection(data_files, parameters=None):
+    m = Mistake_Selector(data_files, parameters)
+    return m.parameters
 
 def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     x = np.empty((0,))

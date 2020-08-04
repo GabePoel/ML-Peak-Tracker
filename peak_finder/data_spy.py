@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+from matplotlib.widgets import Button
 try:
     from . import classify_data as cd
     from . import fit_lorentz as fl
@@ -92,3 +94,27 @@ def spider_plot(data_file, params=None, bg=True, color_1=None, color_2=None):
         regions = fl.regions_from_parameters(data_file.f, params)
         for region in regions:
             plt.plot(data_file.x[int(region[0]):int(region[1])], data_file.y[int(region[0]):int(region[1])], color=color_2)
+
+def plot_all_params(params, index):
+    gs = GridSpec(3, 2)
+    fig = plt.figure()
+    ax0 = fig.add_subplot(gs[0,0])
+    ax1 = fig.add_subplot(gs[0,1])
+    ax2 = fig.add_subplot(gs[1,0])
+    ax3 = fig.add_subplot(gs[1,1])
+    ax4 = fig.add_subplot(gs[2,:])
+    ax0.set_title('Amplitude')
+    ax1.set_title('Position')
+    ax2.set_title('Full Width at Half Maximum')
+    ax3.set_title('Phase')
+    ax0.plot(params[:,index,0], picker=True)
+    ax1.plot(params[:,index,1], picker=True)
+    ax2.plot(params[:,index,2], picker=True)
+    ax3.plot(params[:,index,3], picker=True)
+    ax4.plot(np.linspace(0,1,100))
+
+    def on_pick(event):
+        print(event.artist.get_xdata())
+        print(event.artist.get_ydata())
+
+    fig.canvas.mpl_connect('pick_event', on_pick)

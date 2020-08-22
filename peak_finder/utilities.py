@@ -333,6 +333,10 @@ def append_params_3d(p1, p2, force=False):
     Does not add later data points of existing Lorentzians!
     """
     p3 = []
+    if 0 in np.array(p2).shape:
+        return p1
+    if 0 in np.array(p1).shape:
+        return p2
     if not force:
         if not len(p1) == len(p2):
             raise ValueError("Parameters not of the same length.")

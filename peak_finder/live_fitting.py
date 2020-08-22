@@ -411,6 +411,7 @@ class Color_Selector:
         self.make_button("Inspire Me", command=self.inspire_me)
         self.make_button("Delete", command=self.enable_delete)
         self.make_button("Pre-Render", command=self.prerender)
+        self.make_button("Tweak", command=self.tweak)
         self.make_button("Save", command=self.save)
         self.make_cmap_menu()
         self.make_color_menus()
@@ -622,11 +623,17 @@ class Color_Selector:
             self.toolbar.home()
         elif event.key == 'c':
             self.close_window()
+        elif event.key == 't':
+            self.tweak()
 
     def disconnect(self):
         self.autosave()
         self.poly.disconnect_events()
         self.canvas.draw_idle()
+
+    def tweak(self):
+        self.parameters = mistake_selection(self.data_files, self.parameters, self.path)
+        self.refresh_parameters()
 
     def refresh_parameters(self):
         self.autosave()
@@ -1011,15 +1018,15 @@ class Point_Selector:
         self.canvas.draw_idle()
 
 class Mistake_Selector():
-    def __init__(self, data_files, parameters=None):
+    def __init__(self, data_files, parameters=None, path=None):
         self.data_files = data_files
         if parameters is None:
             parameters = util.get_all_params(data_files)
         self.parameters = parameters
+        self.path = path
         self.setup_interface()
 
     def setup_interface(self):
-        self.path = None
         self.root = tk.Tk()
         self.root.wm_title("Mistake Selector")
         self.controls = tk.Frame(self.root)
@@ -1033,6 +1040,9 @@ class Mistake_Selector():
         self.entry.insert(0, 'Curve to Plot')
         self.make_button("Remove Selected", self.remove)
         self.make_button("Refit Selected", self.refit)
+        self.make_button("Zoom In", self.zoom_in)
+        self.make_button("Zoom Out", self.zoom_out)
+        self.make_button("Reset Zoom", self.reset_zoom)
         self.make_button("Save", self.save)
         self.fig = Figure()
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
@@ -1065,6 +1075,7 @@ class Mistake_Selector():
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
         self.p_ind = 0
         self.T_ind = 0
+        self.extension = 2
         self.curve_plot(self.p_ind)
         self.mark_curves(self.T_ind)
         tk.mainloop()
@@ -1089,6 +1100,15 @@ class Mistake_Selector():
     def remove(self):
         self.correct_p([np.nan, np.nan, np.nan, np.nan])
 
+    def zoom_out(self):
+        self.extension *= 1.5
+    
+    def zoom_in(self):
+        self.extension /= 1.5
+
+    def reset_zoom(self):
+        self.extension = 2
+
     def correct_p(self, p0):
         p = self.parameters.astype("float")
         p[self.T_ind][self.p_ind] = p0
@@ -1103,7 +1123,7 @@ class Mistake_Selector():
         min_ind = util.find_nearest_index(f, self.selection.f_min)
         max_ind = util.find_nearest_index(f, self.selection.f_max)
         region = np.array([[min_ind, max_ind]])
-        p0 = fl.parameters_from_regions(f, v, region, max_n=1)
+        p0 = fl.parameters_from_regions(f, v, region, max_n=1, force_fit=True)
         self.correct_p(p0)
 
     def curve_plot(self, p_ind):
@@ -1138,7 +1158,7 @@ class Mistake_Selector():
         self.ax4.set_title('Preview')
         try:
             p = self.parameters[T_ind][p_ind]
-            region = fl.regions_from_parameters(self.data_files[T_ind].f, [p])[0]
+            region = fl.regions_from_parameters(self.data_files[T_ind].f, [p], extension=self.extension)[0]
             region = [int(region[0]), int(region[1])]
             f_reg = self.data_files[T_ind].f[region[0]:region[1]]
             r_reg = self.data_files[T_ind].r[region[0]:region[1]]
@@ -1149,9 +1169,46 @@ class Mistake_Selector():
             self.cs4.connect_default_events()
             self.canvas.draw_idle()
         except:
-            self.ax4.text(0.5, 0.5, 'No parameters at this temperature.', ha='center')
-            self.cs4.disconnect_events()
-            self.canvas.draw_idle()
+            try:
+                better_T_ind = self.nearest_plot(T_ind, p_ind)
+                p = self.parameters[better_T_ind][p_ind]
+                region = fl.regions_from_parameters(self.data_files[better_T_ind].f, [p], extension=self.extension)[0]
+                region = [int(region[0]), int(region[1])]
+                f_reg = self.data_files[T_ind].f[region[0]:region[1]]
+                r_reg = self.data_files[T_ind].r[region[0]:region[1]]
+                v_reg = gl.multi_lorentz_2d(f_reg, np.array([p]))
+                v_reg += (np.mean(r_reg) - np.mean(v_reg))
+                self.ax4.plot(f_reg, r_reg)
+                self.ax4.plot(f_reg, v_reg, color='r', alpha=0.2)
+                self.cs4.connect_default_events()
+                self.canvas.draw_idle()
+            except:
+                self.ax4.text(0.5, 0.5, 'No parameters at this temperature.', ha='center')
+                self.cs4.disconnect_events()
+                self.canvas.draw_idle()
+
+    def nearest_plot(self, T_ind, p_ind, search='both'):
+        if T_ind < 0 or T_ind >= len(self.data_files):
+            return None
+        elif any(np.isnan(self.parameters[T_ind][p_ind])):
+            if search == 'up':
+                return self.nearest_plot(T_ind + 1, p_ind, search='up')
+            elif search == 'down':
+                return self.nearest_plot(T_ind - 1, p_ind, search='down')
+            else:
+                up_ind = self.nearest_plot(T_ind + 1, p_ind, search='up')
+                down_ind = self.nearest_plot(T_ind - 1, p_ind, search='down')
+                if up_ind is None:
+                    up_ind = np.inf
+                if down_ind is None:
+                    down_ind = np.inf
+                better_ind = min(up_ind, down_ind, key=lambda i: np.abs(i - T_ind))
+                if better_ind >= len(self.data_files):
+                    return None
+                else:
+                    return better_ind
+        else:
+            return T_ind
 
     def clear_curves(self):
         self.autosave()
@@ -1244,6 +1301,18 @@ class Mistake_Selector():
             self.close_window()
         elif event.key == 's':
             self.save()
+        elif event.key == 'o':
+            self.zoom_out()
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
+        elif event.key == 'i':
+            self.zoom_in()
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
+        elif event.key == 'r':
+            self.reset_zoom()
+            self.mark_curves(self.T_ind)
+            self.peak_plot(self.T_ind, self.p_ind)
 
 def check_contains(old_area, new_area):
     checks = [
@@ -1259,8 +1328,8 @@ def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameter
     selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters)
     return (selector.selections, selector.parameters)
 
-def mistake_selection(data_files, parameters=None):
-    m = Mistake_Selector(data_files, parameters)
+def mistake_selection(data_files, parameters=None, path=None):
+    m = Mistake_Selector(data_files, parameters, path)
     return m.parameters
 
 def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):

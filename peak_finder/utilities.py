@@ -425,12 +425,31 @@ def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
     path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), initialfile=name)
     np.savetxt(path, arr, delimiter=',', fmt='%10.15f')
 
+def save_Tf(Tf, path=None, name='temp_K_and_freqs_kHz'):
+    if path is None:
+        tk.Tk().withdraw()
+        path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), initialfile=name)
+    T = np.transpose(np.array([Tf[:,0]]))
+    f = Tf[:,1:] / 1000
+    Tf = np.append(T, f, axis=1)
+    np.savetxt(path, Tf, delimiter=',', fmt='%10.15f')
+
 def load_freqs(path=None):
     if path is None:
         tk.Tk().withdraw()
         path = filedialog.askopenfilename()
     f = np.loadtxt(path, delimiter='\n')
     return f * 1000
+
+def load_freqs_with_temps(path=None):
+    if path is None:
+        tk.Tk().withdraw()
+        path = filedialog.askopenfilename()
+    Tf = np.loadtxt(path, delimiter=',')
+    f = np.transpose(Tf)[1:] * 1000
+    T = np.array([np.transpose(Tf)[0]])
+    Tf = np.append(T, f, axis=0)
+    return np.transpose(Tf)
 
 def attach_temps_to_parameters(data_files):
     p = get_all_params(data_files)
@@ -473,3 +492,26 @@ def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
         else:
             p.append(parameters_2d[i])
     return np.array(p)
+
+def freq_sort_2d(f_2d):
+    f_2d = np.transpose(f_2d)
+    final_sorting_order = []
+    for i in range(len(f_2d)):
+        mean_freq = np.mean(remove_nans(f_2d[i]))
+        final_sorting_order.append((i, mean_freq))
+    print(np.array(final_sorting_order))
+    final_sorting_order.sort(key=lambda t: t[1])
+    print(np.array(final_sorting_order))
+    sorted_freqs = []
+    for i in range(len(f_2d)):
+        sorted_freqs.append(f_2d[final_sorting_order[i][0]])
+    sorted_freqs = np.transpose(np.array(sorted_freqs))
+    return sorted_freqs
+
+def temp_freq_sort_2d(Tf_2d):
+    T = np.transpose(Tf_2d)[0]
+    f = np.transpose(Tf_2d)[1:]
+    f = freq_sort_2d(np.transpose(f))
+    Tf = np.append([T], np.transpose(f), axis=0)
+    Tf = np.transpose(Tf)
+    return Tf

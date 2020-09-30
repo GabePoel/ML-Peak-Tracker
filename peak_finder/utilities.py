@@ -390,8 +390,24 @@ def get_temperatures(data_files):
     """
     temperatures = []
     for i in range(0, len(data_files)):
-        temperatures.append(float(data_files[i].start_temp[0:-1]))
+        temperatures.append(float(data_files[i].start_temp))
     return np.array(temperatures)
+
+def get_freqs(data_files):
+    """
+    Get array of frequencies from a list of data files.
+    """
+    p = get_all_params(data_files)
+    f = []
+    for i in range(0, len(data_files)):
+        f.append(p[i][..., 1])
+    return freq_sort_2d(np.array(f))
+
+def get_temps_and_freqs(data_files):
+    f = get_freqs(data_files)
+    T = np.transpose([get_temperatures(data_files)])
+    fT = np.append(T, f, axis=1)
+    return fT
 
 def matplotlib_mac_fix():
     import matplotlib
@@ -499,9 +515,9 @@ def freq_sort_2d(f_2d):
     for i in range(len(f_2d)):
         mean_freq = np.mean(remove_nans(f_2d[i]))
         final_sorting_order.append((i, mean_freq))
-    print(np.array(final_sorting_order))
+    # print(np.array(final_sorting_order))
     final_sorting_order.sort(key=lambda t: t[1])
-    print(np.array(final_sorting_order))
+    # print(np.array(final_sorting_order))
     sorted_freqs = []
     for i in range(len(f_2d)):
         sorted_freqs.append(f_2d[final_sorting_order[i][0]])

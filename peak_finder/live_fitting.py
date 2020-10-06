@@ -632,8 +632,11 @@ class Color_Selector:
         self.canvas.draw_idle()
 
     def tweak(self):
+        self.autosave()
         self.parameters = mistake_selection(self.data_files, self.parameters, self.path)
         self.refresh_parameters()
+        self.autosave()
+        self.draw_idle()
 
     def refresh_parameters(self):
         self.autosave()
@@ -1326,7 +1329,7 @@ def check_contains(old_area, new_area):
 def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None):
     y_res = min(y_res / len(data_files), 1)
     selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters)
-    return (selector.selections, selector.parameters)
+    return fl.parameters_from_selections(data_files, (selector.selections, selector.parameters))
 
 def mistake_selection(data_files, parameters=None, path=None):
     m = Mistake_Selector(data_files, parameters, path)

@@ -8,6 +8,72 @@ import scipy.interpolate as interp
 from tkinter import filedialog
 from nptdms import TdmsFile
 
+if 'linux' in sys.platform:
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    def quick_buttons(dialog):
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL,
+            Gtk.ResponseType.CANCEL
+        )
+    def open_file():
+        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
+        quick_buttons(dialog)
+        dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        dialog.run()
+        path = dialog.get_filename()
+        dialog.destroy()
+        return path
+
+    def open_files():
+        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
+        dialog.set_select_multiple(True)
+        quick_buttons(dialog)
+        dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        dialog.run()
+        paths = dialog.get_filenames()
+        dialog.destroy()
+        return paths
+    
+    def save_file(filters=[], name=''):
+        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE)
+        quick_buttons(dialog)
+        dialog.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        # for f in filters:
+        #     filter_text = Gtk.FileFilter()
+        #     filter_text.set_name(f[0])
+        #     dialog.add_filter(filter_text)
+        dialog.run()
+        path = os.path.join(dialog.get_current_folder(), dialog.get_current_name())
+        dialog.destroy()
+        return path
+
+    def open_folder():
+        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SELECT_FOLDER)
+        quick_buttons(dialog)
+        dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        dialog.run()
+        path = dialog.get_filename()
+        dialog.destroy()
+        return path
+else:
+    def open_file():
+        tk.Tk().withdraw()
+        return filedialog.askopenfilename()
+
+    def open_files():
+        tk.Tk().withdraw()
+        return filedialog.askopenfilenames()
+
+    def save_file(filters=[], name=''):
+        tk.Tk().withdraw()
+        return filedialog.asksaveasfilename(filetypes = filters, initialfile=name)
+
+    def open_folder():
+        tk.Tk().withdraw()
+        return filedialog.askdirectory()
+
 # Holds utilities that many parts of the peak tracker use.
 
 class Data_File:
@@ -22,6 +88,7 @@ class Data_File:
         self.r = np.sqrt(x ** 2 + y ** 2)
         self.v = self.r
         self.params = None
+        self.stamp = None
 
     def import_probe_temp(self, probe_temp):
         probe_temp = remove_nans(probe_temp)
@@ -38,6 +105,7 @@ class Data_File:
         self.cryo_temp = normalize_1d(cryo_temp, (min_T, max_T, len_T))
 
     def import_meta(self, stamp):
+        self.stamp = stamp
         try:
             self.date, self.time, self.start_temp, self.end_temp = stamp.split('_')
             self.name = stamp
@@ -149,14 +217,18 @@ def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
 
 def load_file(path=None):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.askopenfilename()
+        path = open_file()
     return path
+
+def load_files(paths=[]):
+    if len(paths) == 0:
+        paths = open_files()
+    return paths
 
 def load_dir(path=None):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.askdirectory()
+        path = open_folder()
+        print(path)
     return path
 
 def import_tdms_file(path=None, show=False):
@@ -176,8 +248,7 @@ def import_file(path=None, show=False, include_path=False):
     Leave path blank to open a file dialog window and select the file manually. Otherwise pass in a path.
     """
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.askopenfilename()
+        path = open_file()
     tdms_file = TdmsFile.read(path)
     channels = tdms_file.groups()[0].channels()
     tdms_f = remove_nans(channels[0][:])
@@ -353,18 +424,36 @@ def append_params_3d(p1, p2, force=False):
 
 def save(some_object, path=None, name=''):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.asksaveasfilename(filetypes = (("python objects", "*.pkl"), ("all files", "*.*")), initialfile=name)
+        path = save_file(filters=(("python objects", "*.pkl"), ("all files", "*.*")), name=name)
     pickle.dump(some_object, open(path, "wb"))
     return path
 
 def load(path=None):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.askopenfilename()
+        path = open_file()
     return pickle.load(open(path, "rb"))
 
-def import_tdms_files(path=None, show=True):
+def import_tdms_files(paths=[], show=True):
+    """
+    Make a list out of all the imported tdms files chosen.
+    """
+    paths = load_files(paths)
+    data_files = []
+    for p in paths:
+        if p[-5:] == '.tdms':
+            stamp = os.path.basename(p)[:-5]
+            data_file = import_file(p)
+            data_file.import_meta(stamp)
+            data_file.set_temp()
+            data_files.append(data_file)
+    data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
+    print('Imported file order:')
+    for i in range(len(data_files)):
+        pre = str(i) + ': ' + ((len(str(len(data_files) - 1)) - len(str(i))) * ' ' )
+        print(pre + str(data_files[i].stamp))
+    return data_files
+
+def import_tdms_dir(path=None, show=True):
     """
     Makes a list out of all the imported tdms files in chosen directory.
     """
@@ -410,8 +499,7 @@ def scatter_pts(pts, ref_arr, tar_arr):
 def save_freqs(f, name='freqs_kHz', alter=True):
     if alter:
         f = np.sort(f) / 1000
-    tk.Tk().withdraw()
-    path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("all files", "*.*")), initialfile=name)
+    path = save_file(filters=(("text file", "*.txt"), ("all files", "*.*")), name=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')
 
 def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
@@ -421,14 +509,12 @@ def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
     p = get_all_params(data_files)
     f = p[:,:,1] / 1000
     arr = np.append(np.transpose([T]), f, axis=1)
-    tk.Tk().withdraw()
-    path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), initialfile=name)
+    path = save_file(filters=(("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), name=name)
     np.savetxt(path, arr, delimiter=',', fmt='%10.15f')
 
 def save_Tf(Tf, path=None, name='temp_K_and_freqs_kHz'):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.asksaveasfilename(filetypes = (("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), initialfile=name)
+        path = save_file(filters=(("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), name=name)
     T = np.transpose(np.array([Tf[:,0]]))
     f = Tf[:,1:] / 1000
     Tf = np.append(T, f, axis=1)
@@ -436,15 +522,13 @@ def save_Tf(Tf, path=None, name='temp_K_and_freqs_kHz'):
 
 def load_freqs(path=None):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.askopenfilename()
+        path = open_file()
     f = np.loadtxt(path, delimiter='\n')
     return f * 1000
 
 def load_freqs_with_temps(path=None):
     if path is None:
-        tk.Tk().withdraw()
-        path = filedialog.askopenfilename()
+        path = open_file()
     Tf = np.loadtxt(path, delimiter=',')
     f = np.transpose(Tf)[1:] * 1000
     T = np.array([np.transpose(Tf)[0]])

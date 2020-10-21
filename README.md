@@ -336,6 +336,7 @@ The parameters are included in the outputted selections. So, if you then fit ove
 | Any | "s" | Save the color selection (also enables auto-sace). |
 | Any | "h" | Reset the view to fit all temperatures and frequencies. |
 | Any | "y" | Show a little debug info. |
+| Any | "o" | Enable trace smoothing. |
 | Any | "space" | Toggle display features. |
 | Selection | "enter" | Save current selection. |
 | Selection | "escape" | Restart current selection. |

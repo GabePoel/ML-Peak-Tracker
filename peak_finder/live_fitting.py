@@ -24,6 +24,7 @@ from matplotlib.widgets import (
 from matplotlib.patches import Polygon
 from matplotlib.path import Path
 from scipy.optimize import curve_fit
+from scipy.signal import savgol_filter
 from scipy import interpolate
 try:
     from . import fit_lorentz as fl
@@ -385,7 +386,7 @@ class Live_Instance():
         self.plot_lorentzians()
 
 class Color_Selector:
-    def __init__(self, data_files, alpha_other=0.0, x_res=1000, y_res=1, cmap='cool', parameters=None):
+    def __init__(self, data_files, x_res=1000, y_res=1, cmap='cool', parameters=None):
         self.x_res = x_res
         self.y_res = y_res
         self.cmap = cmap
@@ -454,6 +455,7 @@ class Color_Selector:
         self.trace_coords = []
         self.traces = []
         self.toggle_delete = False
+        self.smooth = False
 
     def setup_connections(self):
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
@@ -465,6 +467,8 @@ class Color_Selector:
         self.del_cursor.set_active(False)
         self.tra_cursor = Cursor(self.ax, useblit=True, color='white', linewidth=1, linestyle=":")
         self.tra_cursor.set_active(False)
+        self.tra_cursor_alt = Cursor(self.ax, useblit=True, color='white', linewidth=1, linestyle='-.')
+        self.tra_cursor_alt.set_active(False)
         self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box",
             rectprops = dict(facecolor='grey', edgecolor = 'blue', alpha=0.2, fill=True))
         self.rec_select.disconnect_events()
@@ -476,8 +480,6 @@ class Color_Selector:
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
 
     def set_mode(self, mode):
-        # if self.last_mode == 'trace':
-        #     self.traces.append(self.ax.plot(x, y, color='red'))
         self.last_mode = self.mode
         self.autosave()
         self.disconnect_all()
@@ -502,9 +504,6 @@ class Color_Selector:
         elif self.mode == 'trace':
             self.tra_cursor.set_active(True)
             self.lasso_select.connect_default_events()
-        # elif self.mode == 'move':
-        #     self.toolbar.pan()
-        #     print('no more pan')
         self.canvas.draw_idle()
         self.canvas.flush_events()
 
@@ -649,10 +648,20 @@ class Color_Selector:
             self.trace()
         elif event.key == 'c':
             self.commit_trace()
+        elif event.key == 'o':
+            self.toggle_smooth()
 
     def disconnect(self):
         self.autosave()
         self.poly.disconnect_events()
+        self.canvas.draw_idle()
+
+    def toggle_smooth(self):
+        self.smooth = not self.smooth
+        self.tra_cursor.set_active(False)
+        self.tra_cursor, self.tra_cursor_alt = self.tra_cursor_alt, self.tra_cursor
+        if self.mode == 'trace':
+            self.tra_cursor.set_active(True)
         self.canvas.draw_idle()
 
     def tweak(self):
@@ -705,6 +714,15 @@ class Color_Selector:
         v = self.make_safe(verts)
         for trace in self.traces:
             trace.set_alpha(0)
+        if self.smooth:
+            v_backup = v
+            try:
+                x = self.to_x(v)
+                y = self.to_y(v)
+                xhat = savgol_filter(x, 15, 3)
+                v = self.to_v(xhat, y)
+            except:
+                v = v_backup
         self.trace_coords += v
         self.trace_coords = self.make_safe(self.trace_coords)
         x = self.to_x(self.trace_coords)
@@ -715,12 +733,18 @@ class Color_Selector:
         self.traces.append(trace_strong)
         self.canvas.draw_idle()
 
+    def to_v(self, x, y):
+        v = []
+        for i in range(len(x)):
+            v.append((x[i], y[i]))
+        return v
+
     def make_safe(self, verts):
         x_vals = []
         y_vals = []
         verts.reverse()
         for v in verts:
-            if not int(np.round(v[1])) in y_vals and v[1] >= 0 and v[1] < len(self.data_files):
+            if not all([int(np.round(v[1])) in y_vals, v[1] >= 0, v[1] < len(self.data_files), v[0] >= 0, v[0] < self.x_res]):
                 x_vals.append(v[0])
                 y_vals.append(int(np.round(v[1])))
         new_verts = []
@@ -730,7 +754,7 @@ class Color_Selector:
         x = self.to_x(new_verts)
         y = self.to_y(new_verts)
         f = interpolate.interp1d(y, x)
-        y_new = np.arange(min(y), max(y), 1)
+        y_new = np.arange(min(y), max(y) + 1, 1)
         x_new = f(y_new)
         final_verts = []
         for i in range(len(y_new)):

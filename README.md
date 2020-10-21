@@ -324,9 +324,19 @@ The parameters are included in the outputted selections. So, if you then fit ove
 | :--- | :------- | :----- |
 | Any | "e" | Toggle Enhance! mode. |
 | Any | "x" | Turn off enhancements. |
-| Any | "space" | Toggle display features. |
 | Any | "p" | Open parameter preview. |
 | Any | "i" | Activate "Inspire Me!" |
+| Any | "a" | Activate tracer mode. |
+| Any | "c" | Commit the current tracing to frequencies. |
+| Any | "m" | Turn on the panning tool. |
+| Any | "z" | Turn on the zoom tool. |
+| Any | "f" | Reload the canvas. |
+| Any | "r" | Pre-render the current selections. |
+| Any | "q" | Quit color selection. |
+| Any | "s" | Save the color selection (also enables auto-sace). |
+| Any | "h" | Reset the view to fit all temperatures and frequencies. |
+| Any | "y" | Show a little debug info. |
+| Any | "space" | Toggle display features. |
 | Selection | "enter" | Save current selection. |
 | Selection | "escape" | Restart current selection. |
 | Selection | "control" | Edit vertices in current selection. |

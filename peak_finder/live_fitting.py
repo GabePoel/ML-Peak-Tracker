@@ -19,10 +19,12 @@ from matplotlib.widgets import (
     RectangleSelector,
     PolygonSelector,
     Cursor,
+    LassoSelector
 )
 from matplotlib.patches import Polygon
 from matplotlib.path import Path
 from scipy.optimize import curve_fit
+from scipy import interpolate
 try:
     from . import fit_lorentz as fl
     from . import generate_lorentz as gl
@@ -79,7 +81,9 @@ option_select_colors = {
     "Pink": "tab:pink",
     "Grey": "tab:grey",
     "Olive": "tab:olive",
-    "Cyan": "tab:cyan"
+    "Cyan": "tab:cyan",
+    "Black": "black",
+    "White": "white"
 }
 
 def lin(x, a, b):
@@ -427,6 +431,7 @@ class Color_Selector:
         self.clean_mode = False
         self.path = None
         self.mode = 'select' # Modes: select, enhance, preview, delete, move
+        self.last_mode = None
 
     def setup_plot(self):
         self.ax, self.collection, self.colors = make_colors(self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
@@ -446,6 +451,8 @@ class Color_Selector:
         self.enhanced_renders = []
         self.enhanced_areas = []
         self.paths = []
+        self.trace_coords = []
+        self.traces = []
         self.toggle_delete = False
 
     def setup_connections(self):
@@ -456,15 +463,21 @@ class Color_Selector:
         self.pre_cursor.set_active(False)
         self.del_cursor = Cursor(self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
         self.del_cursor.set_active(False)
+        self.tra_cursor = Cursor(self.ax, useblit=True, color='white', linewidth=1, linestyle=":")
+        self.tra_cursor.set_active(False)
         self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box",
             rectprops = dict(facecolor='grey', edgecolor = 'blue', alpha=0.2, fill=True))
         self.rec_select.disconnect_events()
         self.alt_rec_select = RectangleSelector(self.ax, self.on_rec_delete, useblit=True, drawtype="box", 
             rectprops = dict(facecolor='grey', edgecolor = 'red', alpha=0.2, fill=True))
         self.alt_rec_select.disconnect_events()
+        self.lasso_select = LassoSelector(self.ax, self.make_curve, lineprops={'color': 'white'})
+        self.lasso_select.disconnect_events()
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
 
     def set_mode(self, mode):
+        # if self.last_mode == 'trace':
+        #     self.traces.append(self.ax.plot(x, y, color='red'))
         self.last_mode = self.mode
         self.autosave()
         self.disconnect_all()
@@ -486,6 +499,9 @@ class Color_Selector:
             self.alt_rec_select.connect_default_events()
             self.alt_rec_select.set_visible(True)
             self.pick = self.canvas.mpl_connect('pick_event', self.on_delete)
+        elif self.mode == 'trace':
+            self.tra_cursor.set_active(True)
+            self.lasso_select.connect_default_events()
         # elif self.mode == 'move':
         #     self.toolbar.pan()
         #     print('no more pan')
@@ -496,9 +512,11 @@ class Color_Selector:
         self.cursor.set_active(False)
         self.del_cursor.set_active(False)
         self.pre_cursor.set_active(False)
+        self.tra_cursor.set_active(False)
         self.poly.disconnect_events()
         self.rec_select.disconnect_events()
         self.alt_rec_select.disconnect_events()
+        self.lasso_select.disconnect_events()
         self.canvas.mpl_disconnect('pick_event')
         self.canvas.mpl_disconnect('button_release_event')
 
@@ -563,6 +581,8 @@ class Color_Selector:
             line.set_color(line_color)
         for path in self.paths:
             path.set_color(line_color)
+        for trace in self.traces:
+            trace.set_color(line_color)
         self.line_color = line_color
         self.canvas.draw_idle()
 
@@ -607,7 +627,7 @@ class Color_Selector:
             self.enable_delete()
         elif event.key == 'r':
             self.prerender()
-        elif event.key == 'q':
+        elif event.key == 'y':
             self.show_stuff()
         elif event.key == 'f':
             self.canvas.draw_idle()
@@ -621,10 +641,14 @@ class Color_Selector:
             self.toolbar.zoom()
         elif event.key == 'h':
             self.toolbar.home()
-        elif event.key == 'c':
+        elif event.key == 'q':
             self.close_window()
         elif event.key == 't':
             self.tweak()
+        elif event.key == 'a':
+            self.trace()
+        elif event.key == 'c':
+            self.commit_trace()
 
     def disconnect(self):
         self.autosave()
@@ -636,7 +660,90 @@ class Color_Selector:
         self.parameters = mistake_selection(self.data_files, self.parameters, self.path)
         self.refresh_parameters()
         self.autosave()
-        self.draw_idle()
+        self.canvas.draw_idle()
+
+    def trace(self):
+        self.canvas.draw_idle()
+        self.set_mode('trace')
+        
+    def commit_trace(self):
+        trace = self.trace_coords
+        for t in self.traces:
+            t.set_alpha(0)
+            t.remove()
+        self.traces = []
+        self.trace_coords = []
+        p = self.parameters_from_trace(trace)
+        if self.parameters is None:
+            self.parameters = np.array(p)
+        else:
+            self.parameters = np.append(self.parameters, p, axis=1)
+        self.refresh_parameters()
+
+    def parameters_from_trace(self, trace):
+        p = []
+        y = self.to_y(trace)
+        y_min = min(y)
+        old_scale = (0, self.x_res, self.x_res)
+        new_scale = (min(self.data_files[0].f), max(self.data_files[0].f), len(self.data_files[0].f))
+        for i in range(len(self.data_files)):
+            if i in y:
+                f0 = cd.normalize_0d(trace[i - y_min][0], old_scale, new_scale)
+                i0 = util.find_nearest_index(self.data_files[0].f, f0)
+                iin = max(0, i0 - 3)
+                ifi = min(len(self.data_files[0].f - 1), i0 + 3)
+                fin = self.data_files[0].f[iin]
+                ffi = self.data_files[0].f[ifi]
+                FWHM = ffi - fin
+                A = max(self.data_files[0].r[iin:ifi + 1]) - min(self.data_files[0].r[iin:ifi + 1])
+                p.append([[A, f0, FWHM, np.pi]])
+            else:
+                p.append([[np.nan, np.nan, np.nan, np.nan]])
+        return np.array(p)
+
+    def make_curve(self, verts):
+        v = self.make_safe(verts)
+        for trace in self.traces:
+            trace.set_alpha(0)
+        self.trace_coords += v
+        self.trace_coords = self.make_safe(self.trace_coords)
+        x = self.to_x(self.trace_coords)
+        y = self.to_y(self.trace_coords)
+        trace_faint = self.ax.plot(x, y, color=self.line_color, alpha=0.5)[0]
+        trace_strong = self.ax.plot(x, y, color=self.line_color, linestyle=':')[0]
+        self.traces.append(trace_faint)
+        self.traces.append(trace_strong)
+        self.canvas.draw_idle()
+
+    def make_safe(self, verts):
+        x_vals = []
+        y_vals = []
+        verts.reverse()
+        for v in verts:
+            if not int(np.round(v[1])) in y_vals and v[1] >= 0 and v[1] < len(self.data_files):
+                x_vals.append(v[0])
+                y_vals.append(int(np.round(v[1])))
+        new_verts = []
+        for i in range(len(x_vals)):
+            new_verts.append((x_vals[i], y_vals[i]))
+        new_verts.sort(key=lambda v: v[1])
+        x = self.to_x(new_verts)
+        y = self.to_y(new_verts)
+        f = interpolate.interp1d(y, x)
+        y_new = np.arange(min(y), max(y), 1)
+        x_new = f(y_new)
+        final_verts = []
+        for i in range(len(y_new)):
+            final_verts.append((x_new[i], int(np.round(y_new[i]))))
+        return final_verts
+
+    def to_x(self, verts):
+        x = [v[0] for v in verts]
+        return np.array(x)
+
+    def to_y(self, verts):
+        y = [v[1] for v in verts]
+        return np.array(y)
 
     def refresh_parameters(self):
         self.autosave()
@@ -853,6 +960,25 @@ class Color_Selector:
         self.enhanced_renders = []
         self.enhanced_areas = []
         self.canvas.draw_idle()
+
+    def renormalize(self, verts):
+        full_min = 0
+        full_max = len(self.data_files[0].f) - 1
+        x_min = 0
+        x_max = self.x_res
+        y_min = 0
+        y_max = len(self.data_files)
+        normed_verts = []
+        old_scale = (x_min, x_max, x_max)
+        new_scale = (full_min, full_max, full_max)
+        print(old_scale)
+        print(new_scale)
+        for v in verts:
+            x = cd.normalize_0d(v[0], old_scale, new_scale)
+            y = v[1]
+            normed_verts.append((x, y))
+        print(normed_verts)
+        return normed_verts
 
     def render_enhance(self, x_min, x_max, y_min, y_max):
         x_min = max(x_min, 0)

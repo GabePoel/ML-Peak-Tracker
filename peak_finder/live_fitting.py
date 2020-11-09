@@ -115,7 +115,7 @@ class Selection():
         self.f_max = self.x_pos + self.x_delta
 
 class Live_Instance():
-    def __init__(self, f, v):
+    def __init__(self, f, v, method='lm'):
         self.f = f[np.logical_not(np.isnan(f))]
         self.v = v[np.logical_not(np.isnan(v))]
         self.live_lorentzians = {}
@@ -123,6 +123,7 @@ class Live_Instance():
         self.show_components = False
         self.component_height = 1.5
         self.projection_height = -1
+        self.method = method
         self.vlines = []
 
     def import_all_data(self, x, y, data_to_analyze=None):
@@ -327,7 +328,7 @@ class Live_Instance():
             max_ind = util.find_nearest_index(self.f, self.selection.f_max)
             region = np.array([[min_ind, max_ind]])
             region_f, region_v = util.extract_region(0, region, self.f, self.v)
-            p_list = [fl.free_n_least_squares(region_f, region_v, max_n=1, force_fit=True).x]
+            p_list = [fl.free_n_least_squares(region_f, region_v, max_n=1, force_fit=True, method=self.method).x]
             p_table = fl.extract_parameters(p_list)
             self.import_lorentzians(p_table)
             self.end_interactive()
@@ -386,12 +387,13 @@ class Live_Instance():
         self.plot_lorentzians()
 
 class Color_Selector:
-    def __init__(self, data_files, x_res=1000, y_res=1, cmap='cool', parameters=None):
+    def __init__(self, data_files, x_res=1000, y_res=1, cmap='cool', parameters=None, method='lm'):
         self.x_res = x_res
         self.y_res = y_res
         self.cmap = cmap
         self.data_files = data_files
         self.parameters = parameters
+        self.method = method
         self.setup_plot()
         self.setup_interface()
         self.setup_connections()
@@ -899,7 +901,7 @@ class Color_Selector:
                 f = self.data_files[index].f
                 v = self.data_files[index].r
                 regions = self.selections[i][index]
-                p = fl.parameters_from_regions(f, v, regions, catch_degeneracies=False)
+                p = fl.parameters_from_regions(f, v, regions, catch_degeneracies=False, method=self.method)
                 params = np.append(params, p, axis=0)
             except:
                 pass
@@ -1049,7 +1051,7 @@ class Color_Selector:
 
     def prerender(self):
         self.autosave()
-        self.parameters = fl.parameters_from_selections(self.data_files, (self.selections, self.parameters))
+        self.parameters = fl.parameters_from_selections(self.data_files, (self.selections, self.parameters), method=self.method)
         self.refresh_parameters()
         self.selections = []
         for patch in self.patches:
@@ -1171,11 +1173,12 @@ class Point_Selector:
         self.canvas.draw_idle()
 
 class Mistake_Selector():
-    def __init__(self, data_files, parameters=None, path=None):
+    def __init__(self, data_files, parameters=None, path=None, method='lm'):
         self.data_files = data_files
         if parameters is None:
             parameters = util.get_all_params(data_files)
         self.parameters = parameters
+        self.method = method
         self.path = path
         self.setup_interface()
 
@@ -1269,14 +1272,16 @@ class Mistake_Selector():
         self.mark_curves(self.T_ind)
         self.peak_plot(self.T_ind, self.p_ind)
 
-    def refit(self):
+    def refit(self, method=None):
         self.autosave()
+        if method is None:
+            method = self.method
         f = self.data_files[self.T_ind].f
         v = self.data_files[self.T_ind].r
         min_ind = util.find_nearest_index(f, self.selection.f_min)
         max_ind = util.find_nearest_index(f, self.selection.f_max)
         region = np.array([[min_ind, max_ind]])
-        p0 = fl.parameters_from_regions(f, v, region, max_n=1, force_fit=True)
+        p0 = fl.parameters_from_regions(f, v, region, max_n=1, force_fit=True, method=method)
         self.correct_p(p0)
 
     def curve_plot(self, p_ind):
@@ -1426,6 +1431,12 @@ class Mistake_Selector():
         self.autosave()
         if event.key == 'enter':
             self.refit()
+        elif event.key == '1':
+            self.refit(method='trf')
+        elif event.key == '2':
+            self.refit(method='lm')
+        elif event.key == '3':
+            self.refit(method='dogbox')
         elif event.key == 'backspace':
             self.remove()
         elif event.key == 'right':
@@ -1476,13 +1487,13 @@ def check_contains(old_area, new_area):
     ]
     return all(checks)
 
-def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None):
+def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None, method='lm'):
     y_res = min(y_res / len(data_files), 1)
-    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters)
-    return fl.parameters_from_selections(data_files, (selector.selections, selector.parameters))
+    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters, method=method)
+    return fl.parameters_from_selections(data_files, (selector.selections, selector.parameters), method=method)
 
-def mistake_selection(data_files, parameters=None, path=None):
-    m = Mistake_Selector(data_files, parameters, path)
+def mistake_selection(data_files, parameters=None, path=None, method='lm'):
+    m = Mistake_Selector(data_files, parameters, path, method=method)
     return m.parameters
 
 def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):

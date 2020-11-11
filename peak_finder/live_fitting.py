@@ -342,6 +342,12 @@ class Live_Instance():
             self.remove_lorentz()
         elif event.key == 's':
             self.reset_axes()
+        elif event.key == 'm':
+            self.toolbar.pan()
+        elif event.key == 'z':
+            self.toolbar.zoom()
+        elif event.key == 'h':
+            self.toolbar.home()
 
     def on_press_rem(self, event):
         if event.key == 'enter':

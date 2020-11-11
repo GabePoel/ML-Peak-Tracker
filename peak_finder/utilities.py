@@ -525,6 +525,7 @@ def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
     p = get_all_params(data_files)
     f = p[:,:,1] / 1000
     arr = np.append(np.transpose([T]), f, axis=1)
+    arr = temp_freq_sort_2d(arr)
     path = save_file(filters=(("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), name=name)
     np.savetxt(path, arr, delimiter=',', fmt='%10.15f')
 

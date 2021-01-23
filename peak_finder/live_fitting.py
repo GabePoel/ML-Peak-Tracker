@@ -30,12 +30,22 @@ try:
     from . import fit_lorentz as fl
     from . import generate_lorentz as gl
     from . import classify_data as cd
-    from . import automatic as auto
+    try:
+        from . import automatic as auto
+        can_ml = True
+    except:
+        from . import automatic_no_ml as auto
+        can_ml = False
 except:
     import fit_lorentz as fl
     import generate_lorentz as gl
     import classify_data as cd
-    import automatic as auto
+    try:
+        import automatic as auto
+        can_ml = True
+    except:
+        import automatic_no_ml as auto
+        can_ml = False
 
 option_colors = {
     "Cool": "cool",
@@ -949,10 +959,13 @@ class Color_Selector:
                 self.display_params(params, index)
 
     def inspire_me(self):
-        self.autosave()
-        index = simpledialog.askinteger("Index Selection", "Which index?")
-        params = auto.quick_analyze(self.data_files[index].f, self.data_files[index].r)
-        self.display_params(params, index)
+        if can_ml:
+            self.autosave()
+            index = simpledialog.askinteger("Index Selection", "Which index?")
+            params = auto.quick_analyze(self.data_files[index].f, self.data_files[index].r)
+            self.display_params(params, index)
+        else:
+            auto.quick_analyze()
 
     def update_colors(self, cmap="viridis"):
         max_res = self.x_res

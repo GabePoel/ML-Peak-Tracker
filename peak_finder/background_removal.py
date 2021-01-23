@@ -20,6 +20,20 @@ except:
     import classify_data as cd
 
 def remove_background(data_files, start_index=0):
+    """
+    Experimental function to remove background noise and Lorentzians from
+    data with smaller peaks in it.
+
+    Parameters
+    ----------
+    data_files : list
+    start_index : int, optional
+    
+    Returns
+    -------
+    f_list : list
+    v_list : list
+    """
     model = models.tight_lorentzian()
     f_list = []
     v_list = []

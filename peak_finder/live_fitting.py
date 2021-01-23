@@ -1554,11 +1554,17 @@ def check_contains(old_area, new_area):
     return all(checks)
 
 def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None, method='lm'):
+    """
+    Interactive Lorentzian tracker over a range of temperatures.
+    """
     y_res = min(y_res / len(data_files), 1)
     selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters, method=method)
     return fl.parameters_from_selections(data_files, (selector.selections, selector.parameters), method=method)
 
 def mistake_selection(data_files, parameters=None, path=None, method='lm'):
+    """
+    Interactive Lorentzian editor over a range of temperatures.
+    """
     m = Mistake_Selector(data_files, parameters, path, method=method)
     return m.parameters
 
@@ -1615,6 +1621,9 @@ def points_to_ranges(points, data_files, res):
     return range_dict
 
 def live_selection(data_file, params=None, vline=None):
+    """
+    Interactive peak selector at single temperature.
+    """
     f = data_file.f
     x = data_file.x
     y = data_file.y
@@ -1629,6 +1638,9 @@ def live_selection(data_file, params=None, vline=None):
     return live.get_all_params()
 
 def point_selection(data_files, params=None, fs=[]):
+    """
+    Interactive peak filter from several trials at the same temperature.
+    """
     fs = list(fs)
     if not params is None:
         util.set_all_params(data_files, params)

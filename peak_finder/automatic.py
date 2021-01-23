@@ -11,6 +11,22 @@ except:
     import models
 
 def quick_analyze(f, v, show=True, learn=True):
+    """
+    Automatically get parameters through a pre-made machine learning model 
+    and script.
+
+    Parameters
+    ----------
+    f : arr
+        1D frequency array.
+    v : arr
+        1D amplitude array.
+    
+    Returns
+    -------
+    parameters : arr
+        2D Lorentzian parameter array.
+    """
     if learn:
         tight_model = models.tight_lorentzian()
         wide_model = models.wide_lorentzian()

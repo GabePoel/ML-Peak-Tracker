@@ -26,8 +26,7 @@ setuptools.setup(
         'scipy',
         'matplotlib', 
         'nptdms', 
-        'pysimplegui',
-        'tensorflow'
+        'pysimplegui'
         ],
     # package_data = {
     #     # Include anything found in the "trained_models" subdirectory

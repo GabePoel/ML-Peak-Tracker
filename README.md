@@ -2,7 +2,11 @@
 
 ## Installing
 
-To get things to work, you probably want to have the peak_finder directory in whatever directory you're running terminal or other python scripts or whathaveyou from. If this doesn't work for some reason, you can try using `from __future__ import absolute_import` before importing all the `peak_finder` stuff. If that doesn't work, let me know and I'll see if I screwed something up. You can also add `peak_finder` to PATH if you want to be able to call it from anywhere. That's technically the "preferred" way to run it.
+Just run the following to install directly from this repository.
+```sh
+pip3 install git+https://github.com/GabePoel/ML-Peak-Tracker#egg=peak_finder
+```
+The download and installation may take a while because the trained models are rather chunky.
 
 ## Extremely Quick Start Guide for Peak Finding
 

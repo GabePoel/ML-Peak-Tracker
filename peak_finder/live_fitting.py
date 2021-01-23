@@ -168,7 +168,7 @@ class Live_Instance():
         if loop:
             self.make_button("Done", command=self.close_window)
             self.make_button("Refresh", command=self.update_window)
-            self.make_button("Reset Axes", command=self.reset_axes)
+            # self.make_button("Reset Axes", command=self.reset_axes)
             self.make_button("Add Lorentzians", command=self.add_lorentz)
             self.make_button("Remove Lorentzians", command=self.remove_lorentz)
             self.make_button("Show/Hide Components", command=self.components_bool)
@@ -186,6 +186,7 @@ class Live_Instance():
         self.toolbar.update()
         self.canvas._tkcanvas.pack()
         self.plot_lorentzians()
+        self.add_lorentz()
         if loop:
             tk.mainloop()
 
@@ -358,6 +359,22 @@ class Live_Instance():
             self.toolbar.zoom()
         elif event.key == 'h':
             self.toolbar.home()
+        elif event.key == 'f':
+            self.plot_lorentzians()
+        elif event.key == 'q':
+            self.close_window()
+        elif event.key == 'r':
+            self.toggle_quick_render()
+        elif event.key == 'left':
+            self.raise_projection()
+        elif event.key == 'right':
+            self.lower_projection()
+        elif event.key == 'space':
+            self.components_bool()
+        elif event.key == 'up':
+            self.raise_components()
+        elif event.key == 'down':
+            self.lower_components()
 
     def on_press_rem(self, event):
         if event.key == 'enter':
@@ -372,6 +389,34 @@ class Live_Instance():
             self.remove_lorentz()
         elif event.key == 'escape':
             self.end_interactive()
+        elif event.key == 'a':
+            self.add_lorentz()
+        elif event.key == 'd':
+            self.remove_lorentz()
+        elif event.key == 's':
+            self.reset_axes()
+        elif event.key == 'm':
+            self.toolbar.pan()
+        elif event.key == 'z':
+            self.toolbar.zoom()
+        elif event.key == 'h':
+            self.toolbar.home()
+        elif event.key == 'f':
+            self.plot_lorentzians()
+        elif event.key == 'q':
+            self.close_window()
+        elif event.key == 'r':
+            self.toggle_quick_render()
+        elif event.key == 'left':
+            self.raise_projection()
+        elif event.key == 'right':
+            self.lower_projection()
+        elif event.key == 'space':
+            self.components_bool()
+        elif event.key == 'up':
+            self.raise_components()
+        elif event.key == 'down':
+            self.lower_components()
 
     def on_select(self, click, release):
         x1, y1 = click.xdata, click.ydata
@@ -424,7 +469,9 @@ class Color_Selector:
         self.patch_color = "tab:red"
         self.line_color = "tab:red"
         self.controls = tk.Frame(self.root)
+        self.plot_bar = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=False)
+        self.plot_bar.pack(side="top", fill="both", expand=False)
         self.make_button("Done", command=self.close_window)
         self.make_button("Another!", command=self.another_selection)
         self.make_button("Toggle Displays", command=self.toggle_show)
@@ -443,7 +490,7 @@ class Color_Selector:
         self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
         self.separator = ttk.Separator(self.root, orient=tk.VERTICAL)
         self.separator.pack(in_=self.controls, side="left", padx=2)
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.controls)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_bar)
         self.toolbar.update()
         self.canvas._tkcanvas.pack()
         self.enhance_mode = False
@@ -965,7 +1012,7 @@ class Color_Selector:
             params = auto.quick_analyze(self.data_files[index].f, self.data_files[index].r)
             self.display_params(params, index)
         else:
-            auto.quick_analyze()
+            auto.quick_analyze(None, None)
 
     def update_colors(self, cmap="viridis"):
         max_res = self.x_res

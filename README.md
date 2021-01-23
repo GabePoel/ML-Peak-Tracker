@@ -4,7 +4,7 @@
 
 Just run the following to install directly from this repository.
 ```sh
-pip3 install git+https://github.com/GabePoel/ML-Peak-Tracker#egg=peak_finder --user
+pip install git+https://github.com/GabePoel/ML-Peak-Tracker#egg=peak_finder --user
 ```
 The download and installation may take a while because the trained models are rather chunky. If you want, you can choose to install it _not_ as a user if you're that kind of person and like living on the edge.
 
@@ -326,22 +326,27 @@ The parameters are included in the outputted selections. So, if you then fit ove
 
 | Mode | Shortcut | Action |
 | :--- | :------- | :----- |
-| Any | "e" | Toggle Enhance! mode. |
-| Any | "x" | Turn off enhancements. |
-| Any | "p" | Open parameter preview. |
-| Any | "i" | Activate "Inspire Me!" |
-| Any | "a" | Activate tracer mode. |
+| Any | "a" | Activate tracer mode in color selection. Add peak in live selection. |
 | Any | "c" | Commit the current tracing to frequencies. |
-| Any | "m" | Turn on the panning tool. |
-| Any | "z" | Turn on the zoom tool. |
+| Any | "d" | Delete peak in live selection. |
+| Any | "e" | Toggle Enhance! mode. |
 | Any | "f" | Reload the canvas. |
-| Any | "r" | Pre-render the current selections. |
-| Any | "q" | Quit color selection. |
-| Any | "s" | Save the color selection (also enables auto-sace). |
 | Any | "h" | Reset the view to fit all temperatures and frequencies. |
-| Any | "y" | Show a little debug info. |
+| Any | "i" | Activate "Inspire Me!" |
+| Any | "m" | Turn on the panning tool. |
 | Any | "o" | Enable trace smoothing. |
+| Any | "p" | Open parameter preview. |
+| Any | "q" | Quit color or live selection. |
+| Any | "r" | Pre-render the current selections or toggle quick render. |
+| Any | "s" | Save the color selection (also enables auto-sace). |
+| Any | "x" | Turn off enhancements. |
+| Any | "z" | Turn on the zoom tool. |
+| Any | "y" | Show a little debug info. |
 | Any | "space" | Toggle display features. |
+| Any | "up" | Raise components or view different peak. |
+| Any | "down" | Lower components or view different peak. |
+| Any | "left" | Raise projection or pan along peak's path. |
+| Any | "right" | Lower projection or pan along peak's path. |
 | Selection | "enter" | Save current selection. |
 | Selection | "escape" | Restart current selection. |
 | Selection | "control" | Edit vertices in current selection. |

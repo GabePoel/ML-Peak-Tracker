@@ -12,11 +12,13 @@ if 'linux' in sys.platform:
     import gi
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
+
     def quick_buttons(dialog):
         dialog.add_buttons(
             Gtk.STOCK_CANCEL,
             Gtk.ResponseType.CANCEL
         )
+
     def open_file():
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
         quick_buttons(dialog)
@@ -35,7 +37,7 @@ if 'linux' in sys.platform:
         paths = dialog.get_filenames()
         dialog.destroy()
         return paths
-    
+
     def save_file(filters=[], name=''):
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE)
         quick_buttons(dialog)
@@ -45,12 +47,14 @@ if 'linux' in sys.platform:
         #     filter_text.set_name(f[0])
         #     dialog.add_filter(filter_text)
         dialog.run()
-        path = os.path.join(dialog.get_current_folder(), dialog.get_current_name())
+        path = os.path.join(dialog.get_current_folder(),
+                            dialog.get_current_name())
         dialog.destroy()
         return path
 
     def open_folder():
-        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SELECT_FOLDER)
+        dialog = Gtk.FileChooserDialog(
+            action=Gtk.FileChooserAction.SELECT_FOLDER)
         quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
         dialog.run()
@@ -68,7 +72,8 @@ else:
 
     def save_file(filters=[], name=''):
         tk.Tk().withdraw()
-        return filedialog.asksaveasfilename(filetypes = filters, initialfile=name)
+        return filedialog.asksaveasfilename(
+            filetypes=filters, initialfile=name)
 
     def open_folder():
         tk.Tk().withdraw()
@@ -76,11 +81,13 @@ else:
 
 # Holds utilities that many parts of the peak tracker use.
 
+
 class Data_File:
     """
     Stores the x, y, f, and v data for an imported tdms file.
     Here v is defined as v = sqrt(x ** 2 + y ** 2).
     """
+
     def __init__(self, x, y, f):
         self.x = x
         self.y = y
@@ -107,9 +114,10 @@ class Data_File:
     def import_meta(self, stamp):
         self.stamp = stamp
         try:
-            self.date, self.time, self.start_temp, self.end_temp = stamp.split('_')
+            self.date, self.time, self.start_temp, self.end_temp = stamp.split(
+                '_')
             self.name = stamp
-        except:
+        except BaseException:
             self.date, self.time, self.start_temp = stamp.split('_')
             self.end_temp = self.start_temp
             self.name = stamp
@@ -120,13 +128,17 @@ class Data_File:
         try:
             probe_high = max(self.probe_temp)
             probe_low = min(self.probe_temp)
-            if np.abs(probe_high - 1.875) < .03 and np.abs(probe_low - 1.875) < .03:
+            if np.abs(
+                    probe_high -
+                    1.875) < .03 and np.abs(
+                    probe_low -
+                    1.875) < .03:
                 self.T = self.cryo_temp
             elif any(np.isnan(self.probe_temp)):
                 self.T = self.cryo_temp
             else:
                 self.T = self.probe_temp
-        except:
+        except BaseException:
             self.T = np.linspace(self.start_temp, self.end_temp, len(self.f))
 
     def get_temp(self, f0):
@@ -136,12 +148,14 @@ class Data_File:
     def set_params(self, params):
         self.params = params
 
+
 def set_all_params(data_files, params):
     if type(data_files) is list:
         for i in range(len(data_files)):
             data_files[i].set_params(params[i])
     else:
         data_files.set_params(params)
+
 
 def get_all_params(data_files):
     params = []
@@ -152,8 +166,9 @@ def get_all_params(data_files):
         params = data_files.params
     try:
         return np.array(params)
-    except:
+    except BaseException:
         return params
+
 
 def scale_1d(x):
     """
@@ -162,9 +177,10 @@ def scale_1d(x):
     """
     return (min(x), max(x), len(x))
 
+
 def match_lengths(arrs):
     return_arrs = arrs.copy()
-    arrs.sort(key=lambda a:len(a))
+    arrs.sort(key=lambda a: len(a))
     length = len(arrs[0])
     for i in range(0, len(return_arrs)):
         a = return_arrs[i]
@@ -172,7 +188,8 @@ def match_lengths(arrs):
         return_arrs[i] = a
     return return_arrs
 
-def normalize_1d(x, scale=(0,1,1024)):
+
+def normalize_1d(x, scale=(0, 1, 1024)):
     """
     Normalizes a given array of data around the provided scale factor.
     """
@@ -190,6 +207,7 @@ def normalize_1d(x, scale=(0,1,1024)):
     x_resized = (x_interp(new_baseline) * (new_max - new_min)) + new_min
     return x_resized
 
+
 def remove_nans(arr):
     if len(arr.shape) == 1:
         return arr[~np.isnan(arr)]
@@ -200,36 +218,43 @@ def remove_nans(arr):
                 new_arr = np.append(new_arr, np.array([arr[i]]), axis=0)
         return new_arr
 
+
 def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
     """Use with an iteratore as 'it' to show a progress bar while waiting."""
     count = len(it)
+
     def show(j):
         try:
-            x = int(size*j/count)
-        except:
+            x = int(size * j / count)
+        except BaseException:
             x = 0
         if progress:
-            print("%s[%s%s] %i/%i\r\r" % (prefix, "="*x, "-"*(size-x), j, count), end='\r')
+            print("%s[%s%s] %i/%i\r\r" %
+                  (prefix, "=" * x, "-" * (size - x), j, count), end='\r')
     show(0)
     for i, item in enumerate(it):
         yield item
-        show(i+1)
+        show(i + 1)
+
 
 def load_file(path=None):
     if path is None:
         path = open_file()
     return path
 
+
 def load_files(paths=[]):
     if len(paths) == 0:
         paths = open_files()
     return paths
+
 
 def load_dir(path=None):
     if path is None:
         path = open_folder()
         print(path)
     return path
+
 
 def import_tdms_file(path=None, show=False):
     """
@@ -240,6 +265,7 @@ def import_tdms_file(path=None, show=False):
     data_file.import_meta(stamp)
     data_file.set_temp()
     return data_file
+
 
 def import_file(path=None, show=False, include_path=False):
     """
@@ -267,7 +293,16 @@ def import_file(path=None, show=False, include_path=False):
         return tdms_file, path
     return tdms_file
 
-def plot_region(i, regions, f, v, color=None, show_boundaries=False, min_color='g', max_color='g'):
+
+def plot_region(
+        i,
+        regions,
+        f,
+        v,
+        color=None,
+        show_boundaries=False,
+        min_color='g',
+        max_color='g'):
     """
     Given a region array, some frequency data, and some displacement data, will plot the specified index.
     """
@@ -281,6 +316,7 @@ def plot_region(i, regions, f, v, color=None, show_boundaries=False, min_color='
         plt.axvline(x=f[min_f], color=min_color)
         plt.axvline(x=f[max_f], color=max_color)
 
+
 def extract_region(i, regions, f, v):
     """
     Given a region array, some frequency data, and some displacement data, will return the frequency and displacement for the region of the specified index.
@@ -291,11 +327,13 @@ def extract_region(i, regions, f, v):
     region_v = v[min_f:max_f]
     return region_f, region_v
 
+
 def bit_invert(b):
     """
     Inverts the provided bits.
     """
     return np.abs(b - 1)
+
 
 def drop_region(regions, min_length=10, max_length=None):
     """
@@ -306,15 +344,18 @@ def drop_region(regions, min_length=10, max_length=None):
         max_length = np.inf
     for i in range(0, len(regions)):
         region = regions[i]
-        if region[1] - region[0] >= min_length and region[1] - region[0] <= max_length:
+        if region[1] - region[0] >= min_length and region[1] - \
+                region[0] <= max_length:
             kept_regions = np.append(kept_regions, np.array([region]), axis=0)
     return kept_regions
+
 
 def order_difference(val_1, val_2):
     """
     Returns how many orders of magnitude val_1 and val_2 differ by.
     """
     return np.abs(np.log10(val_1) - np.log10(val_2))
+
 
 def compare_lorentz(l1, l2, f):
     """
@@ -329,6 +370,7 @@ def compare_lorentz(l1, l2, f):
     delta_ind = ind_per_f * delta_f0
     return np.abs(delta_ind)
 
+
 def find_nearest_index(arr, val):
     """
     Input: An array and a value.
@@ -338,11 +380,13 @@ def find_nearest_index(arr, val):
     min_reduced_val = min(reduced_arr)
     return np.where(reduced_arr == min_reduced_val)[0][0]
 
+
 def simplify_regions(regions):
     region_line = []
     for i in range(0, len(regions)):
         region_line.append([regions[i][0], 'start', False])
         region_line.append([regions[i][1], 'end', False])
+
     def take_first(elem):
         return elem[0]
     region_line.sort(key=take_first)
@@ -374,8 +418,10 @@ def simplify_regions(regions):
     for i in range(0, len(region_starts)):
         start = region_starts[i]
         end = region_ends[i]
-        simplified_regions = np.append(simplified_regions, np.array([[start, end]]), axis=0)
+        simplified_regions = np.append(
+            simplified_regions, np.array([[start, end]]), axis=0)
     return simplified_regions
+
 
 def param_sort(params_2d):
     not_nan_params = np.empty((0, 4))
@@ -387,16 +433,19 @@ def param_sort(params_2d):
             nan_params = np.append(nan_params, [params_2d[i]], axis=0)
         else:
             not_nan_params = np.append(not_nan_params, [params_2d[i]], axis=0)
-    not_nan_params = not_nan_params[not_nan_params[:,1].argsort()]
+    not_nan_params = not_nan_params[not_nan_params[:, 1].argsort()]
     final_params = np.empty((0, 4))
     offset = 0
     for i in range(0, len(params_2d)):
         if i in nan_indices:
             offset += 1
-            final_params = np.append(final_params, [[np.nan, np.nan, np.nan, np.nan]], axis=0)
+            final_params = np.append(
+                final_params, [[np.nan, np.nan, np.nan, np.nan]], axis=0)
         else:
-            final_params = np.append(final_params, [not_nan_params[i - offset]], axis=0)
+            final_params = np.append(
+                final_params, [not_nan_params[i - offset]], axis=0)
     return final_params
+
 
 def append_params_3d(p1, p2, force=False):
     """
@@ -422,16 +471,20 @@ def append_params_3d(p1, p2, force=False):
             p3 = p2
     return np.array(p3)
 
+
 def save(some_object, path=None, name=''):
     if path is None:
-        path = save_file(filters=(("python objects", "*.pkl"), ("all files", "*.*")), name=name)
+        path = save_file(filters=(("python objects", "*.pkl"),
+                         ("all files", "*.*")), name=name)
     pickle.dump(some_object, open(path, "wb"))
     return path
+
 
 def load(path=None):
     if path is None:
         path = open_file()
     return pickle.load(open(path, "rb"))
+
 
 def import_tdms_files(paths=[], show=True):
     """
@@ -449,9 +502,11 @@ def import_tdms_files(paths=[], show=True):
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     print('Imported file order:')
     for i in range(len(data_files)):
-        pre = str(i) + ': ' + ((len(str(len(data_files) - 1)) - len(str(i))) * ' ' )
+        pre = str(i) + ': ' + \
+            ((len(str(len(data_files) - 1)) - len(str(i))) * ' ')
         print(pre + str(data_files[i].stamp))
     return data_files
+
 
 def import_tdms_dir(path=None, show=True):
     """
@@ -473,6 +528,7 @@ def import_tdms_dir(path=None, show=True):
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     return data_files
 
+
 def get_temperatures(data_files):
     """
     Get a temperature array from a list of data files.
@@ -481,6 +537,7 @@ def get_temperatures(data_files):
     for i in range(0, len(data_files)):
         temperatures.append(float(data_files[i].start_temp))
     return np.array(temperatures)
+
 
 def get_freqs(data_files):
     """
@@ -492,11 +549,13 @@ def get_freqs(data_files):
         f.append(p[i][..., 1])
     return freq_sort_2d(np.array(f))
 
+
 def get_temps_and_freqs(data_files):
     f = get_freqs(data_files)
     T = np.transpose([get_temperatures(data_files)])
     fT = np.append(T, f, axis=1)
     return fT
+
 
 def matplotlib_mac_fix():
     import matplotlib
@@ -505,6 +564,7 @@ def matplotlib_mac_fix():
     import matplotlib.pyplot as plt
     importlib.reload(plt)
 
+
 def scatter_pts(pts, ref_arr, tar_arr):
     arr = np.empty((0,))
     for i in range(len(pts)):
@@ -512,36 +572,58 @@ def scatter_pts(pts, ref_arr, tar_arr):
         arr = np.append(arr, [tar_arr[j]])
     return arr
 
+
 def save_freqs(f, name='freqs_kHz', alter=True):
     if alter:
         f = np.sort(f) / 1000
-    path = save_file(filters=(("text file", "*.txt"), ("all files", "*.*")), name=name)
+    path = save_file(filters=(("text file", "*.txt"),
+                     ("all files", "*.*")), name=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')
+
 
 def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
     T = []
     for i in range(len(data_files)):
         T.append(np.mean(data_files[i].T))
     p = get_all_params(data_files)
-    f = p[:,:,1] / 1000
+    f = p[:, :, 1] / 1000
     arr = np.append(np.transpose([T]), f, axis=1)
     arr = temp_freq_sort_2d(arr)
-    path = save_file(filters=(("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), name=name)
+    path = save_file(
+        filters=(
+            ("text file",
+             "*.txt"),
+            ("comma separated values",
+             "*.csv"),
+            ("all files",
+             "*.*")),
+        name=name)
     np.savetxt(path, arr, delimiter=',', fmt='%10.15f')
+
 
 def save_Tf(Tf, path=None, name='temp_K_and_freqs_kHz'):
     if path is None:
-        path = save_file(filters=(("text file", "*.txt"), ("comma separated values", "*.csv"), ("all files", "*.*")), name=name)
-    T = np.transpose(np.array([Tf[:,0]]))
-    f = Tf[:,1:] / 1000
+        path = save_file(
+            filters=(
+                ("text file",
+                 "*.txt"),
+                ("comma separated values",
+                 "*.csv"),
+                ("all files",
+                 "*.*")),
+            name=name)
+    T = np.transpose(np.array([Tf[:, 0]]))
+    f = Tf[:, 1:] / 1000
     Tf = np.append(T, f, axis=1)
     np.savetxt(path, Tf, delimiter=',', fmt='%10.15f')
+
 
 def load_freqs(path=None):
     if path is None:
         path = open_file()
     f = np.loadtxt(path, delimiter='\n')
     return f * 1000
+
 
 def load_freqs_with_temps(path=None):
     if path is None:
@@ -551,6 +633,7 @@ def load_freqs_with_temps(path=None):
     T = np.array([np.transpose(Tf)[0]])
     Tf = np.append(T, f, axis=0)
     return np.transpose(Tf)
+
 
 def attach_temps_to_parameters(data_files):
     p = get_all_params(data_files)
@@ -569,6 +652,7 @@ def attach_temps_to_parameters(data_files):
             q[i].append(p0)
     return np.array(q)
 
+
 def delete_parameters(params_3d, index):
     p = []
     for i in range(len(params_3d)):
@@ -578,12 +662,15 @@ def delete_parameters(params_3d, index):
                 p[i].append(params_3d[i][j])
     return np.array(p)
 
+
 def delete_parameters_from_f_regions_3d(parameters_3d, f_regions):
     p = []
     for i in range(len(parameters_3d)):
-        p_2d = delete_parameters_from_f_regions_2d(parameters_3d[i], f_regions[i])
+        p_2d = delete_parameters_from_f_regions_2d(
+            parameters_3d[i], f_regions[i])
         p.append(p_2d)
     return np.array(p)
+
 
 def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
     p = []
@@ -593,6 +680,7 @@ def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
         else:
             p.append(parameters_2d[i])
     return np.array(p)
+
 
 def freq_sort_2d(f_2d):
     f_2d = np.transpose(f_2d)
@@ -608,6 +696,7 @@ def freq_sort_2d(f_2d):
         sorted_freqs.append(f_2d[final_sorting_order[i][0]])
     sorted_freqs = np.transpose(np.array(sorted_freqs))
     return sorted_freqs
+
 
 def temp_freq_sort_2d(Tf_2d):
     T = np.transpose(Tf_2d)[0]

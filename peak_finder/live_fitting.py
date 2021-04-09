@@ -1,49 +1,47 @@
-try:
-    from . import utilities as util
-except:
-    import utilities as util
-util.matplotlib_mac_fix()
-import numpy as np
-import tkinter as tk
-import PySimpleGUI as sg
-from tkinter import simpledialog
-from tkinter import ttk
-from matplotlib.figure import Figure
-from matplotlib.lines import Line2D
-from matplotlib.gridspec import GridSpec
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg,
-    NavigationToolbar2Tk
-)
+from scipy import interpolate
+from scipy.signal import savgol_filter
+from scipy.optimize import curve_fit
+from matplotlib.path import Path
+from matplotlib.patches import Polygon
 from matplotlib.widgets import (
     RectangleSelector,
     PolygonSelector,
     Cursor,
     LassoSelector
 )
-from matplotlib.patches import Polygon
-from matplotlib.path import Path
-from scipy.optimize import curve_fit
-from scipy.signal import savgol_filter
-from scipy import interpolate
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg,
+    NavigationToolbar2Tk
+)
+from matplotlib.gridspec import GridSpec
+from matplotlib.lines import Line2D
+from matplotlib.figure import Figure
+from tkinter import ttk
+from tkinter import simpledialog
+import PySimpleGUI as sg
+import tkinter as tk
+import numpy as np
+util.matplotlib_mac_fix()
 try:
+    from . import utilities as util
     from . import fit_lorentz as fl
     from . import generate_lorentz as gl
     from . import classify_data as cd
     try:
         from . import automatic as auto
         can_ml = True
-    except:
+    except BaseException:
         from . import automatic_no_ml as auto
         can_ml = False
-except:
+except BaseException:
+    import utilities as util
     import fit_lorentz as fl
     import generate_lorentz as gl
     import classify_data as cd
     try:
         import automatic as auto
         can_ml = True
-    except:
+    except BaseException:
         import automatic_no_ml as auto
         can_ml = False
 
@@ -97,13 +95,16 @@ option_select_colors = {
     "White": "white"
 }
 
+
 def lin(x, a, b):
     return x * b + a
+
 
 def preview(f, v, params):
     live = Live_Instance(f, v)
     live.import_lorentzians(params)
     live.activate()
+
 
 class Live_Lorentz():
     def __init__(self, p):
@@ -115,6 +116,7 @@ class Live_Lorentz():
     def params(self):
         return np.array([self.A, self.f0, self.FWHM, self.phase])
 
+
 class Selection():
     def __init__(self, x_delta, y_delta, x_pos, y_pos):
         self.x_delta = x_delta
@@ -123,6 +125,7 @@ class Selection():
         self.y_pos = y_pos
         self.f_min = self.x_pos
         self.f_max = self.x_pos + self.x_delta
+
 
 class Live_Instance():
     def __init__(self, f, v, method='lm'):
@@ -148,7 +151,7 @@ class Live_Instance():
             self.v = self.x
         elif data_to_analyze == 'y':
             self.v = self.y
-    
+
     def import_lorentzians(self, p_table):
         for i in range(0, len(p_table)):
             p = p_table[i]
@@ -171,12 +174,14 @@ class Live_Instance():
             # self.make_button("Reset Axes", command=self.reset_axes)
             self.make_button("Add Lorentzians", command=self.add_lorentz)
             self.make_button("Remove Lorentzians", command=self.remove_lorentz)
-            self.make_button("Show/Hide Components", command=self.components_bool)
+            self.make_button("Show/Hide Components",
+                             command=self.components_bool)
             self.make_button("Raise Components", command=self.raise_components)
             self.make_button("Lower Components", command=self.lower_components)
             self.make_button("Raise Projection", command=self.raise_projection)
             self.make_button("Lower Projection", command=self.lower_projection)
-            self.make_button("Toggle Quick Render", command=self.toggle_quick_render)
+            self.make_button("Toggle Quick Render",
+                             command=self.toggle_quick_render)
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
@@ -194,7 +199,8 @@ class Live_Instance():
         self.slow_render = not self.slow_render
 
     def make_button(self, text, command):
-        button = ttk.Button(master=self.root, text=text, command=command, takefocus=False)
+        button = ttk.Button(master=self.root, text=text,
+                            command=command, takefocus=False)
         button.pack(in_=self.controls, side="left")
 
     def close_window(self):
@@ -237,13 +243,15 @@ class Live_Instance():
             else:
                 full_v = np.zeros((len(self.f),))
         if self.slow_render:
-            offset = np.mean(self.v) + self.projection_height * np.abs(min(self.v) - max(self.v))
+            offset = np.mean(self.v) + self.projection_height * \
+                np.abs(min(self.v) - max(self.v))
         for i in range(0, len(p_table)):
             try:
-                ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
+                ex_f, ex_v = fl.lorentz_bounds_to_data(
+                    p_table[i], self.f, self.v, expansion=2)
                 self.ax.axvline(x=min(ex_f), color='pink')
                 self.ax.axvline(x=max(ex_f), color='pink')
-            except:
+            except BaseException:
                 pass
         if self.slow_render:
             self.ax.plot(self.f, self.v, color='b')
@@ -255,22 +263,36 @@ class Live_Instance():
             to_render = len(p_table) - 1
         for i in range(to_render, len(p_table)):
             try:
-                og_f, og_v = fl.lorentz_bounds_to_data(p_table[i], self.f, self.v, expansion=2)
+                og_f, og_v = fl.lorentz_bounds_to_data(
+                    p_table[i], self.f, self.v, expansion=2)
                 if self.slow_render:
-                    ex_f, ex_v = fl.lorentz_bounds_to_data(p_table[i], self.f, full_v, expansion=2)
+                    ex_f, ex_v = fl.lorentz_bounds_to_data(
+                        p_table[i], self.f, full_v, expansion=2)
                 if self.all_data and self.show_components:
-                    small_f, small_x = fl.lorentz_bounds_to_data(p_table[i], self.f, self.x, expansion=2)
+                    small_f, small_x = fl.lorentz_bounds_to_data(
+                        p_table[i], self.f, self.x, expansion=2)
                     x_opt, x_cov = curve_fit(lin, small_f, small_x)
                     x_fit = lin(small_f, *x_opt)
-                    self.ax.plot(small_f, small_x - x_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='y')
-                    small_f, small_y = fl.lorentz_bounds_to_data(p_table[i], self.f, self.y, expansion=2)
+                    self.ax.plot(small_f, small_x -
+                                 x_fit +
+                                 np.mean(og_v) +
+                                 self.component_height *
+                                 (np.max(og_v) -
+                                  np.min(og_v)), color='y')
+                    small_f, small_y = fl.lorentz_bounds_to_data(
+                        p_table[i], self.f, self.y, expansion=2)
                     y_opt, y_cov = curve_fit(lin, small_f, small_y)
                     y_fit = lin(small_f, *y_opt)
-                    self.ax.plot(small_f, small_y - y_fit + np.mean(og_v) + self.component_height * (np.max(og_v) - np.min(og_v)), color='g')
+                    self.ax.plot(small_f, small_y -
+                                 y_fit +
+                                 np.mean(og_v) +
+                                 self.component_height *
+                                 (np.max(og_v) -
+                                  np.min(og_v)), color='g')
                 self.ax.plot(og_f, og_v, color='r')
                 if self.slow_render:
                     self.ax.plot(ex_f, ex_v + offset, color='r')
-            except:
+            except BaseException:
                 pass
         if not self.first_load:
             self.ax.set_xlim(x_lim)
@@ -289,47 +311,67 @@ class Live_Instance():
     def add_lorentz(self):
         self.end_interactive()
         self.start_add_interactive()
-        self.act_press = self.fig.canvas.mpl_connect('key_press_event', self.on_press_add)
+        self.act_press = self.fig.canvas.mpl_connect(
+            'key_press_event', self.on_press_add)
 
     def remove_lorentz(self):
         self.end_interactive()
         self.start_rem_interactive()
-        self.act_press = self.fig.canvas.mpl_connect('key_press_event', self.on_press_rem)
+        self.act_press = self.fig.canvas.mpl_connect(
+            'key_press_event', self.on_press_rem)
 
     def start_add_interactive(self):
         self.selection = None
-        self.cursor = Cursor(self.ax, useblit=True, color='0.5', linewidth=1, linestyle=":")
-        self.act_select = RectangleSelector(self.ax, self.on_select, 
-            drawtype='box', 
-            useblit=False, 
-            button=[1, 3], 
-            minspanx=5, 
-            minspany=5, 
-            spancoords='pixels', 
+        self.cursor = Cursor(self.ax, useblit=True,
+                             color='0.5', linewidth=1, linestyle=":")
+        self.act_select = RectangleSelector(
+            self.ax,
+            self.on_select,
+            drawtype='box',
+            useblit=False,
+            button=[
+                1,
+                3],
+            minspanx=5,
+            minspany=5,
+            spancoords='pixels',
             interactive=True,
-            rectprops = dict(facecolor='grey', edgecolor = 'green', alpha=0.2, fill=True))
+            rectprops=dict(
+                facecolor='grey',
+                edgecolor='green',
+                alpha=0.2,
+                fill=True))
 
     def start_rem_interactive(self):
         self.selection = None
-        self.cursor = Cursor(self.ax, useblit=True, color='0.5', linewidth=1, linestyle=":")
-        self.act_select = RectangleSelector(self.ax, self.on_select, 
-            drawtype='box', 
-            useblit=False, 
-            button=[1, 3], 
-            minspanx=5, 
-            minspany=5, 
-            spancoords='pixels', 
+        self.cursor = Cursor(self.ax, useblit=True,
+                             color='0.5', linewidth=1, linestyle=":")
+        self.act_select = RectangleSelector(
+            self.ax,
+            self.on_select,
+            drawtype='box',
+            useblit=False,
+            button=[
+                1,
+                3],
+            minspanx=5,
+            minspany=5,
+            spancoords='pixels',
             interactive=True,
-            rectprops = dict(facecolor='grey', edgecolor = 'red', alpha=0.2, fill=True))
+            rectprops=dict(
+                facecolor='grey',
+                edgecolor='red',
+                alpha=0.2,
+                fill=True))
 
     def end_interactive(self):
         try:
             self.canvas.mpl_disconnect(self.act_press)
-        except:
+        except BaseException:
             pass
         try:
             self.act_select.set_active(False)
-        except:
+        except BaseException:
             pass
         self.plot_lorentzians()
 
@@ -339,7 +381,13 @@ class Live_Instance():
             max_ind = util.find_nearest_index(self.f, self.selection.f_max)
             region = np.array([[min_ind, max_ind]])
             region_f, region_v = util.extract_region(0, region, self.f, self.v)
-            p_list = [fl.free_n_least_squares(region_f, region_v, max_n=1, force_fit=True, method=self.method).x]
+            p_list = [
+                fl.free_n_least_squares(
+                    region_f,
+                    region_v,
+                    max_n=1,
+                    force_fit=True,
+                    method=self.method).x]
             p_table = fl.extract_parameters(p_list)
             self.import_lorentzians(p_table)
             self.end_interactive()
@@ -447,8 +495,16 @@ class Live_Instance():
         self.projection_height -= 0.5
         self.plot_lorentzians()
 
+
 class Color_Selector:
-    def __init__(self, data_files, x_res=1000, y_res=1, cmap='cool', parameters=None, method='lm'):
+    def __init__(
+            self,
+            data_files,
+            x_res=1000,
+            y_res=1,
+            cmap='cool',
+            parameters=None,
+            method='lm'):
         self.x_res = x_res
         self.y_res = y_res
         self.cmap = cmap
@@ -459,7 +515,7 @@ class Color_Selector:
         self.setup_interface()
         self.setup_connections()
         self.setup_trackers()
-        if not parameters is None:
+        if parameters is not None:
             self.plot_parameters(parameters)
         tk.mainloop()
 
@@ -475,7 +531,8 @@ class Color_Selector:
         self.make_button("Done", command=self.close_window)
         self.make_button("Another!", command=self.another_selection)
         self.make_button("Toggle Displays", command=self.toggle_show)
-        self.make_button("Parameter Preview", command=self.horizontal_selection)
+        self.make_button("Parameter Preview",
+                         command=self.horizontal_selection)
         self.make_button("Toggle Enhance!", command=self.enhance)
         self.make_button("(Un)Enhance!", command=self.unenhance)
         self.make_button("Inspire Me", command=self.inspire_me)
@@ -496,11 +553,12 @@ class Color_Selector:
         self.enhance_mode = False
         self.clean_mode = False
         self.path = None
-        self.mode = 'select' # Modes: select, enhance, preview, delete, move
+        self.mode = 'select'  # Modes: select, enhance, preview, delete, move
         self.last_mode = None
 
     def setup_plot(self):
-        self.ax, self.collection, self.colors = make_colors(self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
+        self.ax, self.collection, self.colors = make_colors(
+            self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
         self.fig = self.ax.figure
         self.fig.set_size_inches(16, 9)
         self.xys = self.collection.get_offsets()
@@ -524,23 +582,38 @@ class Color_Selector:
 
     def setup_connections(self):
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
-        self.cursor = Cursor(self.ax, useblit=True, color='blue', linewidth=1, linestyle=":")
+        self.cursor = Cursor(self.ax, useblit=True,
+                             color='blue', linewidth=1, linestyle=":")
         self.cursor.set_active(False)
-        self.pre_cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        self.pre_cursor = Cursor(
+            self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
         self.pre_cursor.set_active(False)
-        self.del_cursor = Cursor(self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
+        self.del_cursor = Cursor(
+            self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
         self.del_cursor.set_active(False)
-        self.tra_cursor = Cursor(self.ax, useblit=True, color='white', linewidth=1, linestyle=":")
+        self.tra_cursor = Cursor(
+            self.ax, useblit=True, color='white', linewidth=1, linestyle=":")
         self.tra_cursor.set_active(False)
-        self.tra_cursor_alt = Cursor(self.ax, useblit=True, color='white', linewidth=1, linestyle='-.')
+        self.tra_cursor_alt = Cursor(
+            self.ax, useblit=True, color='white', linewidth=1, linestyle='-.')
         self.tra_cursor_alt.set_active(False)
-        self.rec_select = RectangleSelector(self.ax, self.on_rec_select, useblit=True, drawtype="box",
-            rectprops = dict(facecolor='grey', edgecolor = 'blue', alpha=0.2, fill=True))
+        self.rec_select = RectangleSelector(
+            self.ax,
+            self.on_rec_select,
+            useblit=True,
+            drawtype="box",
+            rectprops=dict(
+                facecolor='grey',
+                edgecolor='blue',
+                alpha=0.2,
+                fill=True))
         self.rec_select.disconnect_events()
-        self.alt_rec_select = RectangleSelector(self.ax, self.on_rec_delete, useblit=True, drawtype="box", 
-            rectprops = dict(facecolor='grey', edgecolor = 'red', alpha=0.2, fill=True))
+        self.alt_rec_select = RectangleSelector(
+            self.ax, self.on_rec_delete, useblit=True, drawtype="box", rectprops=dict(
+                facecolor='grey', edgecolor='red', alpha=0.2, fill=True))
         self.alt_rec_select.disconnect_events()
-        self.lasso_select = LassoSelector(self.ax, self.make_curve, lineprops={'color': 'white'})
+        self.lasso_select = LassoSelector(
+            self.ax, self.make_curve, lineprops={'color': 'white'})
         self.lasso_select.disconnect_events()
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
 
@@ -560,7 +633,8 @@ class Color_Selector:
             self.rec_select.set_visible(True)
         elif self.mode == 'preview':
             self.pre_cursor.set_active(True)
-            self.pick = self.canvas.mpl_connect('button_release_event', self.on_pre_click)
+            self.pick = self.canvas.mpl_connect(
+                'button_release_event', self.on_pre_click)
         elif self.mode == 'delete':
             self.del_cursor.set_active(True)
             self.alt_rec_select.connect_default_events()
@@ -593,7 +667,7 @@ class Color_Selector:
             try:
                 i = self.patches.index(patch)
                 source = 'patch'
-            except:
+            except BaseException:
                 i = self.paths.index(patch)
                 source = 'path'
             if source == 'patch':
@@ -610,8 +684,7 @@ class Color_Selector:
             self.enable_delete()
 
     def make_cmap_menu(self):
-        options = list(option_colors.keys())
-        options.sort()
+        options = sorted(option_colors.keys())
         self.color_variable = tk.StringVar(self.root)
         self.opt = ttk.OptionMenu(self.root, self.color_variable, *options)
         self.opt.pack(in_=self.controls, side="right")
@@ -619,12 +692,13 @@ class Color_Selector:
         self.color_variable.trace("w", self.update_cmap)
 
     def make_color_menus(self):
-        options = list(option_select_colors.keys())
-        options.sort()
+        options = sorted(option_select_colors.keys())
         self.face_color_variable = tk.StringVar(self.root)
         self.param_color_variable = tk.StringVar(self.root)
-        self.face_opt = ttk.OptionMenu(self.root, self.face_color_variable, *options)
-        self.param_opt = ttk.OptionMenu(self.root, self.param_color_variable, *options)
+        self.face_opt = ttk.OptionMenu(
+            self.root, self.face_color_variable, *options)
+        self.param_opt = ttk.OptionMenu(
+            self.root, self.param_color_variable, *options)
         self.face_opt.pack(in_=self.controls, side="right")
         self.param_opt.pack(in_=self.controls, side="right")
         self.face_color_variable.set("Selection Color")
@@ -657,7 +731,8 @@ class Color_Selector:
     def reload(self):
         self.autosave()
         self.canvas._tkcanvas.pack_forget()
-        ax, collection = make_colors(self.data_files, max_res=self.x_res, cmap=self.cmap)
+        ax, collection = make_colors(
+            self.data_files, max_res=self.x_res, cmap=self.cmap)
         self.fig = ax.figure
         self.collection = collection
         self.xys = collection.get_offsets()
@@ -731,7 +806,8 @@ class Color_Selector:
 
     def tweak(self):
         self.autosave()
-        self.parameters = mistake_selection(self.data_files, self.parameters, self.path)
+        self.parameters = mistake_selection(
+            self.data_files, self.parameters, self.path)
         self.refresh_parameters()
         self.autosave()
         self.canvas.draw_idle()
@@ -739,7 +815,7 @@ class Color_Selector:
     def trace(self):
         self.canvas.draw_idle()
         self.set_mode('trace')
-        
+
     def commit_trace(self):
         trace = self.trace_coords
         for t in self.traces:
@@ -759,7 +835,8 @@ class Color_Selector:
         y = self.to_y(trace)
         y_min = min(y)
         old_scale = (0, self.x_res, self.x_res)
-        new_scale = (min(self.data_files[0].f), max(self.data_files[0].f), len(self.data_files[0].f))
+        new_scale = (min(self.data_files[0].f), max(
+            self.data_files[0].f), len(self.data_files[0].f))
         for i in range(len(self.data_files)):
             if i in y:
                 f0 = cd.normalize_0d(trace[i - y_min][0], old_scale, new_scale)
@@ -769,7 +846,8 @@ class Color_Selector:
                 fin = self.data_files[0].f[iin]
                 ffi = self.data_files[0].f[ifi]
                 FWHM = ffi - fin
-                A = max(self.data_files[0].r[iin:ifi + 1]) - min(self.data_files[0].r[iin:ifi + 1])
+                A = max(self.data_files[0].r[iin:ifi + 1]) - \
+                    min(self.data_files[0].r[iin:ifi + 1])
                 p.append([[A, f0, FWHM, np.pi]])
             else:
                 p.append([[np.nan, np.nan, np.nan, np.nan]])
@@ -786,14 +864,15 @@ class Color_Selector:
                 y = self.to_y(v)
                 xhat = savgol_filter(x, 15, 3)
                 v = self.to_v(xhat, y)
-            except:
+            except BaseException:
                 v = v_backup
         self.trace_coords += v
         self.trace_coords = self.make_safe(self.trace_coords)
         x = self.to_x(self.trace_coords)
         y = self.to_y(self.trace_coords)
         trace_faint = self.ax.plot(x, y, color=self.line_color, alpha=0.5)[0]
-        trace_strong = self.ax.plot(x, y, color=self.line_color, linestyle=':')[0]
+        trace_strong = self.ax.plot(
+            x, y, color=self.line_color, linestyle=':')[0]
         self.traces.append(trace_faint)
         self.traces.append(trace_strong)
         self.canvas.draw_idle()
@@ -809,7 +888,8 @@ class Color_Selector:
         y_vals = []
         verts.reverse()
         for v in verts:
-            if not all([int(np.round(v[1])) in y_vals, v[1] >= 0, v[1] < len(self.data_files), v[0] >= 0, v[0] < self.x_res]):
+            if not all([int(np.round(v[1])) in y_vals, v[1] >= 0, v[1] < len(
+                    self.data_files), v[0] >= 0, v[0] < self.x_res]):
                 x_vals.append(v[0])
                 y_vals.append(int(np.round(v[1])))
         new_verts = []
@@ -839,7 +919,7 @@ class Color_Selector:
         for path in self.paths:
             try:
                 path.remove()
-            except:
+            except BaseException:
                 pass
         self.parameters = fl.denan_parameters(self.parameters, 0.99)
         self.plot_parameters(self.parameters)
@@ -881,7 +961,8 @@ class Color_Selector:
             f_regions = np.array(f_regions)
             # print(f_regions)
             # print(self.parameters.shape)
-            self.parameters = util.delete_parameters_from_f_regions_3d(self.parameters, f_regions)
+            self.parameters = util.delete_parameters_from_f_regions_3d(
+                self.parameters, f_regions)
             # print(self.parameters.shape)
             self.refresh_parameters()
 
@@ -896,17 +977,18 @@ class Color_Selector:
                 x_min, x_max = min(x1, x2), max(x1, x2)
                 y_min, y_max = min(y1, y2), max(y1, y2)
                 self.render_enhance(x_min, x_max, y_min, y_max)
-            except:
+            except BaseException:
                 pass
 
     def make_button(self, text, command):
-        button = ttk.Button(master=self.root, text=text, command=command, takefocus=False)
+        button = ttk.Button(master=self.root, text=text,
+                            command=command, takefocus=False)
         button.pack(in_=self.controls, side="left")
 
     def close_window(self):
         try:
             self.another_selection()
-        except:
+        except BaseException:
             pass
         self.canvas._tkcanvas.pack_forget()
         self.toolbar.pack_forget()
@@ -916,9 +998,17 @@ class Color_Selector:
         self.root.destroy()
 
     def finish_selection(self):
-        selection = points_to_ranges(np.array(self.xys[self.ind]), self.data_files, self.x_res)
+        selection = points_to_ranges(
+            np.array(self.xys[self.ind]), self.data_files, self.x_res)
         self.selections.append(selection)
-        patch = Polygon(self.poly.verts, facecolor=self.patch_color, alpha=0.3, edgecolor='black', linestyle=':', linewidth=2, picker=True)
+        patch = Polygon(
+            self.poly.verts,
+            facecolor=self.patch_color,
+            alpha=0.3,
+            edgecolor='black',
+            linestyle=':',
+            linewidth=2,
+            picker=True)
         self.patches.append(patch)
         self.disconnect()
         self.selectors.append(self.poly)
@@ -964,9 +1054,10 @@ class Color_Selector:
                 f = self.data_files[index].f
                 v = self.data_files[index].r
                 regions = self.selections[i][index]
-                p = fl.parameters_from_regions(f, v, regions, catch_degeneracies=False, method=self.method)
+                p = fl.parameters_from_regions(
+                    f, v, regions, catch_degeneracies=False, method=self.method)
                 params = np.append(params, p, axis=0)
-            except:
+            except BaseException:
                 pass
         return params
 
@@ -977,7 +1068,8 @@ class Color_Selector:
                 p = self.parameters[index][i]
                 if not any(np.isnan(p)):
                     existing_params = np.append(existing_params, [p], axis=0)
-        params = live_selection(self.data_files[index], params=existing_params, vline=x)
+        params = live_selection(
+            self.data_files[index], params=existing_params, vline=x)
         return params
 
     def display_params(self, params, index):
@@ -1009,7 +1101,8 @@ class Color_Selector:
         if can_ml:
             self.autosave()
             index = simpledialog.askinteger("Index Selection", "Which index?")
-            params = auto.quick_analyze(self.data_files[index].f, self.data_files[index].r)
+            params = auto.quick_analyze(
+                self.data_files[index].f, self.data_files[index].r)
             self.display_params(params, index)
         else:
             auto.quick_analyze(None, None)
@@ -1095,7 +1188,8 @@ class Color_Selector:
             z = np.append(z, [z0], axis=0)
         color_x = np.linspace(x_min, x_max, max_res)
         color_y = np.linspace(y_min, y_max, len(z))
-        self.enhanced_renders.append(self.ax.pcolormesh(color_x, color_y, z, cmap=self.cmap))
+        self.enhanced_renders.append(self.ax.pcolormesh(
+            color_x, color_y, z, cmap=self.cmap))
         new_area = (x_min, x_max, y_min, y_max)
         bad_areas = []
         for i in range(0, len(self.enhanced_areas)):
@@ -1111,13 +1205,16 @@ class Color_Selector:
 
     def plot_parameters(self, parameters):
         for i in range(0, len(parameters[0])):
-            x = self.x_res * (parameters[...,i,1] - min(self.data_files[0].f)) / (max(self.data_files[0].f) - min(self.data_files[0].f))
+            x = self.x_res * (parameters[..., i, 1] - min(self.data_files[0].f)) / (
+                max(self.data_files[0].f) - min(self.data_files[0].f))
             y = np.arange(len(parameters))
-            self.paths.append(self.ax.plot(x, y, color=self.line_color, picker=False)[0])
+            self.paths.append(self.ax.plot(
+                x, y, color=self.line_color, picker=False)[0])
 
     def prerender(self):
         self.autosave()
-        self.parameters = fl.parameters_from_selections(self.data_files, (self.selections, self.parameters), method=self.method)
+        self.parameters = fl.parameters_from_selections(
+            self.data_files, (self.selections, self.parameters), method=self.method)
         self.refresh_parameters()
         self.selections = []
         for patch in self.patches:
@@ -1137,7 +1234,7 @@ class Color_Selector:
         print()
         print('paths')
         print(len(self.paths))
-    
+
     def save(self):
         if self.path is None:
             name = 'selections'
@@ -1146,9 +1243,10 @@ class Color_Selector:
         self.path = util.save((self.selections, self.parameters), name=name)
 
     def autosave(self):
-        if not self.path is None:
+        if self.path is not None:
             path = self.path[:-4] + '_autosave' + '.pkl'
             util.save((self.selections, self.parameters), path)
+
 
 class Point_Selector:
     def __init__(self, data_files, fs=[]):
@@ -1177,14 +1275,17 @@ class Point_Selector:
         self.toolbar.update()
         self.canvas._tkcanvas.pack()
         self.plot_points()
-        self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+        self.cursor = Cursor(self.ax, useblit=True,
+                             color='black', linewidth=1, linestyle=":")
         if len(self.chosen_frequencies) > 0:
             for f0 in self.chosen_frequencies:
-                self.picked.append((f0, self.ax.axvline(f0, color='black', linewidth=1)))
+                self.picked.append(
+                    (f0, self.ax.axvline(f0, color='black', linewidth=1)))
         tk.mainloop()
-    
+
     def make_button(self, text, command):
-        button = ttk.Button(master=self.root, text=text, command=command, takefocus=False)
+        button = ttk.Button(master=self.root, text=text,
+                            command=command, takefocus=False)
         button.pack(in_=self.controls, side="left")
 
     def close_window(self):
@@ -1198,9 +1299,11 @@ class Point_Selector:
         self.cursor.set_active(False)
         self.pick = not self.pick
         if self.pick:
-            self.cursor = Cursor(self.ax, useblit=True, color='black', linewidth=1, linestyle=":")
+            self.cursor = Cursor(self.ax, useblit=True,
+                                 color='black', linewidth=1, linestyle=":")
         else:
-            self.cursor = Cursor(self.ax, useblit=True, color='red', linewidth=1, linestyle=":")
+            self.cursor = Cursor(self.ax, useblit=True,
+                                 color='red', linewidth=1, linestyle=":")
 
     def plot_points(self):
         for i in range(len(self.data_files)):
@@ -1210,11 +1313,17 @@ class Point_Selector:
             just_plotted = self.ax.plot(f, v + i, alpha=0.5)
             color = just_plotted[0].get_color()
             if not self.data_files[i].params is None:
-                pts_f = self.data_files[i].params[...,1]
+                pts_f = self.data_files[i].params[..., 1]
                 pts_v = util.scatter_pts(pts_f, f, v)
                 self.ax.scatter(pts_f, pts_v + i, color=color, picker=5)
-            self.ax.text(f[0], v[0] + i, str(self.data_files[i].T[0]) + ' K ', color=color, ha='right')
-            self.ax.text(f[-1], v[-1] + i, ' ' + str(self.data_files[i].T[-1]) + ' K', color=color, ha='left')
+            self.ax.text(f[0], v[0] +
+                         i, str(self.data_files[i].T[0]) +
+                         ' K ', color=color, ha='right')
+            self.ax.text(f[-1],
+                         v[-1] + i,
+                         ' ' + str(self.data_files[i].T[-1]) + ' K',
+                         color=color,
+                         ha='left')
         self.canvas.mpl_connect('pick_event', self.on_pick)
 
     def on_pick(self, event):
@@ -1225,9 +1334,11 @@ class Point_Selector:
         if self.pick:
             self.chosen_frequencies.append(f0)
             self.ax.scatter([f0], [v0], color='black')
-            self.picked.append((f0, self.ax.axvline(f0, color='black', linewidth=1)))
+            self.picked.append(
+                (f0, self.ax.axvline(f0, color='black', linewidth=1)))
         else:
-            ind_1 = util.find_nearest_index(np.array(self.chosen_frequencies), f0)
+            ind_1 = util.find_nearest_index(
+                np.array(self.chosen_frequencies), f0)
             f = []
             for i in range(0, len(self.picked)):
                 f.append(self.picked[i][0])
@@ -1237,6 +1348,7 @@ class Point_Selector:
             self.ax.scatter([f0], [v0], color=color)
             self.toggle_delete()
         self.canvas.draw_idle()
+
 
 class Mistake_Selector():
     def __init__(self, data_files, parameters=None, path=None, method='lm'):
@@ -1254,9 +1366,8 @@ class Mistake_Selector():
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=False)
         self.make_button("Done", self.close_window)
-        self.entry = ttk.Combobox(master=self.root,
-            takefocus=False,
-            values = ['Curve to Plot'] + [str(i) for i in range(len(self.parameters[0]))])
+        self.entry = ttk.Combobox(master=self.root, takefocus=False, values=[
+                                  'Curve to Plot'] + [str(i) for i in range(len(self.parameters[0]))])
         self.entry.bind("<<ComboboxSelected>>", self.callback)
         self.entry.pack(in_=self.controls, side="left")
         self.entry.insert(0, 'Curve to Plot')
@@ -1269,11 +1380,11 @@ class Mistake_Selector():
         self.fig = Figure()
         self.canvas = FigureCanvasTkAgg(self.fig, self.root)
         gs = GridSpec(3, 2)
-        self.ax0 = self.fig.add_subplot(gs[0,0])
-        self.ax1 = self.fig.add_subplot(gs[0,1])
-        self.ax2 = self.fig.add_subplot(gs[1,0])
-        self.ax3 = self.fig.add_subplot(gs[1,1])
-        self.ax4 = self.fig.add_subplot(gs[2,:])
+        self.ax0 = self.fig.add_subplot(gs[0, 0])
+        self.ax1 = self.fig.add_subplot(gs[0, 1])
+        self.ax2 = self.fig.add_subplot(gs[1, 0])
+        self.ax3 = self.fig.add_subplot(gs[1, 1])
+        self.ax4 = self.fig.add_subplot(gs[2, :])
         self.clear_axs()
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.controls)
         self.toolbar.update()
@@ -1281,19 +1392,31 @@ class Mistake_Selector():
         self.widget.pack(side="top", fill="both", expand=True)
         self.canvas._tkcanvas.pack()
         self.canvas.mpl_connect('button_release_event', self.on_click)
-        self.cs0 = Cursor(self.ax0, useblit=True, color='r', linewidth=1, linestyle=":")
-        self.cs1 = Cursor(self.ax1, useblit=True, color='r', linewidth=1, linestyle=":")
-        self.cs2 = Cursor(self.ax2, useblit=True, color='r', linewidth=1, linestyle=":")
-        self.cs3 = Cursor(self.ax3, useblit=True, color='r', linewidth=1, linestyle=":")
-        self.cs4 = RectangleSelector(self.ax4, self.on_select, 
-            drawtype='box', 
-            useblit=True, 
-            button=[1, 3], 
-            minspanx=5, 
-            minspany=5, 
-            spancoords='pixels', 
+        self.cs0 = Cursor(self.ax0, useblit=True, color='r',
+                          linewidth=1, linestyle=":")
+        self.cs1 = Cursor(self.ax1, useblit=True, color='r',
+                          linewidth=1, linestyle=":")
+        self.cs2 = Cursor(self.ax2, useblit=True, color='r',
+                          linewidth=1, linestyle=":")
+        self.cs3 = Cursor(self.ax3, useblit=True, color='r',
+                          linewidth=1, linestyle=":")
+        self.cs4 = RectangleSelector(
+            self.ax4,
+            self.on_select,
+            drawtype='box',
+            useblit=True,
+            button=[
+                1,
+                3],
+            minspanx=5,
+            minspany=5,
+            spancoords='pixels',
             interactive=True,
-            rectprops = dict(facecolor='grey', edgecolor = 'green', alpha=0.2, fill=True))
+            rectprops=dict(
+                facecolor='grey',
+                edgecolor='green',
+                alpha=0.2,
+                fill=True))
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
         self.p_ind = 0
         self.T_ind = 0
@@ -1306,7 +1429,7 @@ class Mistake_Selector():
         self.path = util.save(self.parameters)
 
     def autosave(self):
-        if not self.path is None:
+        if self.path is not None:
             path = self.path[:-4] + '_autosave' + '.pkl'
             util.save(self.parameters, path)
 
@@ -1324,7 +1447,7 @@ class Mistake_Selector():
 
     def zoom_out(self):
         self.extension *= 1.5
-    
+
     def zoom_in(self):
         self.extension /= 1.5
 
@@ -1347,15 +1470,16 @@ class Mistake_Selector():
         min_ind = util.find_nearest_index(f, self.selection.f_min)
         max_ind = util.find_nearest_index(f, self.selection.f_max)
         region = np.array([[min_ind, max_ind]])
-        p0 = fl.parameters_from_regions(f, v, region, max_n=1, force_fit=True, method=method)
+        p0 = fl.parameters_from_regions(
+            f, v, region, max_n=1, force_fit=True, method=method)
         self.correct_p(p0)
 
     def curve_plot(self, p_ind):
         self.autosave()
-        self.ax0.plot(self.parameters[:,p_ind,0], picker=True)
-        self.ax1.plot(self.parameters[:,p_ind,1], picker=True)
-        self.ax2.plot(self.parameters[:,p_ind,2], picker=True)
-        self.ax3.plot(self.parameters[:,p_ind,3], picker=True)
+        self.ax0.plot(self.parameters[:, p_ind, 0], picker=True)
+        self.ax1.plot(self.parameters[:, p_ind, 1], picker=True)
+        self.ax2.plot(self.parameters[:, p_ind, 2], picker=True)
+        self.ax3.plot(self.parameters[:, p_ind, 3], picker=True)
         self.ax0.relim()
         self.ax1.relim()
         self.ax2.relim()
@@ -1382,7 +1506,8 @@ class Mistake_Selector():
         self.ax4.set_title('Preview')
         try:
             p = self.parameters[T_ind][p_ind]
-            region = fl.regions_from_parameters(self.data_files[T_ind].f, [p], extension=self.extension)[0]
+            region = fl.regions_from_parameters(
+                self.data_files[T_ind].f, [p], extension=self.extension)[0]
             region = [int(region[0]), int(region[1])]
             f_reg = self.data_files[T_ind].f[region[0]:region[1]]
             r_reg = self.data_files[T_ind].r[region[0]:region[1]]
@@ -1392,11 +1517,12 @@ class Mistake_Selector():
             self.ax4.plot(f_reg, v_reg, color='r')
             self.cs4.connect_default_events()
             self.canvas.draw_idle()
-        except:
+        except BaseException:
             try:
                 better_T_ind = self.nearest_plot(T_ind, p_ind)
                 p = self.parameters[better_T_ind][p_ind]
-                region = fl.regions_from_parameters(self.data_files[better_T_ind].f, [p], extension=self.extension)[0]
+                region = fl.regions_from_parameters(
+                    self.data_files[better_T_ind].f, [p], extension=self.extension)[0]
                 region = [int(region[0]), int(region[1])]
                 f_reg = self.data_files[T_ind].f[region[0]:region[1]]
                 r_reg = self.data_files[T_ind].r[region[0]:region[1]]
@@ -1406,8 +1532,12 @@ class Mistake_Selector():
                 self.ax4.plot(f_reg, v_reg, color='r', alpha=0.2)
                 self.cs4.connect_default_events()
                 self.canvas.draw_idle()
-            except:
-                self.ax4.text(0.5, 0.5, 'No parameters at this temperature.', ha='center')
+            except BaseException:
+                self.ax4.text(
+                    0.5,
+                    0.5,
+                    'No parameters at this temperature.',
+                    ha='center')
                 self.cs4.disconnect_events()
                 self.canvas.draw_idle()
 
@@ -1426,7 +1556,8 @@ class Mistake_Selector():
                     up_ind = np.inf
                 if down_ind is None:
                     down_ind = np.inf
-                better_ind = min(up_ind, down_ind, key=lambda i: np.abs(i - T_ind))
+                better_ind = min(up_ind, down_ind,
+                                 key=lambda i: np.abs(i - T_ind))
                 if better_ind >= len(self.data_files):
                     return None
                 else:
@@ -1452,14 +1583,15 @@ class Mistake_Selector():
         self.ax4.set_title('Preview')
 
     def make_button(self, text, command):
-        button = ttk.Button(master=self.root, text=text, command=command, takefocus=False)
+        button = ttk.Button(master=self.root, text=text,
+                            command=command, takefocus=False)
         button.pack(in_=self.controls, side="left")
 
     def close_window(self):
         if self.path is None:
             try:
                 self.save()
-            except:
+            except BaseException:
                 pass
         self.autosave()
         self.canvas._tkcanvas.pack_forget()
@@ -1476,10 +1608,14 @@ class Mistake_Selector():
             self.mark_curves(self.T_ind)
             try:
                 self.peak_plot(self.T_ind, self.p_ind)
-            except:
+            except BaseException:
                 self.ax4.cla()
                 self.ax4.set_title('Preview')
-                self.ax4.text(0.5, 0.5, 'No parameters at this temperature.', ha='center')
+                self.ax4.text(
+                    0.5,
+                    0.5,
+                    'No parameters at this temperature.',
+                    ha='center')
 
     def on_select(self, click, release):
         x1, y1 = click.xdata, click.ydata
@@ -1544,6 +1680,7 @@ class Mistake_Selector():
             self.mark_curves(self.T_ind)
             self.peak_plot(self.T_ind, self.p_ind)
 
+
 def check_contains(old_area, new_area):
     checks = [
         old_area[0] >= new_area[0],
@@ -1553,13 +1690,23 @@ def check_contains(old_area, new_area):
     ]
     return all(checks)
 
-def color_selection(data_files, x_res=1000, y_res=100, cmap="viridis", parameters=None, method='lm'):
+
+def color_selection(
+        data_files,
+        x_res=1000,
+        y_res=100,
+        cmap="viridis",
+        parameters=None,
+        method='lm'):
     """
     Interactive Lorentzian tracker over a range of temperatures.
     """
     y_res = min(y_res / len(data_files), 1)
-    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res, cmap=cmap, parameters=parameters, method=method)
-    return fl.parameters_from_selections(data_files, (selector.selections, selector.parameters), method=method)
+    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res,
+                              cmap=cmap, parameters=parameters, method=method)
+    return fl.parameters_from_selections(
+        data_files, (selector.selections, selector.parameters), method=method)
+
 
 def mistake_selection(data_files, parameters=None, path=None, method='lm'):
     """
@@ -1567,6 +1714,7 @@ def mistake_selection(data_files, parameters=None, path=None, method='lm'):
     """
     m = Mistake_Selector(data_files, parameters, path, method=method)
     return m.parameters
+
 
 def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     x = np.empty((0,))
@@ -1593,6 +1741,7 @@ def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     colors = ax.pcolormesh(color_x, color_y, z, cmap=cmap)
     return ax, pts, colors
 
+
 def points_to_ranges(points, data_files, res):
     point_matching = []
     for i in range(0, len(data_files)):
@@ -1616,9 +1765,10 @@ def points_to_ranges(points, data_files, res):
             max_ind = util.find_nearest_index(f, max_f)
             region = np.array([[min_ind, max_ind]])
             range_dict[i] = region
-        except:
+        except BaseException:
             pass
     return range_dict
+
 
 def live_selection(data_file, params=None, vline=None):
     """
@@ -1630,19 +1780,20 @@ def live_selection(data_file, params=None, vline=None):
     r = data_file.r
     live = Live_Instance(f, r)
     live.import_all_data(x, y)
-    if not params is None:
+    if params is not None:
         live.import_lorentzians(params)
-    if not vline is None:
+    if vline is not None:
         live.set_vline(vline)
     live.activate()
     return live.get_all_params()
+
 
 def point_selection(data_files, params=None, fs=[]):
     """
     Interactive peak filter from several trials at the same temperature.
     """
     fs = list(fs)
-    if not params is None:
+    if params is not None:
         util.set_all_params(data_files, params)
     selector = Point_Selector(data_files, fs)
     return np.array(selector.chosen_frequencies)

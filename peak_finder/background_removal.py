@@ -9,7 +9,7 @@ try:
     from . import sliding_window as sw
     from . import live_fitting as lf
     from . import classify_data as cd
-except:
+except BaseException:
     import automatic as auto
     import utilities as util
     import models
@@ -18,6 +18,7 @@ except:
     import sliding_window as sw
     import live_fitting as lf
     import classify_data as cd
+
 
 def remove_background(data_files, start_index=0):
     """
@@ -28,7 +29,7 @@ def remove_background(data_files, start_index=0):
     ----------
     data_files : list
     start_index : int, optional
-    
+
     Returns
     -------
     f_list : list
@@ -52,11 +53,16 @@ def remove_background(data_files, start_index=0):
     # max_FWHM = max(FWHM)
     # delta_f = max(f) - min(f)
     # min_zoom = int(np.floor(np.log2(delta_f / max_FWHM))) - 1
-    min_zoom =  1
+    min_zoom = 1
     # max_zoom = int(np.ceil(np.log2(delta_f / min_FWHM)))
     max_zoom = 5
-    for i in util.progressbar(range(0, len(data_files)), 'Removing Background: '):
-        sg.one_line_progress_meter('Background Removeal Progress', i, len(data_files), '-key-')
+    for i in util.progressbar(
+            range(
+                0,
+                len(data_files)),
+            'Removing Background: '):
+        sg.one_line_progress_meter(
+            'Background Removeal Progress', i, len(data_files), '-key-')
         # try:
         #     live.close_window()
         # except:
@@ -70,7 +76,8 @@ def remove_background(data_files, start_index=0):
         v = v - bg_1(f)
         # live = lf.Live_Instance(f, v)
         # live.activate()
-        regions = sw.slide_scale(model, v, min_zoom=min_zoom, max_zoom=max_zoom)
+        regions = sw.slide_scale(
+            model, v, min_zoom=min_zoom, max_zoom=max_zoom)
         while len(regions) > 0:
             bg_params = fl.parameters_from_regions(f, v, regions)
             if len(bg_params) > 0:
@@ -82,7 +89,8 @@ def remove_background(data_files, start_index=0):
                     min_f = f[min_ind]
                     region_deltas.append(max_f - min_f)
                 max_delta = max(region_deltas)
-                bg_params = np.array([bg_params[bg_params[:,2].argsort()][-1]])
+                bg_params = np.array(
+                    [bg_params[bg_params[:, 2].argsort()][-1]])
                 if util.order_difference(bg_params[0][2], max_delta) < 1:
                     # live = lf.Live_Instance(f, v)
                     # live.import_lorentzians(bg_params)
@@ -94,7 +102,8 @@ def remove_background(data_files, start_index=0):
                         coef_2 = np.polyfit(f, v, 3)
                         bg_2 = np.poly1d(coef_2)
                         v = v - bg_2(f)
-                    regions = sw.slide_scale(model, v, min_zoom=min_zoom, max_zoom=max_zoom)
+                    regions = sw.slide_scale(
+                        model, v, min_zoom=min_zoom, max_zoom=max_zoom)
                 else:
                     regions = np.empty((0, 2))
             else:

@@ -5,10 +5,11 @@ try:
     from . import generate_lorentz as gl
     from . import classify_data as cd
     from . import utilities as util
-except:
+except BaseException:
     import generate_lorentz as gl
     import classify_data as cd
     import utilities as util
+
 
 def estimate_parameters(f, v, n=1, estimate_background=True):
     """
@@ -19,15 +20,18 @@ def estimate_parameters(f, v, n=1, estimate_background=True):
     max_v = max(v)
     min_v = min(v)
     guess_FWHM = np.ones((1, n)) * (max_f - min_f) / n
-    guess_f0 = (np.arange(n).reshape((1, n)) + 1) * (max_f - min_f) / (n + 1) + min_f
+    guess_f0 = (np.arange(n).reshape((1, n)) + 1) * \
+        (max_f - min_f) / (n + 1) + min_f
     guess_A = np.ones((1, n)) * (max_v - min_v) / n
     guess_phase = np.ones((1, n)) * np.pi
-    guess_params = np.concatenate([guess_A, guess_f0, guess_FWHM, guess_phase], axis=0)
+    guess_params = np.concatenate(
+        [guess_A, guess_f0, guess_FWHM, guess_phase], axis=0)
     if estimate_background:
         background = np.array([[np.mean(v), 0]])
         guess_params = np.append(guess_params, background)
     guess_params = np.transpose(guess_params)
     return guess_params
+
 
 def in_lorentz_fit(p, f):
     """
@@ -37,7 +41,8 @@ def in_lorentz_fit(p, f):
     A = p[0]
     f0 = p[1]
     FWHM = p[2]
-    return (A / (2 * FWHM)) * (f - f0) / (((f - f0) / FWHM) **2 + 1 / 4)
+    return (A / (2 * FWHM)) * (f - f0) / (((f - f0) / FWHM) ** 2 + 1 / 4)
+
 
 def out_lorentz_fit(p, f):
     """
@@ -49,19 +54,23 @@ def out_lorentz_fit(p, f):
     FWHM = p[2]
     return (A / 4) * (1 / (((f - f0) / FWHM) ** 2 + 1 / 4))
 
+
 def lorentz_fit(p, f):
     """
     An arbitrary Lorentzian for fitting.
     p = array([Amplitude, Center Frequency, Full Width at Half Maximum, Phase])
     """
     p_no_phase = p[:3]
-    return np.cos(p[3]) * in_lorentz_fit(p_no_phase, f) + np.sin(p[3]) * out_lorentz_fit(p_no_phase, f)
+    return np.cos(p[3]) * in_lorentz_fit(p_no_phase, f) + \
+        np.sin(p[3]) * out_lorentz_fit(p_no_phase, f)
+
 
 def lorentz_residual_fit(p, f, z):
     """
     As lorentz_fit, but with z for the residuals.
     """
     return lorentz_fit(p, f) - z
+
 
 def multi_lorentz_fit(p, f):
     """
@@ -82,13 +91,24 @@ def multi_lorentz_fit(p, f):
         result = result + lorentz_fit(p_single, f)
     return result
 
+
 def multi_lorentz_residual_fit(p, f, z, w):
     """
     As multi_lorentz_fit, but with z for the residuals.
     """
     return (multi_lorentz_fit(p, f) - z) * w
 
-def set_n_least_squares(f, v, n=1, noise_filter=0, delta_f=None, method='lm', ftol=1e-10, gtol=1e-10, xtol=1e-10):
+
+def set_n_least_squares(
+        f,
+        v,
+        n=1,
+        noise_filter=0,
+        delta_f=None,
+        method='lm',
+        ftol=1e-10,
+        gtol=1e-10,
+        xtol=1e-10):
     """
     A least squares fit using the specified number of Lorentzians.
     """
@@ -115,33 +135,122 @@ def set_n_least_squares(f, v, n=1, noise_filter=0, delta_f=None, method='lm', ft
     bounds = (np.array(bounds[0]), np.array(bounds[1]))
     if method == 'lm':
         try:
-            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), method='lm')
-        except:
-            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), bounds=bounds)
+            fit = least_squares(
+                multi_lorentz_residual_fit,
+                p_estimate,
+                ftol=ftol,
+                gtol=gtol,
+                xtol=xtol,
+                args=(
+                    f,
+                    v,
+                    np.ones(
+                        len(f))),
+                method='lm')
+        except BaseException:
+            fit = least_squares(
+                multi_lorentz_residual_fit,
+                p_estimate,
+                ftol=ftol,
+                gtol=gtol,
+                xtol=xtol,
+                args=(
+                    f,
+                    v,
+                    np.ones(
+                        len(f))),
+                bounds=bounds)
     elif method == 'trf':
         try:
-            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), method='trf', bounds=bounds)
-        except:
-            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), bounds=bounds)
+            fit = least_squares(
+                multi_lorentz_residual_fit,
+                p_estimate,
+                ftol=ftol,
+                gtol=gtol,
+                xtol=xtol,
+                args=(
+                    f,
+                    v,
+                    np.ones(
+                        len(f))),
+                method='trf',
+                bounds=bounds)
+        except BaseException:
+            fit = least_squares(
+                multi_lorentz_residual_fit,
+                p_estimate,
+                ftol=ftol,
+                gtol=gtol,
+                xtol=xtol,
+                args=(
+                    f,
+                    v,
+                    np.ones(
+                        len(f))),
+                bounds=bounds)
     elif method == 'dogbox':
         try:
-            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), method='dogbox', bounds=bounds)
-        except:
-            fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), bounds=bounds)
+            fit = least_squares(
+                multi_lorentz_residual_fit,
+                p_estimate,
+                ftol=ftol,
+                gtol=gtol,
+                xtol=xtol,
+                args=(
+                    f,
+                    v,
+                    np.ones(
+                        len(f))),
+                method='dogbox',
+                bounds=bounds)
+        except BaseException:
+            fit = least_squares(
+                multi_lorentz_residual_fit,
+                p_estimate,
+                ftol=ftol,
+                gtol=gtol,
+                xtol=xtol,
+                args=(
+                    f,
+                    v,
+                    np.ones(
+                        len(f))),
+                bounds=bounds)
     else:
-        fit = least_squares(multi_lorentz_residual_fit, p_estimate, ftol=ftol, gtol=gtol, xtol=xtol, args=(f, v, np.ones(len(f))), bounds=bounds)
-    return fit, check_bounds(fit.x, bounds, noise_filter=noise_filter, delta_f=delta_f)
+        fit = least_squares(
+            multi_lorentz_residual_fit,
+            p_estimate,
+            ftol=ftol,
+            gtol=gtol,
+            xtol=xtol,
+            args=(
+                f,
+                v,
+                np.ones(
+                    len(f))),
+            bounds=bounds)
+    return fit, check_bounds(
+        fit.x, bounds, noise_filter=noise_filter, delta_f=delta_f)
 
-def free_n_least_squares(f, v, max_n=3, noise_filter=0, force_fit=False, method='lm'):
+
+def free_n_least_squares(
+        f,
+        v,
+        max_n=3,
+        noise_filter=0,
+        force_fit=False,
+        method='lm'):
     """
     A least squares fit with an unspecified number of Lorentzians.
     """
     delta_f = (max(f) - min(f)) / len(f)
-    best_fit, initial_keep = set_n_least_squares(f, v, n=1, noise_filter=noise_filter, delta_f=delta_f, method=method)
+    best_fit, initial_keep = set_n_least_squares(
+        f, v, n=1, noise_filter=noise_filter, delta_f=delta_f, method=method)
     n = 1
     while n <= max_n:
         n += 1
-        new_fit, keep = set_n_least_squares(f, v, n, noise_filter=noise_filter, method=method)
+        new_fit, keep = set_n_least_squares(
+            f, v, n, noise_filter=noise_filter, method=method)
         if util.order_difference(best_fit.cost, new_fit.cost) >= 1 and keep:
             best_fit = new_fit
             initial_keep = keep
@@ -152,7 +261,15 @@ def free_n_least_squares(f, v, max_n=3, noise_filter=0, force_fit=False, method=
     else:
         return None
 
-def fit_regions(f, v, regions, max_n=3, noise_filter=0, force_fit=False, method='lm'):
+
+def fit_regions(
+        f,
+        v,
+        regions,
+        max_n=3,
+        noise_filter=0,
+        force_fit=False,
+        method='lm'):
     """
     Given frequency data, displacement data, and a regions array, will return a list of proposed Lorentzian parameters.
     """
@@ -163,19 +280,27 @@ def fit_regions(f, v, regions, max_n=3, noise_filter=0, force_fit=False, method=
         # plt.plot(region_f, region_v)
         # print(min(region_f))
         # print(max(region_f))
-        region_f = cd.normalize_1d(region_f, scale=(min(region_f),max(region_f),1024))
+        region_f = cd.normalize_1d(region_f, scale=(
+            min(region_f), max(region_f), 1024))
         # print(min(region_f))
         # print(max(region_f))
         # print(min(region_v))
         # print(max(region_v))
-        region_v = cd.normalize_1d(region_v, scale=(min(region_v),max(region_v),1024))
+        region_v = cd.normalize_1d(region_v, scale=(
+            min(region_v), max(region_v), 1024))
         # print(min(region_v))
         # print(max(region_v))
         # plt.plot(region_f, region_v)
-        fit = free_n_least_squares(region_f, region_v, noise_filter=noise_filter, force_fit=force_fit, method=method)
+        fit = free_n_least_squares(
+            region_f,
+            region_v,
+            noise_filter=noise_filter,
+            force_fit=force_fit,
+            method=method)
         if fit is not None:
             p_list.append(fit.x)
     return p_list
+
 
 def extract_parameters(p_list, noise_filter=0):
     """
@@ -189,21 +314,39 @@ def extract_parameters(p_list, noise_filter=0):
         for j in range(0, len(working_p)):
             if np.abs(working_p[j][0]) >= noise_filter:
                 p_table = np.append(p_table, working_p, axis=0)
-    return p_table[p_table[:,1].argsort()]
+    return p_table[p_table[:, 1].argsort()]
 
-def parameters_from_regions(f, v, regions, max_n=3, noise_filter=0, catch_degeneracies=True, allowed_delta_ind=10, force_fit=False, method='lm'):
+
+def parameters_from_regions(
+        f,
+        v,
+        regions,
+        max_n=3,
+        noise_filter=0,
+        catch_degeneracies=True,
+        allowed_delta_ind=10,
+        force_fit=False,
+        method='lm'):
     """
     Given regions for analysis, frequency, displacement, will return parameters for the fit Lorentzians.
     """
     if len(regions) == 0:
         return np.empty((0, 4))
-    p_list = fit_regions(f, v, regions, max_n=max_n, noise_filter=noise_filter, force_fit=force_fit, method=method)
+    p_list = fit_regions(
+        f,
+        v,
+        regions,
+        max_n=max_n,
+        noise_filter=noise_filter,
+        force_fit=force_fit,
+        method=method)
     if len(p_list) == 0:
         return np.empty((0, 4))
     p_table = extract_parameters(p_list, noise_filter=noise_filter)
     if catch_degeneracies:
         p_table = remove_degeneracies(p_table, f, allowed_delta_ind=10)
     return correct_parameters(p_table)
+
 
 def correct_parameters(p_table):
     """
@@ -232,7 +375,8 @@ def correct_parameters(p_table):
             p = np.array([A, f0, FWHM, phase])
         parameters = np.append(parameters, np.array([p]), axis=0)
     return parameters
-    
+
+
 def regions_from_parameters(f, p, extension=2):
     regions = np.empty((0, 2))
     for i in range(0, len(p)):
@@ -243,6 +387,7 @@ def regions_from_parameters(f, p, extension=2):
         region = np.array([[ind_min, ind_max]])
         regions = np.append(regions, region, axis=0)
     return regions
+
 
 def check_bounds(p, bounds, noise_filter=0, delta_f=None):
     """
@@ -267,6 +412,7 @@ def check_bounds(p, bounds, noise_filter=0, delta_f=None):
                 keep = False
     return keep
 
+
 def lorentz_to_data(p, f, v=None, expansion=2):
     """
     Input: One row of extracted (final) parameters, f data, and v data if you want to approximate offset.
@@ -284,6 +430,7 @@ def lorentz_to_data(p, f, v=None, expansion=2):
     return_v = v[min_f_ind:max_f_ind] + offset
     return return_f, return_v
 
+
 def lorentz_bounds_to_data(p, f, v, expansion=2):
     """
     Input: One row of extracted (final) parameters, f data, and v data.
@@ -296,6 +443,7 @@ def lorentz_bounds_to_data(p, f, v, expansion=2):
     return_f = f[min_f_ind:max_f_ind]
     return_v = v[min_f_ind:max_f_ind]
     return return_f, return_v
+
 
 def full_lorentz_to_data(p, f, expansion=2):
     """
@@ -314,6 +462,7 @@ def full_lorentz_to_data(p, f, expansion=2):
     return_v = v[min_f_ind:max_f_ind]
     return return_f, return_v
 
+
 def full_lorentz_bounds_to_data(p, f, v, expansion=2):
     """
     Input: One array from the original p_list, f data.
@@ -330,6 +479,7 @@ def full_lorentz_bounds_to_data(p, f, v, expansion=2):
     return_v = v[min_f_ind:max_f_ind]
     return return_f, return_v
 
+
 def catch_degeneracies(p1, p2, f, allowed_delta_ind=10):
     """
     Input: Two elements of p_table and f data.
@@ -339,16 +489,25 @@ def catch_degeneracies(p1, p2, f, allowed_delta_ind=10):
     degenerate = delta_ind < allowed_delta_ind
     return degenerate
 
+
 def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     """
     Removes duplicate Lorentzians.
     """
     degeneracy_table = []
     new_p_tabel = np.empty((0, 4))
-    for i in util.progressbar(range(0, len(p_table)), prefix="Checking for Degeneracies: "):
+    for i in util.progressbar(
+            range(
+                0,
+                len(p_table)),
+            prefix="Checking for Degeneracies: "):
         degeneracy_table.append([])
         for j in range(0, len(p_table)):
-            if catch_degeneracies(p_table[i], p_table[j], f, allowed_delta_ind=allowed_delta_ind):
+            if catch_degeneracies(
+                    p_table[i],
+                    p_table[j],
+                    f,
+                    allowed_delta_ind=allowed_delta_ind):
                 degeneracy_table[i].append(j)
     for i in range(0, len(degeneracy_table)):
         if len(degeneracy_table[i]) > 1:
@@ -358,49 +517,78 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
                     degeneracy_table[j] = []
     for i in range(0, len(degeneracy_table)):
         if len(degeneracy_table[i]) > 0:
-            new_p_tabel = np.append(new_p_tabel, np.array([p_table[i]]), axis=0)
-    return new_p_tabel[new_p_tabel[:,1].argsort()]
+            new_p_tabel = np.append(
+                new_p_tabel, np.array([p_table[i]]), axis=0)
+    return new_p_tabel[new_p_tabel[:, 1].argsort()]
 
 
-def parameters_from_selections(data_files, region_selections, allowed_delta_ind=0, noise_filter=0, force_fit=False, method='lm'):
+def parameters_from_selections(
+        data_files,
+        region_selections,
+        allowed_delta_ind=0,
+        noise_filter=0,
+        force_fit=False,
+        method='lm'):
     region_selections = clean_selections(region_selections)
     sg.one_line_progress_meter_cancel('-key-')
     all_peaks = []
     counter = 0
     region_selections, params_selections = region_selections[0], region_selections[1]
-    for i in util.progressbar(range(0, len(data_files)), "Fitting: ", progress=False):
+    for i in util.progressbar(
+        range(
+            0,
+            len(data_files)),
+        "Fitting: ",
+            progress=False):
         all_peaks.append(np.empty((0, 4)))
         for j in range(0, len(region_selections)):
             try:
-                sg.one_line_progress_meter('Overall Fitting Progress', counter, len(data_files) * len(region_selections), '-key-')
+                sg.one_line_progress_meter(
+                    'Overall Fitting Progress',
+                    counter,
+                    len(data_files) *
+                    len(region_selections),
+                    '-key-')
                 f = data_files[i].f
                 v = data_files[i].r
                 regions = region_selections[j][i]
-                params = parameters_from_regions(f, v, regions, allowed_delta_ind=allowed_delta_ind, catch_degeneracies=False, noise_filter=noise_filter, force_fit=force_fit, method=method)
+                params = parameters_from_regions(
+                    f,
+                    v,
+                    regions,
+                    allowed_delta_ind=allowed_delta_ind,
+                    catch_degeneracies=False,
+                    noise_filter=noise_filter,
+                    force_fit=force_fit,
+                    method=method)
                 if len(params) == 0:
                     params = np.array([[np.nan, np.nan, np.nan, np.nan]])
-            except:
+            except BaseException:
                 params = np.array([[np.nan, np.nan, np.nan, np.nan]])
             all_peaks[i] = np.append(all_peaks[i], params, axis=0)
             counter += 1
     sg.one_line_progress_meter_cancel('-key-')
     all_peaks = np.array(all_peaks)
-    if not params_selections is None:
+    if params_selections is not None:
         all_peaks = util.append_params_3d(all_peaks, params_selections)
     return denan_parameters(all_peaks)
+
 
 def spider_fit(data_file, params=None, method='lm'):
     if params is None:
         params = data_file.params
     regions = regions_from_parameters(data_file.f, params)
-    x_params = parameters_from_regions(data_file.f, data_file.x, regions, method=method)
-    y_params = parameters_from_regions(data_file.f, data_file.y, regions, method=method)
+    x_params = parameters_from_regions(
+        data_file.f, data_file.x, regions, method=method)
+    y_params = parameters_from_regions(
+        data_file.f, data_file.y, regions, method=method)
     return x_params, y_params
+
 
 def data_file_fit(data_file, params=None, resolution=None):
     x_params, y_params = spider_fit(data_file, params)
     f = data_file.f
-    if not resolution is None:
+    if resolution is not None:
         f = np.linspace(min(f), max(f), resolution)
     x = gl.multi_lorentz_2d(f, x_params)
     y = gl.multi_lorentz_2d(f, y_params)
@@ -410,14 +598,17 @@ def data_file_fit(data_file, params=None, resolution=None):
     new_data_file.set_params(params)
     return new_data_file
 
+
 def data_from_region(data_file, region):
     x = data_file.x
     y = data_file.y
     return x[int(region[0]):int(region[1])], y[int(region[0]):int(region[1])]
 
+
 def data_from_parameters(data_file, params, index=0):
     regions = regions_from_parameters(data_file.f, params)
     return data_from_region(data_file, regions[index])
+
 
 def denan_parameters(params, nan_level=0.8):
     nan_counters = []
@@ -439,6 +630,7 @@ def denan_parameters(params, nan_level=0.8):
             if nan_counters[j]:
                 p[i].append(params[i][j])
     return np.array(p)
+
 
 def clean_selections(selections):
     s = selections[0]

@@ -3,10 +3,11 @@ import multiprocessing as mp
 import scipy.interpolate as interp
 try:
     from . import utilities as util
-except:
+except BaseException:
     import utilities as util
 
 # Generally handles most/all of the preprocessing.
+
 
 def arr_to_tup(a):
     """
@@ -24,6 +25,7 @@ def arr_to_tup(a):
     """
     return tuple(a.reshape(1, -1)[0])
 
+
 def find_single_fit_range(lorentz_params):
     """
     Finds the fit range for a single Lorentzian.
@@ -36,12 +38,13 @@ def find_single_fit_range(lorentz_params):
     Returns
     -------
     tuple
-        A two item tuple with the 0 index value being the start of the range 
+        A two item tuple with the 0 index value being the start of the range
         and the 1 index being the end.
     """
     f0 = lorentz_params[1]
     FWHM = lorentz_params[2]
     return (f0 - 4 * FWHM, f0 - 2 * FWHM, f0 + 2 * FWHM, f0 + 4 * FWHM)
+
 
 def find_full_fit_range(lorentz_params_array):
     """
@@ -57,12 +60,14 @@ def find_full_fit_range(lorentz_params_array):
     tuple
         A combined fit range tuple.
     """
-    (f_low_stop_list, f_low_list, f_high_list, f_high_stop_list) = find_all_fit_ranges(lorentz_params_array)
+    (f_low_stop_list, f_low_list, f_high_list,
+     f_high_stop_list) = find_all_fit_ranges(lorentz_params_array)
     f_low_stop = min(f_low_stop_list)
     f_low = min(f_low_list)
     f_high = max(f_high_list)
     f_high_stop = max(f_high_stop_list)
     return (f_low_stop, f_low, f_high, f_high_stop)
+
 
 def find_all_fit_ranges(lorentz_params_array):
     """
@@ -92,6 +97,7 @@ def find_all_fit_ranges(lorentz_params_array):
         f_high_stop_list.append(fit_range[3])
     return (f_low_stop_list, f_low_list, f_high_list, f_high_stop_list)
 
+
 def check_overlap(lorentz_params_1, lorentz_params_2):
     """
     Checks if two Lorentzians overlap.
@@ -108,10 +114,12 @@ def check_overlap(lorentz_params_1, lorentz_params_2):
     """
     if lorentz_params_1 is None or lorentz_params_2 is None:
         return False
-    [low_lorentz, high_lorentz] = sorted([lorentz_params_1, lorentz_params_2], key=lambda l: l[1])
+    [low_lorentz, high_lorentz] = sorted(
+        [lorentz_params_1, lorentz_params_2], key=lambda l: l[1])
     low_fit_range = find_single_fit_range(low_lorentz)
     high_fit_range = find_single_fit_range(high_lorentz)
     return low_fit_range[2] > high_fit_range[1]
+
 
 def partition_lorentz_params_array(lorentz_params_array):
     """
@@ -154,7 +162,15 @@ def partition_lorentz_params_array(lorentz_params_array):
     lorentz_sets = sorted(lorentz_sets, key=lambda a: a[0][1])
     return lorentz_sets
 
-def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1024)):
+
+def partition_data_2d(
+    data_array,
+    fit_range_list,
+    lorentz_array_2d,
+    scale=(
+        0,
+        1,
+        1024)):
     """
     Partitions a complete generated data set and gives a tuple which has all
     the corresponding data for each Lorentzian cluster as well as how many
@@ -192,16 +208,18 @@ def partition_data_2d(data_array, fit_range_list, lorentz_array_2d, scale=(0,1,1
         f_min = np.random.random() * f_low_range + fit_range[0]
         f_max = np.random.random() * f_high_range + fit_range[2]
         v_norm = normalize_1d(v, temp_scale)
-        np.putmask(v_norm, f<f_min, v_norm * 0 - 1)
-        np.putmask(v_norm, f>f_max, v_norm * 0 - 1)
+        np.putmask(v_norm, f < f_min, v_norm * 0 - 1)
+        np.putmask(v_norm, f > f_max, v_norm * 0 - 1)
         v_clipped = v_norm[v_norm >= 0]
         f_clipped = f[f >= f_min]
         f_clipped = f_clipped[f_clipped <= f_max]
         v_norm = normalize_1d(v_clipped, scale)
         v_array = np.append(v_array, np.array([v_norm]), axis=0)
         num_lorentz = count_lorentz(fit_range, lorentz_array_2d)
-        lorentz_count_array = np.append(lorentz_count_array, np.array([[num_lorentz]]), axis=0)
+        lorentz_count_array = np.append(
+            lorentz_count_array, np.array([[num_lorentz]]), axis=0)
     return (v_array, lorentz_count_array)
+
 
 def count_lorentz(fit_range, lorentz_array_2d):
     """
@@ -226,6 +244,7 @@ def count_lorentz(fit_range, lorentz_array_2d):
             counter += 1
     return counter
 
+
 def find_partitioned_fit_ranges(lorentz_params_list):
     """
     Returns a list of fit ranges from the provided Lorentzians.
@@ -244,6 +263,7 @@ def find_partitioned_fit_ranges(lorentz_params_list):
         fit_range_list.append(find_full_fit_range(a))
     return fit_range_list
 
+
 def evaluate_fit_range(predicted, fit_range):
     """
     Determines if the provided fit ranges are violated.
@@ -254,6 +274,7 @@ def evaluate_fit_range(predicted, fit_range):
     test4 = (predicted[1] <= fit_range[3])
     return all([test1, test2, test3, test4])
 
+
 def evaluate_all_fit_ranges(predicted, fit_range_list):
     """
     Given a list of fit ranges, will check all of them to see how much they overlap and are violated.
@@ -263,17 +284,20 @@ def evaluate_all_fit_ranges(predicted, fit_range_list):
         tests.append(evaluate_fit_range(predicted[i], fit_range_list[i]))
     return all(tests)
 
+
 def disect_lorentz_params_array(lorentz_params_array):
     """
     Returns the number of fit ranges and a list of them from the given array of Lorentzian parameters.
     """
     if filter_lorentz(lorentz_params_array):
-        lorentz_params_list = partition_lorentz_params_array(lorentz_params_array)
+        lorentz_params_list = partition_lorentz_params_array(
+            lorentz_params_array)
         fit_range_list = find_partitioned_fit_ranges(lorentz_params_list)
         num_fit_ranges = len(fit_range_list)
         return (num_fit_ranges, fit_range_list)
     else:
         return (0, None)
+
 
 def scale_1d(x):
     """
@@ -282,26 +306,40 @@ def scale_1d(x):
     """
     return (min(x), max(x), len(x))
 
+
 def normalize_index(x, input_scale, output_scale):
     """
     Normalizes indices around the provided scale values.
     """
     return np.round(x / input_scale[2] * output_scale[2])
 
-def normalize_data(background_params, lorentz_params, f, v, scale=(0,1,1024)):
+
+def normalize_data(
+    background_params,
+    lorentz_params,
+    f,
+    v,
+    scale=(
+        0,
+        1,
+        1024)):
     """
     Normalizes a data set.
     """
     old_f_scale = scale_1d(f)
     old_v_scale = scale_1d(v)
     background_params = background_params[0]
-    background_params_norm = normalize_lorentz_1d(background_params, old_f_scale, old_v_scale, scale, scale)
-    lorentz_params_norm = normalize_lorentz_2d(lorentz_params, old_f_scale, old_v_scale, scale, scale)
+    background_params_norm = normalize_lorentz_1d(
+        background_params, old_f_scale, old_v_scale, scale, scale)
+    lorentz_params_norm = normalize_lorentz_2d(
+        lorentz_params, old_f_scale, old_v_scale, scale, scale)
     f_norm = normalize_1d(f, scale)
     v_norm = normalize_1d(v, scale)
-    return np.array([background_params_norm]), lorentz_params_norm, f_norm, v_norm
+    return np.array([background_params_norm]
+                    ), lorentz_params_norm, f_norm, v_norm
 
-def normalize_1d(x, scale=(0,1,1024)):
+
+def normalize_1d(x, scale=(0, 1, 1024)):
     """
     Normalizes a given array of data around the provided scale factor.
     """
@@ -319,7 +357,8 @@ def normalize_1d(x, scale=(0,1,1024)):
     x_resized = (x_interp(new_baseline) * (new_max - new_min)) + new_min
     return x_resized
 
-def normalize_0d(x, old_scale=(0,1,1024), new_scale=(0,1,1024)):
+
+def normalize_0d(x, old_scale=(0, 1, 1024), new_scale=(0, 1, 1024)):
     """
     Normalizes a single value around the provided scale factor.
     """
@@ -329,7 +368,11 @@ def normalize_0d(x, old_scale=(0,1,1024), new_scale=(0,1,1024)):
     new_min = new_scale[0]
     return (x - old_min) * (new_delta / old_delta) + new_min
 
-def normalize_lorentz_1d(lorentz, old_f_scale, old_v_scale, new_f_scale=(0,1,1024), new_v_scale=(0,1,1024)):
+
+def normalize_lorentz_1d(
+    lorentz, old_f_scale, old_v_scale, new_f_scale=(
+        0, 1, 1024), new_v_scale=(
+            0, 1, 1024)):
     """
     Normalizes single Lorentzian parameters around the provided scale factors.
     """
@@ -341,16 +384,22 @@ def normalize_lorentz_1d(lorentz, old_f_scale, old_v_scale, new_f_scale=(0,1,102
     G1 = normalize_0d(G0 + old_f_scale[0], old_f_scale, new_f_scale)
     return np.array([A1, f1, G1, lorentz[3]])
 
-def normalize_lorentz_2d(lorentz, old_f_scale, old_v_scale, new_f_scale=(0,1,1024), new_v_scale=(0,1,1024)):
+
+def normalize_lorentz_2d(
+    lorentz, old_f_scale, old_v_scale, new_f_scale=(
+        0, 1, 1024), new_v_scale=(
+            0, 1, 1024)):
     """
     Normalizes an array of many Lorentzian parameters around the provided scale factors.
     """
     lorentz_array = np.empty((0, 4))
     for i in range(0, lorentz.shape[0]):
         l0 = lorentz[i]
-        l1 = normalize_lorentz_1d(l0, old_f_scale, old_v_scale, new_f_scale, new_v_scale)
+        l1 = normalize_lorentz_1d(
+            l0, old_f_scale, old_v_scale, new_f_scale, new_v_scale)
         lorentz_array = np.append(lorentz_array, np.array([l1]), axis=0)
     return lorentz_array
+
 
 def filter_lorentz(lorentz_array):
     """
@@ -361,14 +410,16 @@ def filter_lorentz(lorentz_array):
     else:
         return lorentz_array.shape[1] == 4
 
+
 def separate_data(f_v_array):
     """
     Given a 2D array of frequency and displacement data, will split it down the two like a zipper.
     'ziiiiiiiiiipppppppppppp'
     """
-    f = f_v_array[:,0]
-    v = f_v_array[:,1]
+    f = f_v_array[:, 0]
+    v = f_v_array[:, 1]
     return (f, v)
+
 
 def merge_data(f, v):
     """
@@ -376,6 +427,7 @@ def merge_data(f, v):
     'ziiiiiiiiiipppppppppppp'
     """
     return np.transpose(np.vstack([f, v]))
+
 
 def separate_all_data(data_arrays_list):
     """
@@ -385,6 +437,7 @@ def separate_all_data(data_arrays_list):
     for i in range(0, len(data_arrays_list)):
         separated_data_list.append(separate_data(data_arrays_list[i]))
     return separated_data_list
+
 
 def equalize_data(class_labels, class_data):
     """
@@ -414,7 +467,8 @@ def equalize_data(class_labels, class_data):
     data = np.delete(combined_arr, 0, axis=1)
     return labels, data
 
-def pre_process_for_counting(block, scale=(0,1,1024)):
+
+def pre_process_for_counting(block, scale=(0, 1, 1024)):
     """
     Pre-processes a data set so that it's ready for a counting model to be run or trained on it.
     """
@@ -433,11 +487,13 @@ def pre_process_for_counting(block, scale=(0,1,1024)):
         f_processed = normalize_1d(f_unprocessed, scale)
         v_processed = normalize_1d(v_unprocessed, scale)
         if filter_lorentz(lorentz_array):
-            l_processed = normalize_lorentz_2d(lorentz_array, scale_f, scale_v, scale, scale)
+            l_processed = normalize_lorentz_2d(
+                lorentz_array, scale_f, scale_v, scale, scale)
         else:
             l_processed = None
         processed_lorentz_arrays_list.append(l_processed)
-        processed_data_array = np.append(processed_data_array, np.array([v_processed]), axis=0)
+        processed_data_array = np.append(
+            processed_data_array, np.array([v_processed]), axis=0)
     results = (processed_lorentz_arrays_list, processed_data_array, scale_list)
     count_labels = []
     pro_length = len(processed_lorentz_arrays_list)
@@ -447,6 +503,7 @@ def pre_process_for_counting(block, scale=(0,1,1024)):
     count_labels = np.transpose(np.array([count_labels]))
     count_data = results[1]
     return count_labels, count_data
+
 
 def classify(input):
     i = input[0]
@@ -458,7 +515,8 @@ def classify(input):
     (v, labels) = partition_data_2d(f_v_data, fit_range_list, lorentz_params)
     return (labels, v)
 
-def pre_process_for_classifying(block, scale=(0,1,1024)):
+
+def pre_process_for_classifying(block, scale=(0, 1, 1024)):
     """
     Pre-processes a data set so that it's ready for a classifying model to be run or trained on it.
     """
@@ -476,7 +534,9 @@ def pre_process_for_classifying(block, scale=(0,1,1024)):
     #     (v, labels) = partition_data_2d(f_v_data, fit_range_list, lorentz_params)
     #     cluster_labels = np.append(cluster_labels, labels, axis=0)
     #     cluster_data = np.append(cluster_data, v, axis=0)
-    results = pool.map(classify, [(i, lorentz_arrays_list, data_arrays_list) for i in range(block_size)])
+    results = pool.map(
+        classify, [
+            (i, lorentz_arrays_list, data_arrays_list) for i in range(block_size)])
     pool.close()
     for result in results:
         cluster_labels = np.append(cluster_labels, result[0], axis=0)
@@ -484,13 +544,14 @@ def pre_process_for_classifying(block, scale=(0,1,1024)):
     return cluster_labels, cluster_data
 
 
-def pre_process_for_equal_classifying(block, scale=(0,1,1024)):
+def pre_process_for_equal_classifying(block, scale=(0, 1, 1024)):
     """
     Pre-processes a data set so that it's ready for an equal classifying model to be run or trained on it.
     """
     class_labels, class_data = pre_process_for_classifying(block, scale)
     eq_labels, eq_data = equalize_data(class_labels, class_data)
     return eq_labels, eq_data
+
 
 def scale_zoom(x, start, end):
     """

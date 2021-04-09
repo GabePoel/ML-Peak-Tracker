@@ -2,16 +2,18 @@ import numpy as np
 try:
     from . import classify_data as cd
     from . import utilities as util
-except:
+except BaseException:
     import classify_data as cd
     import utilities as util
 
 # Break down into several different size scales
-# For each size scale, slide over window and say if there is a Lorentzian there or not
+# For each size scale, slide over window and say if there is a Lorentzian
+# there or not
+
 
 def flip_bool(a):
     """
-    Flips the bit of the provided input. It's recommended to use bit_invert() 
+    Flips the bit of the provided input. It's recommended to use bit_invert()
     in utilities instead.
 
     Parameters
@@ -25,6 +27,7 @@ def flip_bool(a):
         The flipped value: 0 goes to 1 and 1 goes to 0.
     """
     return (a + 1 - 2) * -1
+
 
 def find_regions(has_lorentz):
     """
@@ -48,26 +51,39 @@ def find_regions(has_lorentz):
     change_indices = np.where(mark_indices == 1)[0]
     j = 0
     while j < len(change_indices) - 1:
-        regions = np.append(regions, np.array([[change_indices[j], change_indices[j+1]]]), axis=0)
+        regions = np.append(regions, np.array(
+            [[change_indices[j], change_indices[j + 1]]]), axis=0)
         j += 2
     return regions
 
-def decompose_by_scale(v, zoom, scale=(0,1,1024), overlap=1/4):
+
+def decompose_by_scale(v, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     """
     Given the provided zoom level, will decompose into an array of many small windows.
     """
-    windows = np.empty((0,scale[2]))
+    windows = np.empty((0, scale[2]))
     v = cd.normalize_1d(v, scale=scale)
     window_size = 1 / zoom
     num_windows = int(np.ceil(zoom / overlap))
     for i in range(0, num_windows):
         if i / num_windows + window_size <= 1:
-            window = cd.scale_zoom(v, i / num_windows, i / num_windows + window_size)
+            window = cd.scale_zoom(
+                v, i / num_windows, i / num_windows + window_size)
             window = cd.normalize_1d(window, scale=scale)
             windows = np.append(windows, np.array([window]), axis=0)
     return windows
 
-def decompose_all(v, num_zooms, scale=(0,1,1024), overlap=1/4, zoom_level=2):
+
+def decompose_all(
+        v,
+        num_zooms,
+        scale=(
+            0,
+            1,
+            1024),
+    overlap=1 /
+    4,
+        zoom_level=2):
     """
     Will give a list of window arrays for all scales with the allowed zoom levels.
     """
@@ -75,10 +91,12 @@ def decompose_all(v, num_zooms, scale=(0,1,1024), overlap=1/4, zoom_level=2):
         return [v]
     windows_list = []
     for i in range(0, num_zooms):
-        windows_list.append(decompose_by_scale(v, zoom_level ** i, scale=scale, overlap=overlap))
+        windows_list.append(decompose_by_scale(
+            v, zoom_level ** i, scale=scale, overlap=overlap))
     return windows_list
 
-def compose_by_scale(labels, zoom, scale=(0,1,1024), overlap=1/4):
+
+def compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     """
     Given an array of windows at a specific zoom level, will return the corresponding region array.
     """
@@ -95,17 +113,43 @@ def compose_by_scale(labels, zoom, scale=(0,1,1024), overlap=1/4):
     has_lorentz = flip_bool(has_lorentz)
     return find_regions(has_lorentz)
 
-def compose_all(labels_list, scale=(0,1,1024), overlap=1/4, zoom_level=2):
+
+def compose_all(labels_list, scale=(0, 1, 1024), overlap=1 / 4, zoom_level=2):
     """
     Given a list of window arrays, will return the entire corresponding region array.
     """
     regions = np.empty((0, 2))
     for i in range(0, len(labels_list)):
         if labels_list[i] is not None:
-            regions = np.append(regions, compose_by_scale(labels_list[i], zoom_level ** i, scale=scale, overlap=overlap), axis=0)
+            regions = np.append(
+                regions,
+                compose_by_scale(
+                    labels_list[i],
+                    zoom_level ** i,
+                    scale=scale,
+                    overlap=overlap),
+                axis=0)
     return regions
 
-def slide_scale(model, v,  min_zoom=5, max_zoom=7, scale=(0,1,1024), overlap=1/4, zoom_level=2, confidence_tolerance=0.95, merge_tolerance=None, compress=False, target=1, single_zoom=False, progress=True, simplify=False):
+
+def slide_scale(
+        model,
+        v,
+        min_zoom=5,
+        max_zoom=7,
+        scale=(
+            0,
+            1,
+            1024),
+    overlap=1 / 4,
+    zoom_level=2,
+    confidence_tolerance=0.95,
+    merge_tolerance=None,
+    compress=False,
+    target=1,
+    single_zoom=False,
+    progress=True,
+        simplify=False):
     """
     Uses the specified model, displacement, and parameters to return all the detected Lorentzian regions.
     """
@@ -115,10 +159,16 @@ def slide_scale(model, v,  min_zoom=5, max_zoom=7, scale=(0,1,1024), overlap=1/4
     final_scale = cd.scale_1d(v)
     if merge_tolerance is None:
         merge_tolerance = 0.8 * (1 - overlap)
-    window_list = decompose_all(v, max_zoom, scale, overlap, zoom_level=zoom_level)
+    window_list = decompose_all(
+        v, max_zoom, scale, overlap, zoom_level=zoom_level)
     prediction_list = []
-    for i in util.progressbar(range(0, len(window_list)), 'Zooming: ', progress=progress):
-        if not 1024 in window_list[i].shape:
+    for i in util.progressbar(
+        range(
+            0,
+            len(window_list)),
+        'Zooming: ',
+            progress=progress):
+        if 1024 not in window_list[i].shape:
             print('Oh No!')
             print('zoom level is ' + str(min_zoom + i))
             print('v length is ' + str(len(v)))
@@ -134,7 +184,8 @@ def slide_scale(model, v,  min_zoom=5, max_zoom=7, scale=(0,1,1024), overlap=1/4
             prediction_list.append(predictions)
         else:
             prediction_list.append(None)
-    regions = compose_all(prediction_list, scale=scale, overlap=overlap, zoom_level=zoom_level)
+    regions = compose_all(prediction_list, scale=scale,
+                          overlap=overlap, zoom_level=zoom_level)
     regions.sort(axis=0)
     if compress:
         regions = compress_regions(regions, merge_tolerance=merge_tolerance)
@@ -142,6 +193,7 @@ def slide_scale(model, v,  min_zoom=5, max_zoom=7, scale=(0,1,1024), overlap=1/4
     if simplify:
         regions = util.drop_region(util.simplify_regions(regions))
     return regions
+
 
 def check_overlap(r1, r2, merge_tolerance=0.6):
     """
@@ -159,6 +211,7 @@ def check_overlap(r1, r2, merge_tolerance=0.6):
         r2_overlap = covered / r2_size
         cover_amount = max(r1_overlap, r2_overlap)
         return cover_amount > merge_tolerance
+
 
 def compress_regions(regions, merge_tolerance=0.6):
     """
@@ -197,6 +250,7 @@ def compress_regions(regions, merge_tolerance=0.6):
         final_regions = np.append(final_regions, full_region, axis=0)
     return final_regions
 
+
 def quick_reduce(v, reduce_zoom):
     """
     Input: A numpy array of some data and an amount to zoom in.
@@ -210,26 +264,69 @@ def quick_reduce(v, reduce_zoom):
         v_list.append(cd.scale_zoom(v, start[i], end[i]))
     return v_list
 
-def reduce_window_plot(model, f, v, reduce_zoom=0.05, max_zoom=7, min_zoom=0, overlap=1/4, zoom_level=2, confidence_tolerance=0.95, merge_tolerance=0.4, compress=True):
+
+def reduce_window_plot(
+        model,
+        f,
+        v,
+        reduce_zoom=0.05,
+        max_zoom=7,
+        min_zoom=0,
+        overlap=1 / 4,
+        zoom_level=2,
+        confidence_tolerance=0.95,
+        merge_tolerance=0.4,
+        compress=True):
     """
     Returns the region lists and corresponding displacements of those regions after running a sliding window detection.
     """
     v_list = quick_reduce(v, reduce_zoom=reduce_zoom)
     regions_list = []
     for cut_v in v_list:
-        cut_regions = slide_scale(model=model, v=cut_v, max_zoom=max_zoom, min_zoom=min_zoom, overlap=overlap, zoom_level=zoom_level)
+        cut_regions = slide_scale(
+            model=model,
+            v=cut_v,
+            max_zoom=max_zoom,
+            min_zoom=min_zoom,
+            overlap=overlap,
+            zoom_level=zoom_level)
         regions_list.append(cut_regions)
     for i in range(0, len(regions_list)):
         regions_list[i] = regions_list[i] + (i * 1024)
     return regions_list, v_list
 
-def split_single_peaks(model, f, v, min_length, max_length, min_zoom=3, max_zoom=6, min_data_points=10, confidence_tolerance=0.95, single_zoom=False, progress=False):
+
+def split_single_peaks(
+        model,
+        f,
+        v,
+        min_length,
+        max_length,
+        min_zoom=3,
+        max_zoom=6,
+        min_data_points=10,
+        confidence_tolerance=0.95,
+        single_zoom=False,
+        progress=False):
     """
     Given a specified model, will try and return a new set of regions with peaks separated apart.
     """
     regions_by_zoom_list = []
     for i in range(min_zoom, max_zoom + 1):
-        regions_by_zoom_list.append(util.drop_region(slide_scale(model, v, min_zoom=i, max_zoom=i, confidence_tolerance=confidence_tolerance, single_zoom=True, target=1, overlap=1/4, zoom_level=2, progress=progress), min_length=min_length))
+        regions_by_zoom_list.append(
+            util.drop_region(
+                slide_scale(
+                    model,
+                    v,
+                    min_zoom=i,
+                    max_zoom=i,
+                    confidence_tolerance=confidence_tolerance,
+                    single_zoom=True,
+                    target=1,
+                    overlap=1 / 4,
+                    zoom_level=2,
+                    progress=progress),
+                min_length=min_length))
     if single_zoom:
         selected_regions = max(regions_by_zoom_list, key=lambda r: r.shape[0])
     else:
@@ -237,8 +334,18 @@ def split_single_peaks(model, f, v, min_length, max_length, min_zoom=3, max_zoom
         for r in regions_by_zoom_list:
             selected_regions = np.append(selected_regions, r, axis=0)
     return selected_regions
-    
-def split_peaks(model, f, v, regions, min_zoom=2, max_zoom=7, min_data_points=10, confidence_tolerance=0.0, single_zoom=False):
+
+
+def split_peaks(
+        model,
+        f,
+        v,
+        regions,
+        min_zoom=2,
+        max_zoom=7,
+        min_data_points=10,
+        confidence_tolerance=0.0,
+        single_zoom=False):
     """
     Given a specified model, will try and return a new set of regions with peaks separated apart for all the provided regions.
     """
@@ -247,11 +354,30 @@ def split_peaks(model, f, v, regions, min_zoom=2, max_zoom=7, min_data_points=10
     for i in range(0, len(regions)):
         region_sizes.append(regions[i][1] - regions[i][0])
     max_length = max(region_sizes) / (2 ** (min_zoom - 1))
-    min_length = max(max(region_sizes) / (2 ** (max_zoom - 1)), min_data_points)
+    min_length = max(max(region_sizes) /
+                     (2 ** (max_zoom - 1)), min_data_points)
     for i in util.progressbar(range(0, len(regions)), 'Splitting: '):
         split_f, split_v = util.extract_region(i, regions, f, v)
-        split_regions = np.append(split_regions, split_single_peaks(model, split_f, split_v, min_length, max_length, min_zoom=min_zoom, max_zoom=max_zoom, min_data_points=min_data_points, confidence_tolerance=confidence_tolerance, single_zoom=single_zoom, progress=False) + regions[i][0], axis=0)
-    return util.drop_region(util.simplify_regions(split_regions), min_data_points)
+        split_regions = np.append(
+            split_regions,
+            split_single_peaks(
+                model,
+                split_f,
+                split_v,
+                min_length,
+                max_length,
+                min_zoom=min_zoom,
+                max_zoom=max_zoom,
+                min_data_points=min_data_points,
+                confidence_tolerance=confidence_tolerance,
+                single_zoom=single_zoom,
+                progress=False) +
+            regions[i][0],
+            axis=0)
+    return util.drop_region(
+        util.simplify_regions(split_regions),
+        min_data_points)
+
 
 def extract_noise(v, depth=8):
     """
@@ -264,7 +390,8 @@ def extract_noise(v, depth=8):
     local_v = []
     for i in range(0, num_partitions):
         coefficients = np.polyfit(np.arange(len(v_shaped[i])), v_shaped[i], 1)
-        v_local = v_shaped[i] - coefficients[1] - coefficients[0] * np.arange(len(v_shaped[i]))
+        v_local = v_shaped[i] - coefficients[1] - \
+            coefficients[0] * np.arange(len(v_shaped[i]))
         max_v = max(v_local)
         min_v = min(v_local)
         noise_deltas.append(max_v - min_v)

@@ -19,6 +19,10 @@ except BaseException:
     import live_fitting as lf
     import classify_data as cd
 
+"""
+Tools to remove the background from real data. All are very experimental.
+"""
+
 
 def remove_background(data_files, start_index=0):
     """

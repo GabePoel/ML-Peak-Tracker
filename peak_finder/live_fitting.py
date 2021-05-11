@@ -45,6 +45,11 @@ except BaseException:
         import automatic_no_ml as auto
         can_ml = False
 
+"""
+Interactive utilities to guide the fitting over real data. This contains much
+of the real workhorse of the peak finding process.
+"""
+
 option_colors = {
     "Cool": "cool",
     "Viridis": "viridis",
@@ -97,23 +102,66 @@ option_select_colors = {
 
 
 def lin(x, a, b):
+    """
+    Definition of a linear function.
+    
+    Parameters
+    ----------
+    x : arr
+        The values to act on.
+    a : float
+        Y intercept.
+    b : float
+        Slope.
+
+    Returns
+    -------
+    arr
+        The with the function acted on them.
+    """
     return x * b + a
 
 
 def preview(f, v, params):
+    """
+    Look at a given data set with frequencies, amplitudes, and some set of
+    already defined parameters.
+
+    f : arr
+        Frequency array.
+    v : arr
+        Amplitude array.
+    params : arr
+        3D Lorentzian parameters array.
+    """
     live = Live_Instance(f, v)
     live.import_lorentzians(params)
     live.activate()
 
 
 class Live_Lorentz():
+    """
+    Class form of Lorentzian data structure to be actively manipulated.
+    """
     def __init__(self, p):
+        """
+        Parameters
+        ----------
+        p : arr
+            1D Lorentzian parameters array.
+        """
         self.A = p[0]
         self.f0 = p[1]
         self.FWHM = p[2]
         self.phase = p[3]
 
     def params(self):
+        """
+        Returns
+        -------
+        arr
+            1D Lorentzian parameters array.
+        """
         return np.array([self.A, self.f0, self.FWHM, self.phase])
 
 

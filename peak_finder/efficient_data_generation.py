@@ -23,6 +23,22 @@ except BaseException:
 def make_massive_data_set(number, scale=(0, 1, 1024), noise=True):
     """
     Makes a massive set of data.
+
+    Parameters
+    ----------
+    number : int
+        The number of data sets to generate.
+    scale : tuple
+        Three element scale tuple for normalization. Minimum value, maximum
+        value, and then length of the normalized array.
+    noise : bool
+        If noise should be included.
+
+    Returns
+    -------
+    tuple
+        A three element tuple. First is a list of a background arrays. Then a
+        list of Lorentzians, then a list of data arrays.
     """
     background_arrays_list = []
     data_arrays_list = []
@@ -37,8 +53,21 @@ def make_massive_data_set(number, scale=(0, 1, 1024), noise=True):
 
 def associate_lorentz(lorentz_array, index):
     """
-    Returns an expanded Lorentzian array with the indices of the Lorentzians attached to them.
-    This enables functions to remember which Lorentzian is which while sorting or processing them.
+    Returns an expanded Lorentzian array with the indices of the Lorentzians
+    attached to them. This enables functions to remember which Lorentzian is
+    which while sorting or processing them.
+
+    Parameters
+    ----------
+    lorentz_array : arr
+        A 2D Lorentzian parameter array.
+    index : int
+        Index to associate the Lorentzian with.
+
+    Returns
+    -------
+    arr
+        The associated Lorentzian array.
     """
     associated_lorentz_array = np.empty((0, 5))
     for i in range(0, lorentz_array.shape[0]):
@@ -49,6 +78,19 @@ def associate_lorentz(lorentz_array, index):
 
 
 def add_set(input):
+    """
+    Add more data and Lorentzians as defined from the given input.
+
+    Parameters
+    ----------
+    input : list
+        Index, noise, scale.
+
+    Returns
+    -------
+    list
+        New data, new Lorentzians.
+    """
     i = input[0]
     noise = input[1]
     scale = input[2]
@@ -66,21 +108,32 @@ def add_set(input):
 
 def make_simple_data_set(
         number,
-        scale=(
-            0,
-            1,
-            1024),
-    noise=True,
+        scale=(0, 1, 1024),
+        noise=True,
         progress=True):
     """
     Makes a pre-normalized data set for training off of.
+
+    Parameters
+    ----------
+    number : int
+    scale : tuple, optional
+        Three element scale tuple for normalization. Minimum value, maximum
+        value, and then length of the normalized array.
+    noise : bool, optional
+    progress : bool, optional, deprecated
+
+    Returns
+    -------
+    tuple
+        A simple data set in the form of a two element tuple. First are the
+        Lorentzians and second is the data.
     """
     print('Generating Data')
     all_data = np.empty((0, scale[2]))
     all_lorentz = np.empty((0, 5))  # Associated Data, A, f0, FWHM, Phase
     pool = mp.Pool(mp.cpu_count())
     results = pool.map(add_set, [(i, noise, scale) for i in range(0, number)])
-    # results = [pool.apply(add_set, args=(i, noise, scale)) for i in util.progressbar(range(number), "Generating Data: ", 40, progress=progress)]
     pool.close()
     for result in results:
         all_data = np.append(all_data, result[0], axis=0)
@@ -91,6 +144,22 @@ def make_simple_data_set(
 def make_blank_data_set(number, scale=(0, 1, 1024), noise=True, progress=True):
     """
     Makes a data set without specifying the generated Lorentzians parameters.
+
+    Paremeters
+    ----------
+    number : int
+    scale : tuple, optional
+        Three element scale tuple for normalization. Minimum value, maximum
+        value, and then length of the normalized array.
+    noise : bool, optional
+    progress : bool, optional
+
+    Returns
+    -------
+    tuple
+        A simple data set in the form of a two element tuple. There are no
+        Lorentzians so the first element is None and the second contains all
+        the data.
     """
     all_data = np.empty((0, scale[2]))
     for i in util.progressbar(
@@ -110,6 +179,14 @@ def export_simple_data_set(
         name='simple_set'):
     """
     Exports a generated simple data set to the specified location.
+
+    Parameters
+    ----------
+    simple_data_set : tuple
+    location : string, optional
+        The file path to the location. Defaults to current working directory.
+    name : string, optional
+        Name for the data set with no file extension. Defaults to simple_set.
     """
     export_dir = os.path.join(location, name)
     if os.path.exists(export_dir):
@@ -127,6 +204,16 @@ def export_simple_data_set(
 def import_simple_data_set(path):
     """
     Imports a generated simple data set from the specified location.
+
+    Parameters
+    ----------
+    path : string
+
+    Returns
+    -------
+    tuple
+        A simple data set in the form of a two element tuple imported from the
+        specified file path.
     """
     open_dir = os.path.join(os.getcwd(), 'temp_zip_dir')
     if not os.path.exists(open_dir):
@@ -144,6 +231,17 @@ def import_simple_data_set(path):
 def convert_simple_data_set(simp):
     """
     Converts a simple data set to a full one for more involved processing.
+
+    Parameters
+    ----------
+    simp : tuple
+        A simple data set in the form of a two element tuple.
+
+    Returns
+    -------
+    tuple
+        A full data set in the standard form of a list of the backgrounds, then
+        a list of the Lorentzians, and finally a list of the full data sets.
     """
     background_arrays_list = None
     data_arrays_list = []
@@ -174,22 +272,51 @@ def convert_simple_data_set(simp):
 
 def make_single_data_set(
         number,
-        scale=(
-            0,
-            1,
-            1024),
-    noise=True,
-    min_noise_amp=1,
-    max_noise_amp=1,
-    min_noise_width=1,
-    max_noise_width=1,
-    expansion=2,
-    wiggle=0,
-    progress=True,
-    force_lorentz=False,
+        scale=(0, 1, 1024),
+        noise=True,
+        min_noise_amp=1,
+        max_noise_amp=1,
+        min_noise_width=1,
+        max_noise_width=1,
+        expansion=2,
+        wiggle=0,
+        progress=True,
+        force_lorentz=False,
         no_norm=False):
     """
     Makes a simple data set of only single Lorentzians.
+
+    Parameters
+    ----------
+    number : int
+    scale : tuple, optional
+        Three element scale tuple for normalization. Minimum value, maximum
+        value, and then length of the normalized array.
+    noise : bool, optional
+    min_noise_amp : float, optional
+        Minimum amplitude for generated noise.
+    max_noise_amp : float, optional
+        Maximum amplitude for generated noise.
+    min_noise_width : float, optional
+        Minimum width for generated noise.
+    max_noise_width : float, optional
+        Maximum width for generated noise.
+    expansion : float, optional
+        Number of full widths at half maximum outside that of the Lorentzian to
+        include in the data.
+    wiggle : float, optional
+        How much to offset the Lorentzian from the center of the data.
+    progress : bool, optional
+        If the progress bar should be shown.
+    force_lorentz : bool, optional
+        Determines if there must be a Lorentzian generated or not.
+    no_norm : bool, optional
+        Determines if the data should be normalized or not.
+
+    Returns
+    -------
+    tuple
+        A simple data set in the form of a two element tuple.
     """
     all_data = np.empty((0, scale[2]))
     all_lorentz = np.empty((0, 1))
@@ -245,18 +372,48 @@ def make_single_data_set(
 
 def make_split_data_set(
         number,
-        scale=(
-            0,
-            1,
-            1024),
-    noise=True,
-    min_noise_amp=1,
-    max_noise_amp=1,
-    min_noise_width=1,
-    max_noise_width=1,
-    expansion=2,
-    wiggle=0,
+        scale=(0, 1, 1024),
+        noise=True,
+        min_noise_amp=1,
+        max_noise_amp=1,
+        min_noise_width=1,
+        max_noise_width=1,
+        expansion=2,
+        wiggle=0,
         progress=True):
+    """
+    Make data set with half of the values forced to have Lorentzians and the
+    other not.
+
+    Parameters
+    ----------
+    number : int
+    scale : tuple, optional
+        Three element scale tuple for normalization. Minimum value, maximum
+        value, and then length of the normalized array.
+    noise : bool, optional
+    min_noise_amp : float, optional
+        Minimum amplitude for generated noise.
+    max_noise_amp : float, optional
+        Maximum amplitude for generated noise.
+    min_noise_width : float, optional
+        Minimum width for generated noise.
+    max_noise_width : float, optional
+        Maximum width for generated noise.
+    expansion : float, optional
+        Number of full widths at half maximum outside that of the Lorentzian to
+        include in the data.
+    wiggle : float, optional
+        How much to offset the Lorentzian from the center of the data.
+    progress : bool, optional
+        If the progress bar should be shown.
+
+
+    Returns
+    -------
+    tuple
+        A simple data set in the form of a two element tuple.
+    """
     initial_results = make_single_data_set(
         number,
         scale=scale,

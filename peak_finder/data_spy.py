@@ -11,9 +11,10 @@ except BaseException:
     import fit_lorentz as fl
     import utilities as util
 
-# Let's you 'spy' into the data you're working with to see how the models
-# are working.
-
+"""
+A set of tools that let you "spy" into the data you're working with to see how
+the models are working.
+"""
 
 def plot_count(i, count_predictions, count_label, count_data):
     """

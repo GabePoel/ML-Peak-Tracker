@@ -6,7 +6,9 @@ try:
 except BaseException:
     import utilities as util
 
-# Generally handles most/all of the preprocessing.
+"""
+Handles most if not all of the data preprocessing.
+"""
 
 
 def arr_to_tup(a):
@@ -277,7 +279,8 @@ def evaluate_fit_range(predicted, fit_range):
 
 def evaluate_all_fit_ranges(predicted, fit_range_list):
     """
-    Given a list of fit ranges, will check all of them to see how much they overlap and are violated.
+    Given a list of fit ranges, will check all of them to see how much they
+    overlap and are violated.
     """
     tests = []
     for i in range(0, len(fit_range_list)):
@@ -287,7 +290,8 @@ def evaluate_all_fit_ranges(predicted, fit_range_list):
 
 def disect_lorentz_params_array(lorentz_params_array):
     """
-    Returns the number of fit ranges and a list of them from the given array of Lorentzian parameters.
+    Returns the number of fit ranges and a list of them from the given array of
+    Lorentzian parameters.
     """
     if filter_lorentz(lorentz_params_array):
         lorentz_params_list = partition_lorentz_params_array(
@@ -319,10 +323,7 @@ def normalize_data(
     lorentz_params,
     f,
     v,
-    scale=(
-        0,
-        1,
-        1024)):
+    scale=(0, 1, 1024)):
     """
     Normalizes a data set.
     """
@@ -390,7 +391,8 @@ def normalize_lorentz_2d(
         0, 1, 1024), new_v_scale=(
             0, 1, 1024)):
     """
-    Normalizes an array of many Lorentzian parameters around the provided scale factors.
+    Normalizes an array of many Lorentzian parameters around the provided scale
+    factors.
     """
     lorentz_array = np.empty((0, 4))
     for i in range(0, lorentz.shape[0]):
@@ -413,7 +415,8 @@ def filter_lorentz(lorentz_array):
 
 def separate_data(f_v_array):
     """
-    Given a 2D array of frequency and displacement data, will split it down the two like a zipper.
+    Given a 2D array of frequency and displacement data, will split it down the
+    two like a zipper.
     'ziiiiiiiiiipppppppppppp'
     """
     f = f_v_array[:, 0]
@@ -423,7 +426,8 @@ def separate_data(f_v_array):
 
 def merge_data(f, v):
     """
-    Given separate frequency and displacement data, will merge them together like a zipper.
+    Given separate frequency and displacement data, will merge them together
+    like a zipper.
     'ziiiiiiiiiipppppppppppp'
     """
     return np.transpose(np.vstack([f, v]))
@@ -470,7 +474,8 @@ def equalize_data(class_labels, class_data):
 
 def pre_process_for_counting(block, scale=(0, 1, 1024)):
     """
-    Pre-processes a data set so that it's ready for a counting model to be run or trained on it.
+    Pre-processes a data set so that it's ready for a counting model to be run
+    or trained on it.
     """
     lorentz_arrays_list = block[1]
     data_arrays_list = block[2]
@@ -518,7 +523,8 @@ def classify(input):
 
 def pre_process_for_classifying(block, scale=(0, 1, 1024)):
     """
-    Pre-processes a data set so that it's ready for a classifying model to be run or trained on it.
+    Pre-processes a data set so that it's ready for a classifying model to be
+    run or trained on it.
     """
     print('\nClassifying Data')
     lorentz_arrays_list = block[1]
@@ -546,7 +552,8 @@ def pre_process_for_classifying(block, scale=(0, 1, 1024)):
 
 def pre_process_for_equal_classifying(block, scale=(0, 1, 1024)):
     """
-    Pre-processes a data set so that it's ready for an equal classifying model to be run or trained on it.
+    Pre-processes a data set so that it's ready for an equal classifying model
+    to be run or trained on it.
     """
     class_labels, class_data = pre_process_for_classifying(block, scale)
     eq_labels, eq_data = equalize_data(class_labels, class_data)
@@ -555,7 +562,8 @@ def pre_process_for_equal_classifying(block, scale=(0, 1, 1024)):
 
 def scale_zoom(x, start, end):
     """
-    Zooms in on the data from the provided array given the start and end values (not indices).
+    Zooms in on the data from the provided array given the start and end values
+    (not indices).
     """
     length = len(x)
     start_index = int(np.round(length * start))

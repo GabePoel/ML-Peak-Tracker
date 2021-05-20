@@ -21,7 +21,6 @@ from tkinter import simpledialog
 import PySimpleGUI as sg
 import tkinter as tk
 import numpy as np
-util.matplotlib_mac_fix()
 try:
     from . import utilities as util
     from . import fit_lorentz as fl
@@ -44,6 +43,7 @@ except BaseException:
     except BaseException:
         import automatic_no_ml as auto
         can_ml = False
+util.matplotlib_mac_fix()
 
 """
 Interactive utilities to guide the fitting over real data. This contains much
@@ -104,7 +104,7 @@ option_select_colors = {
 def lin(x, a, b):
     """
     Definition of a linear function.
-    
+
     Parameters
     ----------
     x : arr
@@ -143,6 +143,7 @@ class Live_Lorentz():
     """
     Class form of Lorentzian data structure to be actively manipulated.
     """
+
     def __init__(self, p):
         """
         Parameters

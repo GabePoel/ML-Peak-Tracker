@@ -40,7 +40,7 @@ def make_massive_data_set(number, scale=(0, 1, 1024), noise=True):
     background_arrays_list = []
     data_arrays_list = []
     lorentz_list = []
-    for i in util.progressbar(range(number), "Generating Data: ", 40):
+    for i in util._progressbar(range(number), "Generating Data: ", 40):
         background_params, lorentz_params, f, v = gl.generate_data(noise)
         background_arrays_list.append(background_params)
         lorentz_list.append(lorentz_params)
@@ -159,10 +159,10 @@ def make_blank_data_set(number, scale=(0, 1, 1024), noise=True, progress=True):
         the data.
     """
     all_data = np.empty((0, scale[2]))
-    for i in util.progressbar(
-        range(number),
-        "Generating Data: ",
-        40,
+    for i in util._progressbar(
+            range(number),
+            "Generating Data: ",
+            40,
             progress=progress):
         background_params, lorentz_params, f, v = gl.generate_data(noise)
         v_norm = cd.normalize_1d(v, scale)
@@ -243,7 +243,7 @@ def convert_simple_data_set(simp):
     background_arrays_list = None
     data_arrays_list = []
     lorentz_arrays_list = []
-    for i in util.progressbar(
+    for i in util._progressbar(
         range(
             0,
             simp[1].shape[0]),
@@ -252,7 +252,7 @@ def convert_simple_data_set(simp):
         data_arrays_list.append(cd.merge_data(
             np.linspace(0, 1, 1024), simp[1][i]))
         lorentz_arrays_list.append(np.empty((0, 4)))
-    for i in util.progressbar(
+    for i in util._progressbar(
         range(
             0,
             simp[0].shape[0]),
@@ -318,7 +318,7 @@ def make_single_data_set(
     all_data = np.empty((0, scale[2]))
     all_lorentz = np.empty((0, 1))
     F = np.linspace(scale[0], scale[1], scale[2])
-    for i in util.progressbar(
+    for i in util._progressbar(
         range(number),
         "Generating Data: ",
         40,

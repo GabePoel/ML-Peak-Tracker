@@ -1,18 +1,58 @@
-"""
-General purpose utilities for saving, importing, and manipulating the data from
-RUS measurements.
-"""
+__all__ = [
+    'Data_File',
+    'set_all_params',
+    'get_all_params',
+    'scale_1d',
+    'match_lengths',
+    'normalize_1d',
+    'remove_nans',
+    'load_file',
+    'load_files',
+    'load_dir',
+    'import_tdms_file',
+    'plot_region',
+    'extract_region',
+    'drop_region',
+    'order_difference',
+    'compare_lorentz',
+    'find_nearest_index',
+    'param_sort',
+    'append_params_3d',
+    'save',
+    'load',
+    'import_tdms_files',
+    'import_tdms_dir',
+    'get_temperatures',
+    'get_freqs',
+    'get_temps_and_freqs',
+    'save_freqs',
+    'save_freqs_with_temps',
+    'save_Tf',
+    'load_freqs',
+    'load_freqs_with_temps',
+    'attach_temps_to_parameters',
+    'delete_parameters',
+    'delete_parameters_from_f_regions_3d',
+    'delete_parameters_from_f_regions_2d',
+    'freq_sort_2d',
+    'temp_freq_sort_2d',
+    '_matplotlib_mac_fix',
+    '_bit_invert',
+    '_simplify_regions',
+    '_scatter_pts',
+    '_progressbar']
 
 import sys
 import os
 import pickle
 import tkinter as tk
-from typing import overload
+# from typing import overload
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as interp
 from tkinter import filedialog
 from nptdms import TdmsFile
+
 
 def _open_file():
     """
@@ -21,12 +61,14 @@ def _open_file():
     tk.Tk().withdraw()
     return filedialog.askopenfilename()
 
+
 def _open_files():
     """
     Tkinter backend file dialog for opening multiple files.
     """
     tk.Tk().withdraw()
     return filedialog.askopenfilenames()
+
 
 def _save_file(filters=[], name=''):
     """
@@ -36,6 +78,7 @@ def _save_file(filters=[], name=''):
     return filedialog.asksaveasfilename(
         filetypes=filters, initialfile=name)
 
+
 def _open_folder():
     """
     Tkinter backend file dialog for opening multiple files.
@@ -43,12 +86,13 @@ def _open_folder():
     tk.Tk().withdraw()
     return filedialog.askdirectory()
 
+
 if 'linux' in sys.platform:
     import gi
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
 
-    def quick_buttons(dialog):
+    def _quick_buttons(dialog):
         """
         Add cancel buttons to GTK dialogs.
         """
@@ -56,40 +100,37 @@ if 'linux' in sys.platform:
             Gtk.STOCK_CANCEL,
             Gtk.ResponseType.CANCEL)
 
-    @overload
     def _open_file():
         """
         GTK backend file dialog for opening a single file.
         """
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
-        quick_buttons(dialog)
+        _quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
         dialog.run()
         path = dialog.get_filename()
         dialog.destroy()
         return path
 
-    @overload
     def _open_files():
         """
         GTK backend file dialog for opening multiple files.
         """
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
         dialog.set_select_multiple(True)
-        quick_buttons(dialog)
+        _quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
         dialog.run()
         paths = dialog.get_filenames()
         dialog.destroy()
         return paths
 
-    @overload
     def _save_file(filters=[], name=''):
         """
         GTK backend file dialog for saving a single file.
         """
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE)
-        quick_buttons(dialog)
+        _quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
         # for f in filters:
         #     filter_text = Gtk.FileFilter()
@@ -101,14 +142,13 @@ if 'linux' in sys.platform:
         dialog.destroy()
         return path
 
-    @overload
     def _open_folder():
         """
         GTK backend file dialog for opening a folder.
         """
         dialog = Gtk.FileChooserDialog(
             action=Gtk.FileChooserAction.SELECT_FOLDER)
-        quick_buttons(dialog)
+        _quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
         dialog.run()
         path = dialog.get_filename()
@@ -173,7 +213,7 @@ class Data_File:
         self.params = None
         self.stamp = None
         self.date = None
-        self.time
+        self.time = None
         self.name = None
         self.probe_temp = None
         self.cryo_temp = None
@@ -411,7 +451,7 @@ def remove_nans(arr):
         return new_arr
 
 
-def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
+def _progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
     """
     Use with an iteratore as 'it' to show a progress bar while waiting.
 
@@ -1110,11 +1150,12 @@ def _matplotlib_mac_fix():
     """
     Fix tkinter backend on older macs.
     """
-    import matplotlib
-    import importlib
-    matplotlib.use("TkAgg")
-    import matplotlib.pyplot as plt
-    importlib.reload(plt)
+    if 'mac' in sys.platform:
+        import matplotlib
+        import importlib
+        matplotlib.use("TkAgg")
+        import matplotlib.pyplot as plt
+        importlib.reload(plt)
 
 
 def _scatter_pts(pts, ref_arr, tar_arr):

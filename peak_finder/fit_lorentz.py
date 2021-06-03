@@ -271,7 +271,7 @@ def fit_regions(
     """
     p_list = []
     import matplotlib.pyplot as plt
-    for i in util.progressbar(range(0, len(regions)), prefix="Fitting: "):
+    for i in util._progressbar(range(0, len(regions)), prefix="Fitting: "):
         region_f, region_v = util.extract_region(i, regions, f, v)
         # plt.plot(region_f, region_v)
         # print(min(region_f))
@@ -492,10 +492,8 @@ def remove_degeneracies(p_table, f, allowed_delta_ind=10):
     """
     degeneracy_table = []
     new_p_tabel = np.empty((0, 4))
-    for i in util.progressbar(
-            range(
-                0,
-                len(p_table)),
+    for i in util._progressbar(
+            range(0, len(p_table)),
             prefix="Checking for Degeneracies: "):
         degeneracy_table.append([])
         for j in range(0, len(p_table)):
@@ -530,11 +528,9 @@ def parameters_from_selections(
     all_peaks = []
     counter = 0
     region_selections, params_selections = region_selections[0], region_selections[1]
-    for i in util.progressbar(
-        range(
-            0,
-            len(data_files)),
-        "Fitting: ",
+    for i in util._progressbar(
+            range(0, len(data_files)),
+            "Fitting: ",
             progress=False):
         all_peaks.append(np.empty((0, 4)))
         for j in range(0, len(region_selections)):

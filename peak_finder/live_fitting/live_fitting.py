@@ -25,12 +25,12 @@ from tkinter import (ttk, simpledialog)
 import tkinter as tk
 import numpy as np
 
-from . import utilities as util
-from . import fit_lorentz as fl
-from . import generate_lorentz as gl
-from . import classify_data as cd
+from .. import utilities as util
+from .. import fit_lorentz as fl
+from .. import generate_lorentz as gl
+from .. import classify_data as cd
 try:
-    from . import automatic as auto
+    from .. import automatic as auto
     _can_ml = True
 except BaseException:
     from . import automatic_no_ml as auto
@@ -1201,13 +1201,13 @@ class _Color_Selector:
         normed_verts = []
         old_scale = (x_min, x_max, x_max)
         new_scale = (full_min, full_max, full_max)
-        print(old_scale)
-        print(new_scale)
+        # print(old_scale)
+        # print(new_scale)
         for v in verts:
             x = cd.normalize_0d(v[0], old_scale, new_scale)
             y = v[1]
             normed_verts.append((x, y))
-        print(normed_verts)
+        # print(normed_verts)
         return normed_verts
 
     def render_enhance(self, x_min, x_max, y_min, y_max):

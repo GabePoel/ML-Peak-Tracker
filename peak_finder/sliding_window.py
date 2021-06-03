@@ -159,11 +159,9 @@ def slide_scale(
     window_list = decompose_all(
         v, max_zoom, scale, overlap, zoom_level=zoom_level)
     prediction_list = []
-    for i in util.progressbar(
-        range(
-            0,
-            len(window_list)),
-        'Zooming: ',
+    for i in util._progressbar(
+            range(0, len(window_list)),
+            'Zooming: ',
             progress=progress):
         if 1024 not in window_list[i].shape:
             print('Oh No!')
@@ -353,7 +351,7 @@ def split_peaks(
     max_length = max(region_sizes) / (2 ** (min_zoom - 1))
     min_length = max(max(region_sizes) /
                      (2 ** (max_zoom - 1)), min_data_points)
-    for i in util.progressbar(range(0, len(regions)), 'Splitting: '):
+    for i in util._progressbar(range(0, len(regions)), 'Splitting: '):
         split_f, split_v = util.extract_region(i, regions, f, v)
         split_regions = np.append(
             split_regions,

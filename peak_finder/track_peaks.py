@@ -1,21 +1,13 @@
 import numpy as np
 import PySimpleGUI as sg
 import os
-try:
-    from . import live_fitting as lf
-    from . import fit_lorentz as fl
-    from . import sliding_window as sw
-    from . import utilities as util
-    from . import models
-    from . import automatic
-except BaseException:
-    import live_fitting as lf
-    import fit_lorentz as fl
-    import sliding_window as sw
-    import utilities as util
-    import models
-    import automatic
 
+from . import live_fitting as lf
+from . import fit_lorentz as fl
+from . import sliding_window as sw
+from . import utilities as util
+from . import models
+from . import automatic
 
 def find_last_peak(params_3d, index):
     """
@@ -261,7 +253,7 @@ def track_temperatures_learn(data_files, depth=None, live_display=False):
     all_peaks = []
     if depth is None:
         depth = len(data_files)
-    for i in util.progressbar(range(0, depth), 'Processing: '):
+    for i in util._progressbar(range(0, depth), 'Processing: '):
         sg.one_line_progress_meter(
             'Overall Fitting Progress', i, depth, '-key-')
         parameters = automatic.quick_analyze(
@@ -334,10 +326,8 @@ def track_temperatures(
         print('Initial Parameters: ')
         print(initial_params)
     # print(depth)
-    for i in util.progressbar(
-            range(
-                start_index + 1,
-                start_index + depth),
+    for i in util._progressbar(
+            range(start_index + 1, start_index + depth),
             'Processing: '):
         # try:
         if progress_window:
@@ -574,7 +564,7 @@ def update_params(param_list):
     Given a list of parameters, will match them all up in order. See
     match_params for additional context.
     """
-    for i in util.progressbar(range(1, len(param_list)), "Tracking: "):
+    for i in util._progressbar(range(1, len(param_list)), "Tracking: "):
         param_list[i] = match_params(param_list[i - 1], param_list[i])
     return param_list
 

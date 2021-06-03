@@ -480,7 +480,7 @@ def pre_process_for_counting(block, scale=(0, 1, 1024)):
     scale_list = []
     processed_lorentz_arrays_list = []
     processed_data_array = np.empty((0, scale[2]))
-    for i in util.progressbar(range(block_size), "Normalizing: ", 40):
+    for i in util._progressbar(range(block_size), "Normalizing: ", 40):
         lorentz_array = lorentz_arrays_list[i]
         data_array = data_arrays_list[i]
         (f_unprocessed, v_unprocessed) = separate_data(data_array)
@@ -499,7 +499,7 @@ def pre_process_for_counting(block, scale=(0, 1, 1024)):
     results = (processed_lorentz_arrays_list, processed_data_array, scale_list)
     count_labels = []
     pro_length = len(processed_lorentz_arrays_list)
-    for i in util.progressbar(range(pro_length), "Labeling: ", 40):
+    for i in util._progressbar(range(pro_length), "Labeling: ", 40):
         labels = disect_lorentz_params_array(processed_lorentz_arrays_list[i])
         count_labels.append(labels[0])
     count_labels = np.transpose(np.array([count_labels]))
@@ -530,7 +530,7 @@ def pre_process_for_classifying(block, scale=(0, 1, 1024)):
     cluster_labels = np.empty((0, 1))
     cluster_data = np.empty((0, scale[2]))
     pool = mp.Pool(mp.cpu_count())
-    # for i in util.progressbar(range(block_size), "Classifying: ", 40):
+    # for i in util._progressbar(range(block_size), "Classifying: ", 40):
     #     lorentz_params = lorentz_arrays_list[i]
     #     f_v_data = data_arrays_list[i]
     #     fit_range_list = disect_lorentz_params_array(lorentz_params)[1]

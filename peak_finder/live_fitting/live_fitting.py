@@ -3,7 +3,8 @@ __all__ = [
     'color_selection',
     'mistake_selection',
     'live_selection',
-    'point_selection']
+    'point_selection',
+    '_Live_Instance']
 
 from scipy import interpolate
 from scipy.signal import savgol_filter
@@ -1746,7 +1747,121 @@ def color_selection(
         parameters=None,
         method='lm'):
     """
-    Interactive Lorentzian tracker over a range of temperatures.
+    Interactive Lorentzian tracker over a range of temperatures. Displays the
+    peaks over all sweeps as a topographical color plot.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files to process and display.
+    x_res : int, optional
+        Initial resolution of the displayed x-axis. Default is `1000` but can
+        be set higher or lower depending on what sort of graphics your computer
+        can handle. The maximum value is the length of the frequency array in
+        each data file. The x-axis is the frequency axis.
+    y_res : int, optional
+        Initial resolution of the displayed y-axis. Default is `100` but can be
+        set higher or lower depending on what sort of graphics your computer
+        can handle. The maximum value is the length of the list of data files
+        inputted into `data_files`. The y-axis just corresponds to the sweeps
+        in the order that they're given in the inputted list of data files. For
+        a linear change in temperature this means the values displayed are
+        proportional to the temperature. But, they are not the temperature
+        itself.
+    cmap : str, optional
+        Initial colormap used for the displayed plot. Defaults to `viridis` but
+        accepts any colormap that would be usable by `matplotlib`. This can be
+        changed from a selection of other colormaps during the interactive
+        plotting process.
+    parameters : arr, optional
+        Any pre-determined Lorentzian parameters to continue working from. The
+        parameters returned by `color_selection` work for this purpose. This
+        exists so you can save your work during the fitting process and load it
+        again later.
+    method : {'trf', 'dogbox', 'lm'}, optional
+        Fitting method to use by the :func: `<scipy.optimize.least_squares>`
+        backend for fitting to Lorentzians. See the documentation on that for
+        more details. You generally do not have to change this.
+
+    Returns
+    -------
+    arr
+        The 3D parameter array of the Lorentzians fitted from the inputted data
+        files. 
+            - Axis 0 determines which sweep.
+            - Axis 1 determines which Lorentzian.
+            - Axis 2 is the parameters of the given Lorentzian.
+
+    Shortcuts
+    ---------
+    a
+        Activate tracer mode. This is helpful when you can see the peaks on the
+        color plot but can't get a good fit on them. You can start with a trace
+        and then adjust them to fit over the fittable regions in mistake
+        selector mode.
+    c
+        Commit the current tracings to frequencies. The tracings are made in
+        tracer mode.
+    d
+        Delete poorly fitted Lorentzians. When an entire curve is deleted in
+        this way the peak is removed from the parameter array.
+    e
+        Toggle Enhance! mode. This lets you see an area in greater detail even
+        if you're rendering with a low initial resolution.
+    f
+        Reload the canvas. Stands for "flush."
+    h
+        Return to "home" view. This resets the canvas to view all sweeps and
+        frequencies.
+    i
+        Activate "inspire me" this runs a basic machine learning model from
+        `automatic` that finds peaks on the selected sweep. This is useful when
+        peaks are low amplitude and you're trying to find them without looking
+        carefully over all frequencies by eye.
+    m
+        Stands for "move." Toggles the panning tool.
+    o
+        Enables trace smoothing.
+    p
+        Lets you select a particular sweep and opens a "paramter preview"
+        window where you can interactively fit particular peaks as with
+        `live_selection`. These are displayed on the color plot when done in
+        order to let you know where peaks are for curve finding.
+    q
+        Quits the interactive color selector.
+    r
+        Renders the current selections.
+    s
+        Saves the currently fit parameters and enables auto-save so you don't
+        have to worry about your work getting destroyed.
+    x
+        Toggles enhancements. This may help with certain rendering issues.
+    y
+        Prints some debugging info.
+    z
+        Toggles "zoom" tool.
+    space
+        Toggles display features.
+    up
+        Raises components in the live selector window or views the next peak in
+        the mistake selector window.
+    down
+        Lowers components in the live selector window or views the previous
+        peak in the mistake selector window.
+    left
+        Raise projection in the live selector window or move along the peak's
+        path in the mistake selector window.
+    right
+        Lower projection in the live selector window or move along the peak's
+        path in the mistake selector window.
+    escape
+        Restart the current selection or the drawing in Enhance! mode.
+    control
+        Edit the vertices in the current selection or draw area from the center
+        in Enhance! mode.
+    shift
+        Draw a perfectly square area in Enhance! mode.
+    
     """
     y_res = min(y_res / len(data_files), 1)
     selector = _Color_Selector(data_files, x_res=x_res, y_res=y_res,
@@ -1758,6 +1873,35 @@ def color_selection(
 def mistake_selection(data_files, parameters=None, path=None, method='lm'):
     """
     Interactive Lorentzian editor over a range of temperatures.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files to process and display.
+    parameters : arr, optional
+        Any pre-determined Lorentzian parameters to continue working from. The
+        parameters returned by `color_selection` work for this purpose. This
+        exists so you can save your work during the fitting process and load it
+        again later.
+    path : str, optional
+        File path to use for autosaving.
+    method : {'trf', 'dogbox', 'lm'}, optional
+        Fitting method to use by the :func: `<scipy.optimize.least_squares>`
+        backend for fitting to Lorentzians. See the documentation on that for
+        more details. You generally do not have to change this.
+
+    Returns
+    -------
+    arr
+        The 3D parameter array of the Lorentzians fitted from the inputted data
+        files. 
+            - Axis 0 determines which sweep.
+            - Axis 1 determines which Lorentzian.
+            - Axis 2 is the parameters of the given Lorentzian.
+
+    Shortcuts
+    ---------
+    WIP
     """
     m = _Mistake_Selector(data_files, parameters, path, method=method)
     return m.parameters

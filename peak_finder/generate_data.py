@@ -1,12 +1,12 @@
+"""
+Generates complete data sets with all the Lorentzians, background, parameters,
+and the like listed. This is generally overkill for model training. Instead,
+you should use `efficient_data_generation`.
+"""
+
+from . import generate_lorentz as gl
 import numpy as np
 import os
-try:
-    from . import generate_lorentz as gl
-except BaseException:
-    import generate_lorentz as gl
-
-# Generates complete data sets with all the Lorentzians, background, parameters, etc. listed.
-# Generally overkill for model training. Use efficient_data_generation.
 
 
 def mag_round(x, base=10):
@@ -68,7 +68,8 @@ def generate_data_set(
 def load_data_set(directory=os.path.join(os.getcwd(), 'generated_data')):
     """
     Loads all data from the specified directory.
-    Returns as tuple of lists of background arrays, lorentz arrays, and data arrays.
+    Returns as tuple of lists of background arrays, lorentz arrays, and data
+    arrays.
     """
     file_names = sorted(os.listdir(directory))
     background_paths = []

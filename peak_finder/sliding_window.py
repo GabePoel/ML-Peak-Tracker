@@ -1,11 +1,14 @@
-import numpy as np
+"""
+The main toolbox for actually applying the machine learning models on real
+data. The process is as follows:
+    1. Breakd won data into several different size scales.
+    2. For each size scale, slide over window and say if there is a Lorentzian.
+        there or not.
+"""
 
 from . import classify_data as cd
 from . import utilities as util
-
-# Break down into several different size scales
-# For each size scale, slide over window and say if there is a Lorentzian
-# there or not
+import numpy as np
 
 
 def _flip_bool(a):
@@ -28,8 +31,10 @@ def _flip_bool(a):
 
 def find_regions(has_lorentz):
     """
-    Input: An array of 1s and 0s that specify whether a Lorentzian is detected within the corresponding window.
-    Output: A region array denoting the starting and ending indices of each region with Lorentzians in it.
+    Input: An array of 1s and 0s that specify whether a Lorentzian is detected
+        within the corresponding window.
+    Output: A region array denoting the starting and ending indices of each
+        region with Lorentzians in it.
     """
     regions = np.empty((0, 2))
     good_indices = np.where(has_lorentz == 1)
@@ -56,7 +61,8 @@ def find_regions(has_lorentz):
 
 def decompose_by_scale(v, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     """
-    Given the provided zoom level, will decompose into an array of many small windows.
+    Given the provided zoom level, will decompose into an array of many small
+    windows.
     """
     windows = np.empty((0, scale[2]))
     v = cd.normalize_1d(v, scale=scale)
@@ -74,15 +80,12 @@ def decompose_by_scale(v, zoom, scale=(0, 1, 1024), overlap=1 / 4):
 def decompose_all(
         v,
         num_zooms,
-        scale=(
-            0,
-            1,
-            1024),
-    overlap=1 /
-    4,
+        scale=(0, 1, 1024),
+        overlap=1 / 4,
         zoom_level=2):
     """
-    Will give a list of window arrays for all scales with the allowed zoom levels.
+    Will give a list of window arrays for all scales with the allowed zoom
+    levels.
     """
     if num_zooms < 1:
         return [v]
@@ -95,7 +98,8 @@ def decompose_all(
 
 def compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     """
-    Given an array of windows at a specific zoom level, will return the corresponding region array.
+    Given an array of windows at a specific zoom level, will return the
+    corresponding region array.
     """
     window_size = np.ceil(scale[2] / zoom)
     offset = window_size * overlap
@@ -113,7 +117,8 @@ def compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
 
 def compose_all(labels_list, scale=(0, 1, 1024), overlap=1 / 4, zoom_level=2):
     """
-    Given a list of window arrays, will return the entire corresponding region array.
+    Given a list of window arrays, will return the entire corresponding region
+    array.
     """
     regions = np.empty((0, 2))
     for i in range(0, len(labels_list)):
@@ -134,21 +139,19 @@ def slide_scale(
         v,
         min_zoom=5,
         max_zoom=7,
-        scale=(
-            0,
-            1,
-            1024),
-    overlap=1 / 4,
-    zoom_level=2,
-    confidence_tolerance=0.95,
-    merge_tolerance=None,
-    compress=False,
-    target=1,
-    single_zoom=False,
-    progress=True,
+        scale=(0, 1, 1024),
+        overlap=1 / 4,
+        zoom_level=2,
+        confidence_tolerance=0.95,
+        merge_tolerance=None,
+        compress=False,
+        target=1,
+        single_zoom=False,
+        progress=True,
         simplify=False):
     """
-    Uses the specified model, displacement, and parameters to return all the detected Lorentzian regions.
+    Uses the specified model, displacement, and parameters to return all the
+    detected Lorentzian regions.
     """
     if single_zoom:
         max_zoom = min_zoom
@@ -249,7 +252,8 @@ def compress_regions(regions, merge_tolerance=0.6):
 def quick_reduce(v, reduce_zoom):
     """
     Input: A numpy array of some data and an amount to zoom in.
-    Output: A list of numpy arrays of that data broken down by the specified zoom amount.
+    Output: A list of numpy arrays of that data broken down by the specified
+        zoom amount.
     """
     num_outputs = int(1 / reduce_zoom)
     start = np.arange(0, num_outputs) * reduce_zoom
@@ -273,7 +277,8 @@ def reduce_window_plot(
         merge_tolerance=0.4,
         compress=True):
     """
-    Returns the region lists and corresponding displacements of those regions after running a sliding window detection.
+    Returns the region lists and corresponding displacements of those regions
+    after running a sliding window detection.
     """
     v_list = quick_reduce(v, reduce_zoom=reduce_zoom)
     regions_list = []
@@ -304,7 +309,8 @@ def split_single_peaks(
         single_zoom=False,
         progress=False):
     """
-    Given a specified model, will try and return a new set of regions with peaks separated apart.
+    Given a specified model, will try and return a new set of regions with
+    peaks separated apart.
     """
     regions_by_zoom_list = []
     for i in range(min_zoom, max_zoom + 1):
@@ -342,7 +348,8 @@ def split_peaks(
         confidence_tolerance=0.0,
         single_zoom=False):
     """
-    Given a specified model, will try and return a new set of regions with peaks separated apart for all the provided regions.
+    Given a specified model, will try and return a new set of regions with
+    peaks separated apart for all the provided regions.
     """
     split_regions = np.empty((0, 2))
     region_sizes = []
@@ -376,7 +383,8 @@ def split_peaks(
 
 def extract_noise(v, depth=8):
     """
-    Estimates a noise level given some displacement data and a number of indives to search for.
+    Estimates a noise level given some displacement data and a number of
+    indices to search for.
     """
     num_partitions = len(v) // depth
     v_truncated = v[0:num_partitions * depth]

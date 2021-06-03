@@ -2,17 +2,14 @@
 Tools to remove the background from real data. All are very experimental.
 """
 
-import numpy as np
-import PySimpleGUI as sg
-
-from . import automatic as auto
 from . import utilities as util
 from . import models
 from . import generate_lorentz as gl
 from . import fit_lorentz as fl
 from . import sliding_window as sw
-from . import live_fitting as lf
-from . import classify_data as cd
+import numpy as np
+import PySimpleGUI as sg
+
 
 def remove_background(data_files, start_index=0):
     """
@@ -51,9 +48,7 @@ def remove_background(data_files, start_index=0):
     # max_zoom = int(np.ceil(np.log2(delta_f / min_FWHM)))
     max_zoom = 5
     for i in util._progressbar(
-            range(
-                0,
-                len(data_files)),
+            range(0, len(data_files)),
             'Removing Background: '):
         sg.one_line_progress_meter(
             'Background Removeal Progress', i, len(data_files), '-key-')

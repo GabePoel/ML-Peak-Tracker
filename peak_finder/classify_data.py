@@ -2,11 +2,11 @@
 Handles most if not all of the data preprocessing.
 """
 
+from . import utilities as util
 import numpy as np
 import multiprocessing as mp
 import scipy.interpolate as interp
 
-from . import utilities as util
 
 def arr_to_tup(a):
     """

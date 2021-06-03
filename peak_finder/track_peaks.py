@@ -1,6 +1,6 @@
-import numpy as np
-import PySimpleGUI as sg
-import os
+"""
+Tools for tracking peaks in later sweeps based on peaks in earlier sweeps.
+"""
 
 from . import live_fitting as lf
 from . import fit_lorentz as fl
@@ -8,6 +8,8 @@ from . import sliding_window as sw
 from . import utilities as util
 from . import models
 from . import automatic
+import numpy as np
+import PySimpleGUI as sg
 
 def find_last_peak(params_3d, index):
     """

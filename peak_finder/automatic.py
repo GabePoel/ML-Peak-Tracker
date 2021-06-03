@@ -1,9 +1,9 @@
-import numpy as np
-
 from . import sliding_window as sw
 from . import fit_lorentz as fl
 from . import live_fitting as lf
 from . import models
+import numpy as np
+
 
 def quick_analyze(f, v, show=True, learn=True):
     """

@@ -1,13 +1,14 @@
-import numpy as np
-import tensorflow as tf
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+"""
+Framework for passive model training scripts.
+"""
 
 from . import utilities as util
 from . import efficient_data_generation as ed
 from . import classify_data as cd
-
-# This is the framework for the passive model training scripts.
+import numpy as np
+import tensorflow as tf
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def set_default(parameter, default, num_models=1):

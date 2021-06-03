@@ -50,7 +50,7 @@ def remove_background(data_files, start_index=0):
     min_zoom = 1
     # max_zoom = int(np.ceil(np.log2(delta_f / min_FWHM)))
     max_zoom = 5
-    for i in util.progressbar(
+    for i in util._progressbar(
             range(
                 0,
                 len(data_files)),

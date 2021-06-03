@@ -2,14 +2,10 @@ import numpy as np
 import tensorflow as tf
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-try:
-    from . import utilities as util
-    from . import efficient_data_generation as ed
-    from . import classify_data as cd
-except BaseException:
-    import utilities as util
-    import efficient_data_generation as ed
-    import classify_data as cd
+
+from . import utilities as util
+from . import efficient_data_generation as ed
+from . import classify_data as cd
 
 # This is the framework for the passive model training scripts.
 

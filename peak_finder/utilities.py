@@ -14,6 +14,35 @@ import scipy.interpolate as interp
 from tkinter import filedialog
 from nptdms import TdmsFile
 
+def _open_file():
+    """
+    Tkinter backend file dialog for opening a single file.
+    """
+    tk.Tk().withdraw()
+    return filedialog.askopenfilename()
+
+def _open_files():
+    """
+    Tkinter backend file dialog for opening multiple files.
+    """
+    tk.Tk().withdraw()
+    return filedialog.askopenfilenames()
+
+def _save_file(filters=[], name=''):
+    """
+    Tkinter backend file dialog for saving a single file.
+    """
+    tk.Tk().withdraw()
+    return filedialog.asksaveasfilename(
+        filetypes=filters, initialfile=name)
+
+def _open_folder():
+    """
+    Tkinter backend file dialog for opening multiple files.
+    """
+    tk.Tk().withdraw()
+    return filedialog.askdirectory()
+
 if 'linux' in sys.platform:
     import gi
     gi.require_version("Gtk", "3.0")
@@ -25,8 +54,7 @@ if 'linux' in sys.platform:
         """
         dialog.add_buttons(
             Gtk.STOCK_CANCEL,
-            Gtk.ResponseType.CANCEL
-        )
+            Gtk.ResponseType.CANCEL)
 
     @overload
     def _open_file():
@@ -86,35 +114,6 @@ if 'linux' in sys.platform:
         path = dialog.get_filename()
         dialog.destroy()
         return path
-else:
-    def _open_file():
-        """
-        Tkinter backend file dialog for opening a single file.
-        """
-        tk.Tk().withdraw()
-        return filedialog.askopenfilename()
-
-    def _open_files():
-        """
-        Tkinter backend file dialog for opening multiple files.
-        """
-        tk.Tk().withdraw()
-        return filedialog.askopenfilenames()
-
-    def _save_file(filters=[], name=''):
-        """
-        Tkinter backend file dialog for saving a single file.
-        """
-        tk.Tk().withdraw()
-        return filedialog.asksaveasfilename(
-            filetypes=filters, initialfile=name)
-
-    def _open_folder():
-        """
-        Tkinter backend file dialog for opening multiple files.
-        """
-        tk.Tk().withdraw()
-        return filedialog.askdirectory()
 
 # Holds utilities that many parts of the peak tracker use.
 

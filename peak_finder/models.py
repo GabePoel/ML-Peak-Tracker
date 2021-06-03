@@ -8,20 +8,42 @@ from tensorflow.keras.models import load_model
 import os
 
 
+__all__ = [
+    'simple_lorentzian',
+    'tight_lorentzian',
+    'wide_lorentzian',
+    'split_lorentzian',
+    'import_model']
+
+
+def _parent(fp):
+    """
+    Parameters
+    ----------
+    fp : str
+        File path.
+
+    Returns
+    -------
+    str
+        File path of parent.
+    """
+    return os.path.abspath(os.path.join(fp, os.pardir))
+
+
+_trained_model_fp = os.path.join(
+    _parent(os.path.abspath(__file__)), 'trained_models')
+
+
 def simple_lorentzian():
     """
     A basic model detecting Lorentzians on flat data with little noise.
     """
     try:
-        model = load_model(os.path.join(
-            os.getcwd(), 'peak_finder', 'trained_models', 'simple_class'))
+        model = load_model(os.path.join(_trained_model_fp, 'simple_class'))
     except BaseException:
         model = load_model(
-            os.path.join(
-                os.getcwd(),
-                'peak_finder',
-                'trained_models',
-                'simple_class_backup'))
+            os.path.join(_trained_model_fp, 'simple_class_backup'))
     return model
 
 
@@ -31,15 +53,10 @@ def tight_lorentzian():
     them if the window is very tightly centered. Often misses narrow peaks.
     """
     try:
-        model = load_model(os.path.join(
-            os.getcwd(), 'peak_finder', 'trained_models', 'tight_wiggle'))
+        model = load_model(os.path.join(_trained_model_fp, 'tight_wiggle'))
     except BaseException:
         model = load_model(
-            os.path.join(
-                os.getcwd(),
-                'peak_finder',
-                'trained_models',
-                'tight_wiggle_backup'))
+            os.path.join(_trained_model_fp, 'tight_wiggle_backup'))
     return model
 
 
@@ -50,15 +67,10 @@ def wide_lorentzian():
     futher processing.
     """
     try:
-        model = load_model(os.path.join(
-            os.getcwd(), 'peak_finder', 'trained_models', 'wide_wiggle'))
+        model = load_model(os.path.join(_trained_model_fp, 'wide_wiggle'))
     except BaseException:
         model = load_model(
-            os.path.join(
-                os.getcwd(),
-                'peak_finder',
-                'trained_models',
-                'wide_wiggle_backup'))
+            os.path.join(_trained_model_fp, 'wide_wiggle_backup'))
     return model
 
 
@@ -68,15 +80,10 @@ def split_lorentzian():
     input.
     """
     try:
-        model = load_model(os.path.join(
-            os.getcwd(), 'peak_finder', 'trained_models', 'simple_count'))
+        model = load_model(os.path.join(_trained_model_fp, 'simple_count'))
     except BaseException:
         model = load_model(
-            os.path.join(
-                os.getcwd(),
-                'peak_finder',
-                'trained_models',
-                'simple_count_backup'))
+            os.path.join(_trained_model_fp, 'simple_count_backup'))
     return model
 
 

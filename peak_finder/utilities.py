@@ -1,7 +1,13 @@
+"""
+General purpose utilities for saving, importing, and manipulating the data from
+RUS measurements.
+"""
+
 import sys
 import os
 import pickle
 import tkinter as tk
+from typing import overload
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as interp
@@ -14,12 +20,19 @@ if 'linux' in sys.platform:
     from gi.repository import Gtk
 
     def quick_buttons(dialog):
+        """
+        Add cancel buttons to GTK dialogs.
+        """
         dialog.add_buttons(
             Gtk.STOCK_CANCEL,
             Gtk.ResponseType.CANCEL
         )
 
-    def open_file():
+    @overload
+    def _open_file():
+        """
+        GTK backend file dialog for opening a single file.
+        """
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
         quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
@@ -28,7 +41,11 @@ if 'linux' in sys.platform:
         dialog.destroy()
         return path
 
-    def open_files():
+    @overload
+    def _open_files():
+        """
+        GTK backend file dialog for opening multiple files.
+        """
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
         dialog.set_select_multiple(True)
         quick_buttons(dialog)
@@ -38,7 +55,11 @@ if 'linux' in sys.platform:
         dialog.destroy()
         return paths
 
-    def save_file(filters=[], name=''):
+    @overload
+    def _save_file(filters=[], name=''):
+        """
+        GTK backend file dialog for saving a single file.
+        """
         dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE)
         quick_buttons(dialog)
         dialog.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
@@ -52,7 +73,11 @@ if 'linux' in sys.platform:
         dialog.destroy()
         return path
 
-    def open_folder():
+    @overload
+    def _open_folder():
+        """
+        GTK backend file dialog for opening a folder.
+        """
         dialog = Gtk.FileChooserDialog(
             action=Gtk.FileChooserAction.SELECT_FOLDER)
         quick_buttons(dialog)
@@ -62,20 +87,32 @@ if 'linux' in sys.platform:
         dialog.destroy()
         return path
 else:
-    def open_file():
+    def _open_file():
+        """
+        Tkinter backend file dialog for opening a single file.
+        """
         tk.Tk().withdraw()
         return filedialog.askopenfilename()
 
-    def open_files():
+    def _open_files():
+        """
+        Tkinter backend file dialog for opening multiple files.
+        """
         tk.Tk().withdraw()
         return filedialog.askopenfilenames()
 
-    def save_file(filters=[], name=''):
+    def _save_file(filters=[], name=''):
+        """
+        Tkinter backend file dialog for saving a single file.
+        """
         tk.Tk().withdraw()
         return filedialog.asksaveasfilename(
             filetypes=filters, initialfile=name)
 
-    def open_folder():
+    def _open_folder():
+        """
+        Tkinter backend file dialog for opening multiple files.
+        """
         tk.Tk().withdraw()
         return filedialog.askdirectory()
 
@@ -85,7 +122,47 @@ else:
 class Data_File:
     """
     Stores the x, y, f, and v data for an imported tdms file.
-    Here v is defined as v = sqrt(x ** 2 + y ** 2).
+
+    Attributes
+    ----------
+    x : arr
+        1D array of the data's x values.
+    y : arr
+        1D array of the data's y values.
+    f : arr
+        1D array of the frequencies data is collected at.
+    r : arr
+        1D array of data's combined magnitudes. See notes. Identical to `v`.
+    v : arr
+        1D array of data's combined magnitudes. See notes. Identical to `r`.
+    T : float
+        1D array of temperatures data is collected at. Defaults to probe
+        temperature. If the probe temperature is not available, then defaults
+        to cryostat temperature. If the cryostat temperature is also not
+        available then the temperature is approximated by interpolating
+        between the start and end temperatures imported from the TDMS metadata.
+    params : arr
+        2D parameters array for Lorentzians fitted to the data file.
+    stamp : str
+        Metadata imported from corresponding TDMS file.
+    date : str
+        Date at which TDMS file was created.
+    time : str
+        Time at which TDMS file was created.
+    name : str
+        Name of the imported TDMS file.
+    probe_temp : arr
+        1D array of the temperatures of RUS probe.
+    cryo_temp : arr
+        1D array of the temperatures of RUS cryostat.
+    start_temp : float
+        Temperature at start of sweep. Imported from TDMS metadata.
+    end_temp : float
+        Temperature at end of sweep. Imported from TDMS metadata.
+
+    Notes
+    -----
+    Here `v` is defined as v = sqrt(x ** 2 + y ** 2). This is identical to `r`.
     """
 
     def __init__(self, x, y, f):
@@ -96,22 +173,30 @@ class Data_File:
         self.v = self.r
         self.params = None
         self.stamp = None
+        self.date = None
+        self.time
+        self.name = None
+        self.probe_temp = None
+        self.cryo_temp = None
+        self.start_temp = None
+        self.end_temp = None
+        self.T = None
 
-    def import_probe_temp(self, probe_temp):
+    def _import_probe_temp(self, probe_temp):
         probe_temp = remove_nans(probe_temp)
         min_T = min(probe_temp)
         max_T = max(probe_temp)
         len_T = len(self.f)
         self.probe_temp = normalize_1d(probe_temp, (min_T, max_T, len_T))
 
-    def import_cryo_temp(self, cryo_temp):
+    def _import_cryo_temp(self, cryo_temp):
         cryo_temp = remove_nans(cryo_temp)
         min_T = min(cryo_temp)
         max_T = max(cryo_temp)
         len_T = len(self.f)
         self.cryo_temp = normalize_1d(cryo_temp, (min_T, max_T, len_T))
 
-    def import_meta(self, stamp):
+    def _import_meta(self, stamp):
         self.stamp = stamp
         try:
             self.date, self.time, self.start_temp, self.end_temp = stamp.split(
@@ -124,7 +209,7 @@ class Data_File:
         self.start_temp = float(self.start_temp[:-1])
         self.end_temp = float(self.end_temp[:-1])
 
-    def set_temp(self):
+    def _set_temp(self):
         try:
             probe_high = max(self.probe_temp)
             probe_low = min(self.probe_temp)
@@ -142,14 +227,48 @@ class Data_File:
             self.T = np.linspace(self.start_temp, self.end_temp, len(self.f))
 
     def get_temp(self, f0):
+        """
+        Get temperature corresponding to a particular frequency value. The
+        temperature is taken from T, however that is determined.
+
+        Parameters
+        ----------
+        f0 : float
+            Frequency value of temperature.
+        """
         index = find_nearest_index(self.f, f0)
         return self.T[index]
 
     def set_params(self, params):
+        """
+        Attach Lorentzian parameter array to data file.
+
+        Parameters
+        ----------
+        params : arr
+            2D Lorentzian parameter array.
+        """
         self.params = params
 
 
 def set_all_params(data_files, params):
+    """
+    Set parameters for many sweeps to all items in a list of data files.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files. Typically corresponding to a set of continuous
+        sweeps imported from the same folder.
+    params : arr
+        3D parameter array with the same number of elements along axis 0 as
+        there are data files in the data_files list.
+
+    Notes
+    -----
+    Also compatible with 2D parameter arrays as long as a single data file is
+    provided instead of a list.
+    """
     if type(data_files) is list:
         for i in range(len(data_files)):
             data_files[i].set_params(params[i])
@@ -158,6 +277,17 @@ def set_all_params(data_files, params):
 
 
 def get_all_params(data_files):
+    """
+    Provides a single array for the Lorentzian parameters attached to a list
+    of data files.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files. Typically corresponding to a set of continuous
+        sweeps imported from the same folder. Must have parameter attributes
+        other than None in order to work properly.
+    """
     params = []
     if type(data_files) is list:
         for i in range(len(data_files)):
@@ -173,12 +303,46 @@ def get_all_params(data_files):
 def scale_1d(x):
     """
     Determines the scale values for the given 1D array of data.
-    Scales are structured as (min value, max value, total number of indices).
+
+    Parameters
+    ----------
+    x : arr
+        1D array to get normalization from.
+
+    Returns
+    -------
+    tuple
+        Three element scale tuple corresponding to provided array. The first
+        is the minimum value of the array, the second is the maximum value of
+        the array, and the last is the total number of indices in the provided
+        array.
+
+    Notes
+    -----
+    Scales are structured as `(min_value, max_value, total_number_of_indices)`.
     """
     return (min(x), max(x), len(x))
 
 
 def match_lengths(arrs):
+    """
+    Normalizes a set of arrays around the same scale values.
+
+    Parameters
+    ----------
+    arrs : list
+        List of the arrays to normalize.
+
+    Returns
+    -------
+    list
+        List of the normalized arrays. They are sorted in order of most to
+        least elements from the original inputs.
+
+    See Also
+    --------
+    scale_1d : Method to determine normalization scale.
+    """
     return_arrs = arrs.copy()
     arrs.sort(key=lambda a: len(a))
     length = len(arrs[0])
@@ -192,6 +356,22 @@ def match_lengths(arrs):
 def normalize_1d(x, scale=(0, 1, 1024)):
     """
     Normalizes a given array of data around the provided scale factor.
+
+    Parameters
+    ----------
+    x : arr
+        1D array to normalize.
+    scale : tuple
+        Three element scale tuple.
+
+    Returns
+    -------
+    arr
+        The normalized 1D array.
+
+    Notes
+    -----
+    Scales are structured as `(min_value, max_value, total_number_of_indices)`.
     """
     new_min = scale[0]
     new_max = scale[1]
@@ -209,6 +389,19 @@ def normalize_1d(x, scale=(0, 1, 1024)):
 
 
 def remove_nans(arr):
+    """
+    Removes nans from a Lorentzian parameter array of up to two dimensions.
+
+    Parameters
+    ----------
+    arr : arr
+        A 1D or 2D Lorentzian parameter array that may or may non have nans.
+
+    Returns
+    -------
+    arr
+        A new array with all the nans correctly removed.
+    """
     if len(arr.shape) == 1:
         return arr[~np.isnan(arr)]
     elif len(arr.shape) == 2:
@@ -220,7 +413,22 @@ def remove_nans(arr):
 
 
 def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
-    """Use with an iteratore as 'it' to show a progress bar while waiting."""
+    """
+    Use with an iteratore as 'it' to show a progress bar while waiting.
+
+    Parameters
+    ----------
+    it : iterator
+        Iterator to build the bar from.
+    prefix : str
+        What to say before the progress.
+    size : int
+        Length of bar.
+    file : readout
+        Where to print the results to.
+    progress : bool
+        Whether or not to reveal the bar.
+    """
     count = len(it)
 
     def show(j):
@@ -238,43 +446,121 @@ def progressbar(it, prefix="", size=60, file=sys.stdout, progress=True):
 
 
 def load_file(path=None):
+    """
+    Provides a file dialog to search for a single file. Only provides the path
+    of what's selected.
+
+    Parameters
+    ----------
+    path : str, optional
+        Optional file path to use. Will only return the file path if provided.
+
+    Returns
+    -------
+    str
+        Path of the chosen file.
+
+    See Also
+    --------
+    load : General purpose dialog that actually imports the selected binary.
+    """
     if path is None:
-        path = open_file()
+        path = _open_file()
     return path
 
 
 def load_files(paths=[]):
+    """
+    Provides a file dialog to search for multiple files. Only provides the path
+    of what's selected.
+
+    Parameters
+    ----------
+    path : str, optional
+        Optional file path to use. Will only return the file path if provided.
+
+    Returns
+    -------
+    str
+        Path of the chosen file.
+
+    See Also
+    --------
+    load : General purpose dialog that actually imports the selected binary.
+    """
     if len(paths) == 0:
-        paths = open_files()
+        paths = _open_files()
     return paths
 
 
 def load_dir(path=None):
+    """
+    Provides a file dialog to search for a directory. Only provides the path of
+    what's selected.
+
+    Parameters
+    ----------
+    path : str, optional
+        Optional file path to use. Will only return the file path if provided.
+
+    Returns
+    -------
+    str
+        Path of the chosen file.
+
+    See Also
+    --------
+    load : General purpose dialog that actually imports the selected binary.
+    """
     if path is None:
-        path = open_folder()
+        path = _open_folder()
         print(path)
     return path
 
 
 def import_tdms_file(path=None, show=False):
     """
-    Just a wrapper for import_file. Calling it from its original name is depricated and will be removed.
+    Import a TDMS file as a Data_File object.
+
+    Parameters
+    ----------
+    path : str, optional
+        File path to import from. A file dialog will open if no path is
+        provided.
+    show : bool, optional
+        If True then prints information about the imported TDMS file.
+
+    Notes
+    -----
+    This is a wrapper for `_import_file` that automatically processes it after
+    importing. Calling `_import_file()` directly is deprecated and will
+    likely be removed.
     """
-    data_file, path = import_file(path=path, show=show, include_path=True)
+    data_file, path = _import_file(path=path, show=show, include_path=True)
     stamp = os.path.basename(path)[:-5]
-    data_file.import_meta(stamp)
-    data_file.set_temp()
+    data_file._import_meta(stamp)
+    data_file._set_temp()
     return data_file
 
 
-def import_file(path=None, show=False, include_path=False):
+def _import_file(path=None, show=False, include_path=False):
     """
-    This is deprecated and will be removed. Please call import_tdms_file() instead.
-    Import a tdms file. Returns a Data_File object.
-    Leave path blank to open a file dialog window and select the file manually. Otherwise pass in a path.
+    Import a TDMS file as a Data_File object.
+
+    Parameters
+    ----------
+    path : str, optional
+        File path to import from. A file dialog will open if no path is
+        provided.
+    show : bool, optional
+        If True then prints information about the imported TDMS file.
+
+    Notes
+    -----
+    This is deprecated and will be removed. Please use `import_tdms_file()`.
     """
     if path is None:
-        path = open_file()
+        path = _open_file()
     tdms_file = TdmsFile.read(path)
     channels = tdms_file.groups()[0].channels()
     tdms_f = remove_nans(channels[0][:])
@@ -285,8 +571,8 @@ def import_file(path=None, show=False, include_path=False):
     if len(channels) >= 5:
         tdms_probe_temp = remove_nans(channels[3][:])
         tdms_cryo_temp = remove_nans(channels[4][:])
-        tdms_file.import_probe_temp(tdms_probe_temp)
-        tdms_file.import_cryo_temp(tdms_cryo_temp)
+        tdms_file._import_probe_temp(tdms_probe_temp)
+        tdms_file._import_cryo_temp(tdms_cryo_temp)
     if show:
         print('Imported file from ' + str(path))
     if include_path:
@@ -304,7 +590,27 @@ def plot_region(
         min_color='g',
         max_color='g'):
     """
-    Given a region array, some frequency data, and some displacement data, will plot the specified index.
+    Given a region array, some frequency data, and some displacement data, will
+    plot the specified index.
+
+    Parameters
+    ----------
+    i : int
+        Index.
+    regions : arr
+        Array of two element frequency regions.
+    f : arr
+        1D frequency array.
+    v : arr
+        1D amplitude array.
+    color : str, optional
+        Color to plot.
+    show_boundaries : bool
+        Whether or not to show the provided region boundaries.
+    min_color : str, optional
+        Color to use for the minimum boundary markers.
+    max_color : str, optional
+        Color to use for the maximum boundary markers.
     """
     min_f = int(regions[i][0])
     max_f = int(regions[i][1])
@@ -319,7 +625,26 @@ def plot_region(
 
 def extract_region(i, regions, f, v):
     """
-    Given a region array, some frequency data, and some displacement data, will return the frequency and displacement for the region of the specified index.
+    Given a region array, some frequency data, and some displacement data, will
+    return the frequency and displacement for the region specified by an index.
+
+    Parameters
+    ----------
+    i : int
+        Index.
+    regions : arr
+        Array of two element frequency regions.
+    f : arr
+        1D frequency array.
+    v : arr
+        1D amplitude array.
+
+    Returns
+    -------
+    arr
+        All the frequency values within the specified region.
+    arr
+        All the amplitude values within the specified region.
     """
     min_f = int(regions[i][0])
     max_f = int(regions[i][1])
@@ -328,16 +653,36 @@ def extract_region(i, regions, f, v):
     return region_f, region_v
 
 
-def bit_invert(b):
+def _bit_invert(b):
     """
     Inverts the provided bits.
+
+    Parameters
+    ----------
+    b : array_like
+        Array of 1s and 0s.
+
+    Returns
+    arr
+        Array of 0s and 1s.
     """
     return np.abs(b - 1)
 
 
 def drop_region(regions, min_length=10, max_length=None):
     """
-    Given a region array, will return only the regions with more than the min_length number of indices.
+    Given a region array, will return only the regions with more than the
+    min_length number of indices.
+
+    Parameters
+    ----------
+    regions : arr
+        Array of two element frequency regions.
+    min_length : int, optional
+        Minimum number of indices to use for filtering regions.
+    max_length : int, optional
+        Maximum number of indices to use for filtering regions. Defaults to
+        None and if left that way will have no maximum.
     """
     kept_regions = np.empty((0, 2))
     if max_length is None:
@@ -353,14 +698,34 @@ def drop_region(regions, min_length=10, max_length=None):
 def order_difference(val_1, val_2):
     """
     Returns how many orders of magnitude val_1 and val_2 differ by.
+
+    Parameters
+    ----------
+    val_1 : float
+    val_2 : float
+
+    Returns
+    -------
+    float
     """
     return np.abs(np.log10(val_1) - np.log10(val_2))
 
 
 def compare_lorentz(l1, l2, f):
     """
-    Input: Two Lorentzian parameter arrays ([A, f0, FWHM, phase]) and frequency data.
-    Output: A numercial value of how similiar the Lorentzians are to each other.
+    Given two Lorentzian parameter arrays will provide a numerical value of how
+    similar the two Lorentzians are to each other. This is a measure.
+
+    Parameters
+    ----------
+    l1 : arr
+        1D Lorentzian parameter array.
+    l2 : arr
+        1D Lorentzian parameter array.
+
+    Returns
+    -------
+    float
     """
     f1 = l1[1]
     f2 = l2[1]
@@ -373,15 +738,38 @@ def compare_lorentz(l1, l2, f):
 
 def find_nearest_index(arr, val):
     """
-    Input: An array and a value.
-    Output: The index of the value in the array closest to that value.
+    Returns the index of the value in an array closest to a provided value.
+
+    Parameters
+    ----------
+    arr : arr
+        1D array to search from.
+    val : float
+        Value to search for.
+
+    Returns
+    -------
+    int
     """
     reduced_arr = np.abs(arr - val)
     min_reduced_val = min(reduced_arr)
     return np.where(reduced_arr == min_reduced_val)[0][0]
 
 
-def simplify_regions(regions):
+def _simplify_regions(regions):
+    """
+    Simplifies set of regions.
+
+    Parameters
+    ----------
+    regions : arr
+        Array of two element frequency regions.
+
+    Returns
+    -------
+    arr
+        The simplified array of two index frequency regions.
+    """
     region_line = []
     for i in range(0, len(regions)):
         region_line.append([regions[i][0], 'start', False])
@@ -424,6 +812,19 @@ def simplify_regions(regions):
 
 
 def param_sort(params_2d):
+    """
+    Sorts a 2D parameter array in order of frequency.
+
+    Parameters
+    ----------
+    params_2d : arr
+        2D Lorentzian parameter array.
+
+    Returns
+    -------
+    arr
+        A 2D Lorentzian parameter array sorted by frequencies.
+    """
     not_nan_params = np.empty((0, 4))
     nan_params = np.empty((0, 4))
     nan_indices = []
@@ -449,8 +850,23 @@ def param_sort(params_2d):
 
 def append_params_3d(p1, p2, force=False):
     """
-    Adds new Lorentzians to an existing set of parameters.
-    Does not add later data points of existing Lorentzians!
+    Adds new Lorentzians to an existing set of parameters. Does not add later
+    data points of existing Lorentzians!
+
+    Parameters
+    ----------
+    p1 : arr
+        3D Lorentzian parameter array.
+    p2 : arr
+        3D Lorentzian parameter array.
+    force : bool, optional
+        Determines whether or not to force a merged 3D paramter array should be
+        created even if the two provided arrays aren't normally compatible.
+
+    Returns
+    -------
+    arr
+        Combined 3D Lorentzian parameter array.
     """
     p3 = []
     if p2 is None or 0 in np.array(p2).shape:
@@ -473,31 +889,89 @@ def append_params_3d(p1, p2, force=False):
 
 
 def save(some_object, path=None, name=''):
+    """
+    Saves any python object as a pickled binary.
+
+    Parameters
+    ----------
+    some_object : obj
+        An object to pickle and save as a `.pkl` file.
+    path : str, optional
+        Where to save the binary to. Will open a file dialog if no path is
+        provided.
+    name : str
+        The name of the file to save. Will blank in file dialog if no name is
+        provided.
+
+    Returns
+    -------
+    str
+        The path the object has been saved to.
+
+    See Also
+    --------
+    load : Function to load objects saved in this way.
+    """
     if path is None:
-        path = save_file(filters=(("python objects", "*.pkl"),
-                         ("all files", "*.*")), name=name)
+        path = _save_file(filters=(("python objects", "*.pkl"),
+                                   ("all files", "*.*")), name=name)
     pickle.dump(some_object, open(path, "wb"))
     return path
 
 
 def load(path=None):
+    """
+    Loads any pickled python object from binary form.
+
+    Parameters
+    ----------
+    path : str, optional
+        File path of saved binary to load pickled object from.
+
+    Returns
+    -------
+    obj
+        Whatever the saved object is.
+
+    See Also
+    --------
+    save : Function to save objects this is capable of loading.
+    """
     if path is None:
-        path = open_file()
+        path = _open_file()
     return pickle.load(open(path, "rb"))
 
 
 def import_tdms_files(paths=[], show=True):
     """
-    Make a list out of all the imported tdms files chosen.
+    Import multiple TDMS files as a list of data files. This is the recommended
+    way to import some, but not all, TDMS files within a given directory.
+
+    Parameters
+    ----------
+    paths : list
+        List of strings for the file paths of all the TDMS files that should be
+        imported.
+    show : bool, optional
+        Whether or not to print information about the imported TDMS files.
+
+    Returns
+    -------
+    list
+        List of the data file objects corresponding to the imported TDMS files.
+
+    See Also
+    --------
+    Data_File : Definition of a data file object.
     """
     paths = load_files(paths)
     data_files = []
     for p in paths:
         if p[-5:] == '.tdms':
             stamp = os.path.basename(p)[:-5]
-            data_file = import_file(p)
-            data_file.import_meta(stamp)
-            data_file.set_temp()
+            data_file = _import_file(p)
+            data_file._import_meta(stamp)
+            data_file._set_temp()
             data_files.append(data_file)
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     print('Imported file order:')
@@ -510,7 +984,25 @@ def import_tdms_files(paths=[], show=True):
 
 def import_tdms_dir(path=None, show=True):
     """
-    Makes a list out of all the imported tdms files in chosen directory.
+    Import multiple TDMS files as a list of data files. This is the recommended
+    way to import all TDMS files within a given directory.
+
+    Parameters
+    ----------
+    paths : list
+        List of strings for the file paths of all the TDMS files that should be
+        imported.
+    show : bool, optional
+        Whether or not to print information about the imported TDMS files.
+
+    Returns
+    -------
+    list
+        List of the data file objects corresponding to the imported TDMS files.
+
+    See Also
+    --------
+    Data_File : Definition of a data file object.
     """
     path = load_dir(path)
     names = os.listdir(path)
@@ -521,9 +1013,9 @@ def import_tdms_dir(path=None, show=True):
         if name[-5:] == '.tdms':
             stamp = name[:-5]
             file_path = os.path.join(path, name)
-            data_file = import_file(file_path)
-            data_file.import_meta(stamp)
-            data_file.set_temp()
+            data_file = _import_file(file_path)
+            data_file._import_meta(stamp)
+            data_file._set_temp()
             data_files.append(data_file)
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     return data_files
@@ -532,6 +1024,18 @@ def import_tdms_dir(path=None, show=True):
 def get_temperatures(data_files):
     """
     Get a temperature array from a list of data files.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files.
+
+    Returns
+    -------
+    arr
+        Array of the starting temperature for the sweep represented by each
+        data file. Has the same number of elements as the provided list of
+        data files.
     """
     temperatures = []
     for i in range(0, len(data_files)):
@@ -541,7 +1045,28 @@ def get_temperatures(data_files):
 
 def get_freqs(data_files):
     """
-    Get array of frequencies from a list of data files.
+    Get array of frequencies from the Lorentzians fitted to a list of data
+    files.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files.
+
+    Returns
+    -------
+    arr
+        2D array of the frequencies corresponding to the fitted Lorentzians
+        attached to the provided list of data files. Axis 0 determines which
+        sweep is being referenced and axis 1 has the frequencies for all the
+        peaks fitted within a given sweep. When displayed as a table, the
+        columns show the movement of a peak across all the sweeps.
+
+    See Also
+    --------
+    get_temps_and_freqs : As this but with temperatures as well.
+    save_freqs : Save peak frequenceis found this way as a CSV.
+    save_freqs_with_temps : Save peak frequencies and temperatures as a CSV.
     """
     p = get_all_params(data_files)
     f = []
@@ -551,13 +1076,41 @@ def get_freqs(data_files):
 
 
 def get_temps_and_freqs(data_files):
+    """
+    Get array of frequencies and temperatures from the Lorentzians fitted to a
+    list of data files.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files.
+
+    Returns
+    -------
+    arr
+        2D array of the frequencies corresponding to the fitted Lorentzians
+        attached to the provided list of data files. Axis 0 determines which
+        sweep is being referenced and axis 1 has the frequencies for all the
+        peaks fitted within a given sweep. When displayed as a table, the
+        columns show the movement of a peak across all the sweeps. In this
+        format the temperatures as shown in the first column.
+
+    See Also
+    --------
+    get_freqs : As this but without temperatures. All data is frequencies.
+    save_freqs : Save peak frequencies as a CSV.
+    save_freqs_with_temps : Save peak frequencies and temperatures as a CSV.
+    """
     f = get_freqs(data_files)
     T = np.transpose([get_temperatures(data_files)])
     fT = np.append(T, f, axis=1)
     return fT
 
 
-def matplotlib_mac_fix():
+def _matplotlib_mac_fix():
+    """
+    Fix tkinter backend on older macs.
+    """
     import matplotlib
     import importlib
     matplotlib.use("TkAgg")
@@ -565,7 +1118,29 @@ def matplotlib_mac_fix():
     importlib.reload(plt)
 
 
-def scatter_pts(pts, ref_arr, tar_arr):
+def _scatter_pts(pts, ref_arr, tar_arr):
+    """
+    Tool to create array of points for `Point_Selector` to display as an
+    interactive scatter plot.
+
+    Parameters
+    ----------
+    pts : arr
+        1D frequency array of points to plot.
+    ref_arr : arr
+        1D frequency array.
+    tar_arr : arr
+        1D amplitude array.
+
+    Returns
+    -------
+    arr
+        Amplitude points to preview in scatter plot.
+
+    See Also
+    --------
+    plot_points : Method of lf._Point_Selector
+    """
     arr = np.empty((0,))
     for i in range(len(pts)):
         j = find_nearest_index(pts[i], ref_arr)
@@ -574,14 +1149,42 @@ def scatter_pts(pts, ref_arr, tar_arr):
 
 
 def save_freqs(f, name='freqs_kHz', alter=True):
+    """
+    Save frequencies as a CSV.
+
+    Parameters
+    ----------
+    f : arr
+        1D array of frequencies to be saved.
+    name : str, optional
+        Name of the saved CSV.
+    alter : bool, optional
+        If True, saves as kHz. If False, saves as Hz.
+    """
     if alter:
         f = np.sort(f) / 1000
-    path = save_file(filters=(("text file", "*.txt"),
-                     ("all files", "*.*")), name=name)
+    path = _save_file(
+        filters=(
+            ("text file", "*.txt"),
+            ("all files", "*.*")),
+        name=name)
     np.savetxt(path, f, delimiter='\n', fmt='%10.15f')
 
 
 def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
+    """
+    Save frequencies and temperatures as a CSV. The rows correspond to sweeps
+    and the colums correspond to individual peaks. The first column is the
+    temperature each sweep was taken at. This saves them from the data files
+    directly.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files.
+    name : str, optional
+        Name of the CSV.
+    """
     T = []
     for i in range(len(data_files)):
         T.append(np.mean(data_files[i].T))
@@ -589,28 +1192,41 @@ def save_freqs_with_temps(data_files, name='temp_K_and_freqs_kHz'):
     f = p[:, :, 1] / 1000
     arr = np.append(np.transpose([T]), f, axis=1)
     arr = temp_freq_sort_2d(arr)
-    path = save_file(
+    path = _save_file(
         filters=(
-            ("text file",
-             "*.txt"),
-            ("comma separated values",
-             "*.csv"),
-            ("all files",
-             "*.*")),
+            ("text file", "*.txt"),
+            ("comma separated values", "*.csv"),
+            ("all files", "*.*")),
         name=name)
     np.savetxt(path, arr, delimiter=',', fmt='%10.15f')
 
 
 def save_Tf(Tf, path=None, name='temp_K_and_freqs_kHz'):
+    """
+    Save frequencies and temperatures as a CSV. The rows correspond to sweeps
+    and the colums correspond to individual peaks. The first column is the
+    temperature each sweep was taken at. This saves them from as array of
+    temperatures and frequencies.
+
+    Parameters
+    ----------
+    Tf : arr
+        2D array of temperatures and frequencies.
+    path : str, optional
+        File path for saved CSV. Loads a file dialog if no path is provided.
+    name : str, optional
+        Name to use for saved CSV.
+
+    See Also
+    --------
+    get_temps_and_freqs : Function to get array used for `save_Tf`.
+    """
     if path is None:
-        path = save_file(
+        path = _save_file(
             filters=(
-                ("text file",
-                 "*.txt"),
-                ("comma separated values",
-                 "*.csv"),
-                ("all files",
-                 "*.*")),
+                ("text file", "*.txt"),
+                ("comma separated values", "*.csv"),
+                ("all files", "*.*")),
             name=name)
     T = np.transpose(np.array([Tf[:, 0]]))
     f = Tf[:, 1:] / 1000
@@ -619,15 +1235,49 @@ def save_Tf(Tf, path=None, name='temp_K_and_freqs_kHz'):
 
 
 def load_freqs(path=None):
+    """
+    Load a 1D array of frequencies. Assumes that they are saved as kHz.
+
+    Parameters
+    ----------
+    path : str, optional
+        File path to load from. Loads a file dialog if no path is provided.
+
+    See Also
+    --------
+    save_freqs : Function to save frequencies loaded by `load_freqs`.
+    """
     if path is None:
-        path = open_file()
+        path = _open_file()
     f = np.loadtxt(path, delimiter='\n')
     return f * 1000
 
 
 def load_freqs_with_temps(path=None):
+    """
+    Loads temperatures and frequencies as an array.
+
+    Parameters
+    ----------
+    path : str, optional
+        File path to load from. Loads a file dialog if no path is provided.
+
+    Returns
+    -------
+    arr
+        2D array of temperatures and frequencies.
+
+    See Also
+    --------
+    save_Tf :
+        Function to save CSVs usable by `load_freqs_with_temps` starting with
+        the same format that it creates.
+    save_freqs_with_temps :
+        Function to save CSVs usable by `load_freqs_with_temps` starting with
+        data files.
+    """
     if path is None:
-        path = open_file()
+        path = _open_file()
     Tf = np.loadtxt(path, delimiter=',')
     f = np.transpose(Tf)[1:] * 1000
     T = np.array([np.transpose(Tf)[0]])
@@ -636,6 +1286,20 @@ def load_freqs_with_temps(path=None):
 
 
 def attach_temps_to_parameters(data_files):
+    """
+    Makes extended parameter array that includes the temperatures they were
+    measured at.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data files.
+
+    Returns
+    -------
+    arr
+        Extended parameter array.
+    """
     p = get_all_params(data_files)
     q = []
     for i in range(len(p)):
@@ -654,6 +1318,22 @@ def attach_temps_to_parameters(data_files):
 
 
 def delete_parameters(params_3d, index):
+    """
+    Given a 3D Lorentzian parameter array, removes a specific sweep as
+    specified by index.
+
+    Parameters
+    ----------
+    params_3d : arr
+        3D Lorentzian parameter array.
+    index : int
+        Index to remove.
+
+    Returns
+    -------
+    arr
+        3D Lorentzian parameter array with the given sweep removed.
+    """
     p = []
     for i in range(len(params_3d)):
         p.append([])
@@ -664,6 +1344,22 @@ def delete_parameters(params_3d, index):
 
 
 def delete_parameters_from_f_regions_3d(parameters_3d, f_regions):
+    """
+    Removes the parameters within specific regions from a 3D Lorentzian
+    parameter array.
+
+    Parameters
+    ----------
+    parameters_3d : arr
+        3D Lorentzian parameter array to remove Lorentzians from.
+    f_regions : arr
+        Array of two element frequency regions.
+
+    Returns
+    -------
+    arr
+        3D Lorentzian parameter array with the given Lorentzians removed.
+    """
     p = []
     for i in range(len(parameters_3d)):
         p_2d = delete_parameters_from_f_regions_2d(
@@ -673,6 +1369,22 @@ def delete_parameters_from_f_regions_3d(parameters_3d, f_regions):
 
 
 def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
+    """
+    Removes the parameters within specific regions from a 2D Lorentzian
+    parameter array.
+
+    Parameters
+    ----------
+    parameters_2d : arr
+        2D Lorentzian parameter array to remove Lorentzians from.
+    f_regions : arr
+        Array of two element frequency regions.
+
+    Returns
+    -------
+    arr
+        2D Lorentzian parameter array with the given Lorentzians removed.
+    """
     p = []
     for i in range(len(parameters_2d)):
         if parameters_2d[i][1] >= f_region[0] and parameters_2d[i][1] <= f_region[1]:
@@ -683,6 +1395,30 @@ def delete_parameters_from_f_regions_2d(parameters_2d, f_region):
 
 
 def freq_sort_2d(f_2d):
+    """
+    Sort a 2D frequency array. This would likely be an array specifically
+    containing peaks as found in `get_freqs`. Axis 0 corresponds to the sweeps
+    and axis 1 corresponds to the frequencies within each sweep. This sorts
+    the peaks for all sweeps with respect to the mean value of that peak's
+    location over all sweeps. So, there may be certain sweeps where the peaks
+    appear to be out of order. But, that only happens because several peaks
+    cross each other due to a change in temperature, pressure, or under some
+    field.
+
+    Parameters
+    ----------
+    f_2d : arr
+        2D frequency array.
+
+    Returns
+    -------
+    arr
+        Sorted 2D frequency array.
+
+    See Also
+    --------
+    get_freqs : Function to get 2D frequency arrays.
+    """
     f_2d = np.transpose(f_2d)
     final_sorting_order = []
     for i in range(len(f_2d)):
@@ -699,6 +1435,25 @@ def freq_sort_2d(f_2d):
 
 
 def temp_freq_sort_2d(Tf_2d):
+    """
+    As `freq_sort_2d` but with compatibility for the first element within each
+    sweep being the starting temperature of that sweep.
+
+    Parameters
+    ----------
+    Tf_2d : arr
+        2D temperature and frequency array.
+
+    Returns
+    -------
+    arr
+        Sorted 2D temperature and frequency array.
+
+    See Also
+    --------
+    freq_sort_2d : Function to sort just frequencies.
+    get_temps_and_freqs : Function to get arrays that would be sorted.
+    """
     T = np.transpose(Tf_2d)[0]
     f = np.transpose(Tf_2d)[1:]
     f = freq_sort_2d(np.transpose(f))

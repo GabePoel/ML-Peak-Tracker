@@ -1,3 +1,8 @@
+"""
+Interactive utilities to guide the fitting over real data. This contains much
+of the real workhorse of the peak finding process.
+"""
+
 from scipy import interpolate
 from scipy.signal import savgol_filter
 from scipy.optimize import curve_fit
@@ -21,36 +26,21 @@ from tkinter import simpledialog
 import PySimpleGUI as sg
 import tkinter as tk
 import numpy as np
+
+from . import utilities as util
+from . import fit_lorentz as fl
+from . import generate_lorentz as gl
+from . import classify_data as cd
 try:
-    from . import utilities as util
-    from . import fit_lorentz as fl
-    from . import generate_lorentz as gl
-    from . import classify_data as cd
-    try:
-        from . import automatic as auto
-        can_ml = True
-    except BaseException:
-        from . import automatic_no_ml as auto
-        can_ml = False
+    from . import automatic as auto
+    _can_ml = True
 except BaseException:
-    import utilities as util
-    import fit_lorentz as fl
-    import generate_lorentz as gl
-    import classify_data as cd
-    try:
-        import automatic as auto
-        can_ml = True
-    except BaseException:
-        import automatic_no_ml as auto
-        can_ml = False
-util.matplotlib_mac_fix()
+    from . import automatic_no_ml as auto
+    _can_ml = False
 
-"""
-Interactive utilities to guide the fitting over real data. This contains much
-of the real workhorse of the peak finding process.
-"""
+util._matplotlib_mac_fix()
 
-option_colors = {
+_option_colors = {
     "Cool": "cool",
     "Viridis": "viridis",
     "Plasma": "plasma",
@@ -85,7 +75,7 @@ option_colors = {
     "Jet": "jet"
 }
 
-option_select_colors = {
+_option_select_colors = {
     "Blue": "tab:blue",
     "Orange": "tab:orange",
     "Green": "tab:green",
@@ -101,7 +91,7 @@ option_select_colors = {
 }
 
 
-def lin(x, a, b):
+def _lin(x, a, b):
     """
     Definition of a linear function.
 
@@ -134,12 +124,12 @@ def preview(f, v, params):
     params : arr
         3D Lorentzian parameters array.
     """
-    live = Live_Instance(f, v)
+    live = _Live_Instance(f, v)
     live.import_lorentzians(params)
     live.activate()
 
 
-class Live_Lorentz():
+class _Live_Lorentz():
     """
     Class form of Lorentzian data structure to be actively manipulated.
     """
@@ -166,7 +156,7 @@ class Live_Lorentz():
         return np.array([self.A, self.f0, self.FWHM, self.phase])
 
 
-class Selection():
+class _Selection():
     def __init__(self, x_delta, y_delta, x_pos, y_pos):
         self.x_delta = x_delta
         self.y_delta = y_delta
@@ -176,7 +166,7 @@ class Selection():
         self.f_max = self.x_pos + self.x_delta
 
 
-class Live_Instance():
+class _Live_Instance():
     def __init__(self, f, v, method='lm'):
         self.f = f[np.logical_not(np.isnan(f))]
         self.v = v[np.logical_not(np.isnan(v))]
@@ -205,7 +195,7 @@ class Live_Instance():
         for i in range(0, len(p_table)):
             p = p_table[i]
             f0 = p[1]
-            self.live_lorentzians[f0] = Live_Lorentz(p)
+            self.live_lorentzians[f0] = _Live_Lorentz(p)
 
     def activate(self, loop=True):
         self.first_load = True
@@ -320,8 +310,8 @@ class Live_Instance():
                 if self.all_data and self.show_components:
                     small_f, small_x = fl.lorentz_bounds_to_data(
                         p_table[i], self.f, self.x, expansion=2)
-                    x_opt, x_cov = curve_fit(lin, small_f, small_x)
-                    x_fit = lin(small_f, *x_opt)
+                    x_opt, x_cov = curve_fit(_lin, small_f, small_x)
+                    x_fit = _lin(small_f, *x_opt)
                     self.ax.plot(small_f, small_x -
                                  x_fit +
                                  np.mean(og_v) +
@@ -330,8 +320,8 @@ class Live_Instance():
                                   np.min(og_v)), color='y')
                     small_f, small_y = fl.lorentz_bounds_to_data(
                         p_table[i], self.f, self.y, expansion=2)
-                    y_opt, y_cov = curve_fit(lin, small_f, small_y)
-                    y_fit = lin(small_f, *y_opt)
+                    y_opt, y_cov = curve_fit(_lin, small_f, small_y)
+                    y_fit = _lin(small_f, *y_opt)
                     self.ax.plot(small_f, small_y -
                                  y_fit +
                                  np.mean(og_v) +
@@ -522,7 +512,7 @@ class Live_Instance():
         y_delta = np.abs(y1 - y2)
         x_pos = min(x1, x2)
         y_pos = min(y1, y2)
-        self.selection = Selection(x_delta, y_delta, x_pos, y_pos)
+        self.selection = _Selection(x_delta, y_delta, x_pos, y_pos)
 
     def components_bool(self):
         self.show_components = not self.show_components
@@ -545,7 +535,7 @@ class Live_Instance():
         self.plot_lorentzians()
 
 
-class Color_Selector:
+class _Color_Selector:
     def __init__(
             self,
             data_files,
@@ -606,7 +596,7 @@ class Color_Selector:
         self.last_mode = None
 
     def setup_plot(self):
-        self.ax, self.collection, self.colors = make_colors(
+        self.ax, self.collection, self.colors = _make_colors(
             self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
         self.fig = self.ax.figure
         self.fig.set_size_inches(16, 9)
@@ -733,7 +723,7 @@ class Color_Selector:
             self.enable_delete()
 
     def make_cmap_menu(self):
-        options = sorted(option_colors.keys())
+        options = sorted(_option_colors.keys())
         self.color_variable = tk.StringVar(self.root)
         self.opt = ttk.OptionMenu(self.root, self.color_variable, *options)
         self.opt.pack(in_=self.controls, side="right")
@@ -741,7 +731,7 @@ class Color_Selector:
         self.color_variable.trace("w", self.update_cmap)
 
     def make_color_menus(self):
-        options = sorted(option_select_colors.keys())
+        options = sorted(_option_select_colors.keys())
         self.face_color_variable = tk.StringVar(self.root)
         self.param_color_variable = tk.StringVar(self.root)
         self.face_opt = ttk.OptionMenu(
@@ -756,14 +746,14 @@ class Color_Selector:
         self.param_color_variable.trace("w", self.update_line_color)
 
     def update_patch_color(self, *args):
-        patch_color = option_select_colors[self.face_color_variable.get()]
+        patch_color = _option_select_colors[self.face_color_variable.get()]
         for patch in self.patches:
             patch.set_facecolor(patch_color)
         self.patch_color = patch_color
         self.canvas.draw_idle()
 
     def update_line_color(self, *args):
-        line_color = option_select_colors[self.param_color_variable.get()]
+        line_color = _option_select_colors[self.param_color_variable.get()]
         for line in self.lines:
             line.set_color(line_color)
         for path in self.paths:
@@ -774,13 +764,13 @@ class Color_Selector:
         self.canvas.draw_idle()
 
     def update_cmap(self, *args):
-        self.cmap = option_colors[self.color_variable.get()]
+        self.cmap = _option_colors[self.color_variable.get()]
         self.update_colors(cmap=self.cmap)
 
     def reload(self):
         self.autosave()
         self.canvas._tkcanvas.pack_forget()
-        ax, collection = make_colors(
+        ax, collection = _make_colors(
             self.data_files, max_res=self.x_res, cmap=self.cmap)
         self.fig = ax.figure
         self.collection = collection
@@ -1047,7 +1037,7 @@ class Color_Selector:
         self.root.destroy()
 
     def finish_selection(self):
-        selection = points_to_ranges(
+        selection = _points_to_ranges(
             np.array(self.xys[self.ind]), self.data_files, self.x_res)
         self.selections.append(selection)
         patch = Polygon(
@@ -1104,7 +1094,11 @@ class Color_Selector:
                 v = self.data_files[index].r
                 regions = self.selections[i][index]
                 p = fl.parameters_from_regions(
-                    f, v, regions, catch_degeneracies=False, method=self.method)
+                    f,
+                    v,
+                    regions,
+                    catch_degeneracies=False,
+                    method=self.method)
                 params = np.append(params, p, axis=0)
             except BaseException:
                 pass
@@ -1147,7 +1141,7 @@ class Color_Selector:
                 self.display_params(params, index)
 
     def inspire_me(self):
-        if can_ml:
+        if _can_ml:
             self.autosave()
             index = simpledialog.askinteger("Index Selection", "Which index?")
             params = auto.quick_analyze(
@@ -1243,7 +1237,7 @@ class Color_Selector:
         bad_areas = []
         for i in range(0, len(self.enhanced_areas)):
             old_area = self.enhanced_areas[i]
-            if check_contains(old_area, new_area):
+            if _check_contains(old_area, new_area):
                 bad_areas.append(i)
                 self.enhanced_renders[i].remove()
         for i in range(len(bad_areas) - 1, -1, -1):
@@ -1297,7 +1291,7 @@ class Color_Selector:
             util.save((self.selections, self.parameters), path)
 
 
-class Point_Selector:
+class _Point_Selector:
     def __init__(self, data_files, fs=[]):
         self.data_files = data_files
         self.picked = []
@@ -1363,7 +1357,7 @@ class Point_Selector:
             color = just_plotted[0].get_color()
             if not self.data_files[i].params is None:
                 pts_f = self.data_files[i].params[..., 1]
-                pts_v = util.scatter_pts(pts_f, f, v)
+                pts_v = util._scatter_pts(pts_f, f, v)
                 self.ax.scatter(pts_f, pts_v + i, color=color, picker=5)
             self.ax.text(f[0], v[0] +
                          i, str(self.data_files[i].T[0]) +
@@ -1399,7 +1393,7 @@ class Point_Selector:
         self.canvas.draw_idle()
 
 
-class Mistake_Selector():
+class _Mistake_Selector():
     def __init__(self, data_files, parameters=None, path=None, method='lm'):
         self.data_files = data_files
         if parameters is None:
@@ -1415,8 +1409,11 @@ class Mistake_Selector():
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=False)
         self.make_button("Done", self.close_window)
-        self.entry = ttk.Combobox(master=self.root, takefocus=False, values=[
-                                  'Curve to Plot'] + [str(i) for i in range(len(self.parameters[0]))])
+        self.entry = ttk.Combobox(
+            master=self.root,
+            takefocus=False,
+            values=['Curve to Plot'] + [str(i)
+                                        for i in range(len(self.parameters[0]))])
         self.entry.bind("<<ComboboxSelected>>", self.callback)
         self.entry.pack(in_=self.controls, side="left")
         self.entry.insert(0, 'Curve to Plot')
@@ -1571,7 +1568,8 @@ class Mistake_Selector():
                 better_T_ind = self.nearest_plot(T_ind, p_ind)
                 p = self.parameters[better_T_ind][p_ind]
                 region = fl.regions_from_parameters(
-                    self.data_files[better_T_ind].f, [p], extension=self.extension)[0]
+                    self.data_files[better_T_ind].f,
+                    [p], extension=self.extension)[0]
                 region = [int(region[0]), int(region[1])]
                 f_reg = self.data_files[T_ind].f[region[0]:region[1]]
                 r_reg = self.data_files[T_ind].r[region[0]:region[1]]
@@ -1673,7 +1671,7 @@ class Mistake_Selector():
         y_delta = np.abs(y1 - y2)
         x_pos = min(x1, x2)
         y_pos = min(y1, y2)
-        self.selection = Selection(x_delta, y_delta, x_pos, y_pos)
+        self.selection = _Selection(x_delta, y_delta, x_pos, y_pos)
 
     def callback(self, event):
         self.new_curve()
@@ -1730,7 +1728,7 @@ class Mistake_Selector():
             self.peak_plot(self.T_ind, self.p_ind)
 
 
-def check_contains(old_area, new_area):
+def _check_contains(old_area, new_area):
     checks = [
         old_area[0] >= new_area[0],
         old_area[1] <= new_area[1],
@@ -1751,8 +1749,8 @@ def color_selection(
     Interactive Lorentzian tracker over a range of temperatures.
     """
     y_res = min(y_res / len(data_files), 1)
-    selector = Color_Selector(data_files, x_res=x_res, y_res=y_res,
-                              cmap=cmap, parameters=parameters, method=method)
+    selector = _Color_Selector(data_files, x_res=x_res, y_res=y_res,
+                               cmap=cmap, parameters=parameters, method=method)
     return fl.parameters_from_selections(
         data_files, (selector.selections, selector.parameters), method=method)
 
@@ -1761,11 +1759,11 @@ def mistake_selection(data_files, parameters=None, path=None, method='lm'):
     """
     Interactive Lorentzian editor over a range of temperatures.
     """
-    m = Mistake_Selector(data_files, parameters, path, method=method)
+    m = _Mistake_Selector(data_files, parameters, path, method=method)
     return m.parameters
 
 
-def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
+def _make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     x = np.empty((0,))
     y = np.empty((0,))
     z = np.empty((0, max_res))
@@ -1791,7 +1789,7 @@ def make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     return ax, pts, colors
 
 
-def points_to_ranges(points, data_files, res):
+def _points_to_ranges(points, data_files, res):
     point_matching = []
     for i in range(0, len(data_files)):
         point_matching.append([])
@@ -1827,7 +1825,7 @@ def live_selection(data_file, params=None, vline=None):
     x = data_file.x
     y = data_file.y
     r = data_file.r
-    live = Live_Instance(f, r)
+    live = _Live_Instance(f, r)
     live.import_all_data(x, y)
     if params is not None:
         live.import_lorentzians(params)
@@ -1844,5 +1842,5 @@ def point_selection(data_files, params=None, fs=[]):
     fs = list(fs)
     if params is not None:
         util.set_all_params(data_files, params)
-    selector = Point_Selector(data_files, fs)
+    selector = _Point_Selector(data_files, fs)
     return np.array(selector.chosen_frequencies)

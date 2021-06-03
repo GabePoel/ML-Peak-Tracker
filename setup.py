@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
     
 setuptools.setup(
     name = 'peak_finder',
-    version = '0.1.3',
+    version = '0.2.1',
     author = 'Gabriel Perko-Engel',
     author_email = 'gpe@berkeley.edu',
     description = 'For finding and processing Lorentzian line shapes.',
@@ -26,7 +26,8 @@ setuptools.setup(
         'scipy',
         'matplotlib', 
         'nptdms', 
-        'pysimplegui'
+        'pysimplegui',
+        'tensorflow'
         ],
     # package_data = {
     #     # Include anything found in the "trained_models" subdirectory

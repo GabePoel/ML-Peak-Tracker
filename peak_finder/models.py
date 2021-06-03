@@ -1,11 +1,11 @@
-import tensorflow as tf
-from tensorflow import keras
+"""
+Various pre-made machine learning models made with the built in `peak_finder`
+tools and provided by default.
+"""
+
+from . import utilities as util
 from tensorflow.keras.models import load_model
 import os
-try:
-    from . import utilities as util
-except BaseException:
-    import utilities as util
 
 
 def simple_lorentzian():
@@ -27,7 +27,8 @@ def simple_lorentzian():
 
 def tight_lorentzian():
     """
-    A model detecting Lorentzians on noisy and non-flat data. But, only finds them if the window is very tightly centered. Often misses narrow peaks.
+    A model detecting Lorentzians on noisy and non-flat data. But, only finds
+    them if the window is very tightly centered. Often misses narrow peaks.
     """
     try:
         model = load_model(os.path.join(
@@ -44,7 +45,9 @@ def tight_lorentzian():
 
 def wide_lorentzian():
     """
-    A robust model that detects Lorentzians on noisy and non-flat data. But, often has a very wide area around the Lorentzians that might then need futher processing.
+    A robust model that detects Lorentzians on noisy and non-flat data. But,
+    often has a very wide area around the Lorentzians that might then need
+    futher processing.
     """
     try:
         model = load_model(os.path.join(
@@ -61,7 +64,8 @@ def wide_lorentzian():
 
 def split_lorentzian():
     """
-    A model that tells whether there are one or two Lorentzians in the given input.
+    A model that tells whether there are one or two Lorentzians in the given
+    input.
     """
     try:
         model = load_model(os.path.join(
@@ -77,6 +81,9 @@ def split_lorentzian():
 
 
 def import_model(path=None):
+    """
+    Import a model made with peak_finder but not provided here.
+    """
     if path is None:
         model = load_model(util.load_file(path=path))
     return model

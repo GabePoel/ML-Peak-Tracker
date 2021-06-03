@@ -1,10 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
+"""
+Generates Lorentzians and provides functional forms for fitting.
+"""
 
 from . import classify_data as cd
 from . import utilities as util
-
-# Generates Lorentzians and provides functional forms for fitting.
+import numpy as np
 
 
 def in_phase_lorentz(A, f0, FWHM, f):
@@ -83,10 +83,7 @@ def generate_noise(f, amount=1, width=1):
 def generate_normalized_data(
     include_noise=True,
     max_num_lorentz=16,
-    scale=(
-        0,
-        1,
-        1024)):
+    scale=(0, 1, 1024)):
     """
     Generates data that's already pre-normalized to the provided scale.
     """
@@ -137,7 +134,8 @@ def multi_lorentz(f, A_arr, f0_arr, FWHM_arr, phase_arr):
 
 def multi_lorentz_2d(f, params):
     """
-    Generates a combined sum of numerous Lorentzians given a single 2D array of parameters.
+    Generates a combined sum of numerous Lorentzians given a single 2D array of
+    parameters.
     """
     params = util.remove_nans(params)
     A_arr = params[:, [0]]

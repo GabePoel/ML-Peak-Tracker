@@ -1,15 +1,19 @@
-import numpy as np
-import PySimpleGUI as sg
-from scipy.optimize import least_squares
+"""
+Backend for fitting (what I hope is) every concievable type of Lorentzian.
+"""
 
 from . import generate_lorentz as gl
 from . import classify_data as cd
 from . import utilities as util
+import numpy as np
+import PySimpleGUI as sg
+from scipy.optimize import least_squares
 
 
 def estimate_parameters(f, v, n=1, estimate_background=True):
     """
-    Given some frequency and displacement data as well as how many Lorentzians are in it, will ballpark some approximate parameters.
+    Given some frequency and displacement data as well as how many Lorentzians
+    are in it, will ballpark some approximate parameters.
     """
     max_f = max(f)
     min_f = min(f)
@@ -71,7 +75,11 @@ def lorentz_residual_fit(p, f, z):
 def multi_lorentz_fit(p, f):
     """
     An arbitrary number of Lorentzians for fitting.
-    p = array([Amplitude 1, Amplitude 2, ..., Center Frequency 1, Center Frequency 2, ..., Full Width at Half Maximum 1, Full Width at Half Maximum 2, ..., Phase 1, Phase 2, ...])
+    p = array([
+        Amplitude 1, Amplitude 2, ...,
+        Center Frequency 1, Center Frequency 2, ...,
+        Full Width at Half Maximum 1, Full Width at Half Maximum 2, ...,
+        Phase 1, Phase 2, ...])
     """
     slope = p[-1]
     offset = p[-2]
@@ -137,11 +145,7 @@ def set_n_least_squares(
                 ftol=ftol,
                 gtol=gtol,
                 xtol=xtol,
-                args=(
-                    f,
-                    v,
-                    np.ones(
-                        len(f))),
+                args=(f, v, np.ones(len(f))),
                 method='lm')
         except BaseException:
             fit = least_squares(
@@ -150,11 +154,7 @@ def set_n_least_squares(
                 ftol=ftol,
                 gtol=gtol,
                 xtol=xtol,
-                args=(
-                    f,
-                    v,
-                    np.ones(
-                        len(f))),
+                args=(f, v, np.ones(len(f))),
                 bounds=bounds)
     elif method == 'trf':
         try:
@@ -164,11 +164,7 @@ def set_n_least_squares(
                 ftol=ftol,
                 gtol=gtol,
                 xtol=xtol,
-                args=(
-                    f,
-                    v,
-                    np.ones(
-                        len(f))),
+                args=(f, v, np.ones(len(f))),
                 method='trf',
                 bounds=bounds)
         except BaseException:
@@ -178,11 +174,7 @@ def set_n_least_squares(
                 ftol=ftol,
                 gtol=gtol,
                 xtol=xtol,
-                args=(
-                    f,
-                    v,
-                    np.ones(
-                        len(f))),
+                args=(f, v, np.ones(len(f))),
                 bounds=bounds)
     elif method == 'dogbox':
         try:
@@ -192,11 +184,7 @@ def set_n_least_squares(
                 ftol=ftol,
                 gtol=gtol,
                 xtol=xtol,
-                args=(
-                    f,
-                    v,
-                    np.ones(
-                        len(f))),
+                args=(f, v, np.ones(len(f))),
                 method='dogbox',
                 bounds=bounds)
         except BaseException:
@@ -206,11 +194,7 @@ def set_n_least_squares(
                 ftol=ftol,
                 gtol=gtol,
                 xtol=xtol,
-                args=(
-                    f,
-                    v,
-                    np.ones(
-                        len(f))),
+                args=(f, v, np.ones(len(f))),
                 bounds=bounds)
     else:
         fit = least_squares(
@@ -219,11 +203,7 @@ def set_n_least_squares(
             ftol=ftol,
             gtol=gtol,
             xtol=xtol,
-            args=(
-                f,
-                v,
-                np.ones(
-                    len(f))),
+            args=(f, v, np.ones(len(f))),
             bounds=bounds)
     return fit, check_bounds(
         fit.x, bounds, noise_filter=noise_filter, delta_f=delta_f)
@@ -267,7 +247,8 @@ def fit_regions(
         force_fit=False,
         method='lm'):
     """
-    Given frequency data, displacement data, and a regions array, will return a list of proposed Lorentzian parameters.
+    Given frequency data, displacement data, and a regions array, will return a
+    list of proposed Lorentzian parameters.
     """
     p_list = []
     import matplotlib.pyplot as plt
@@ -300,7 +281,8 @@ def fit_regions(
 
 def extract_parameters(p_list, noise_filter=0):
     """
-    Given a list of Lorentzian parameters and a noise level, will return a complete and usable numpy array of the parameters.
+    Given a list of Lorentzian parameters and a noise level, will return a
+    complete and usable numpy array of the parameters.
     """
     p_table = np.empty((0, 4))
     for i in range(0, len(p_list)):
@@ -324,7 +306,8 @@ def parameters_from_regions(
         force_fit=False,
         method='lm'):
     """
-    Given regions for analysis, frequency, displacement, will return parameters for the fit Lorentzians.
+    Given regions for analysis, frequency, displacement, will return parameters
+    for the fit Lorentzians.
     """
     if len(regions) == 0:
         return np.empty((0, 4))
@@ -411,7 +394,8 @@ def check_bounds(p, bounds, noise_filter=0, delta_f=None):
 
 def lorentz_to_data(p, f, v=None, expansion=2):
     """
-    Input: One row of extracted (final) parameters, f data, and v data if you want to approximate offset.
+    Input: One row of extracted (final) parameters, f data, and v data if you
+        want to approximate offset.
     Output: The f and v data of the fit Lorentzian within twice the FWHM.
     """
     offset = 0
@@ -479,7 +463,8 @@ def full_lorentz_bounds_to_data(p, f, v, expansion=2):
 def catch_degeneracies(p1, p2, f, allowed_delta_ind=10):
     """
     Input: Two elements of p_table and f data.
-    Output: Whether or not they are fitting to the same Lorentzian. True if they are. False if they aren't.
+    Output: Whether or not they are fitting to the same Lorentzian. True if
+    they are. False if they aren't.
     """
     delta_ind = util.compare_lorentz(p1, p2, f)
     degenerate = delta_ind < allowed_delta_ind

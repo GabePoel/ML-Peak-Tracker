@@ -4,17 +4,16 @@ needed for model fitting. Generally use this unless you need everything else
 that `generate_data` provides.
 """
 
-import multiprocessing as mp
-import numpy as np
-import sys
-import os
-import shutil
-import zipfile
-
 from . import classify_data as cd
 from . import generate_data as gd
 from . import generate_lorentz as gl
 from . import utilities as util
+import multiprocessing as mp
+import numpy as np
+import os
+import shutil
+import zipfile
+# import sys
 
 
 def make_massive_data_set(number, scale=(0, 1, 1024), noise=True):

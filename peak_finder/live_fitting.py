@@ -3,6 +3,13 @@ Interactive utilities to guide the fitting over real data. This contains much
 of the real workhorse of the peak finding process.
 """
 
+__all__ = [
+    'preview',
+    'color_selection',
+    'mistake_selection',
+    'live_selection',
+    'point_selection']
+
 from scipy import interpolate
 from scipy.signal import savgol_filter
 from scipy.optimize import curve_fit
@@ -12,18 +19,14 @@ from matplotlib.widgets import (
     RectangleSelector,
     PolygonSelector,
     Cursor,
-    LassoSelector
-)
+    LassoSelector)
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg,
-    NavigationToolbar2Tk
-)
+    NavigationToolbar2Tk)
 from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from matplotlib.figure import Figure
-from tkinter import ttk
-from tkinter import simpledialog
-import PySimpleGUI as sg
+from tkinter import (ttk, simpledialog)
 import tkinter as tk
 import numpy as np
 

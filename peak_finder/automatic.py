@@ -4,6 +4,11 @@ from . import live_fitting as lf
 from . import models
 import numpy as np
 
+"""
+Tools for quick and dirty automatic fitting using un-tweaked built in machine
+learning models.
+"""
+
 
 def quick_analyze(f, v, show=True, learn=True):
     """
@@ -51,7 +56,7 @@ def quick_analyze(f, v, show=True, learn=True):
     else:
         parameters = np.empty((0, 4))
     if show:
-        live = lf.Live_Instance(f, v)
+        live = lf._Live_Instance(f, v)
         live.import_lorentzians(parameters)
         live.activate()
         parameters = live.get_all_params()

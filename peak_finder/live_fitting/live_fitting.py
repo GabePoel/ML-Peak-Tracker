@@ -1,8 +1,3 @@
-"""
-Interactive utilities to guide the fitting over real data. This contains much
-of the real workhorse of the peak finding process.
-"""
-
 __all__ = [
     'preview',
     'color_selection',
@@ -75,8 +70,7 @@ _option_colors = {
     "Blue Red Green": "brg",
     "GIST Rainbow": "gist_rainbow",
     "Rainbow": "rainbow",
-    "Jet": "jet"
-}
+    "Jet": "jet"}
 
 _option_select_colors = {
     "Blue": "tab:blue",
@@ -90,8 +84,7 @@ _option_select_colors = {
     "Olive": "tab:olive",
     "Cyan": "tab:cyan",
     "Black": "black",
-    "White": "white"
-}
+    "White": "white"}
 
 
 def _lin(x, a, b):
@@ -371,9 +364,7 @@ class _Live_Instance():
             self.on_select,
             drawtype='box',
             useblit=False,
-            button=[
-                1,
-                3],
+            button=[1, 3],
             minspanx=5,
             minspany=5,
             spancoords='pixels',
@@ -393,9 +384,7 @@ class _Live_Instance():
             self.on_select,
             drawtype='box',
             useblit=False,
-            button=[
-                1,
-                3],
+            button=[1, 3],
             minspanx=5,
             minspany=5,
             spancoords='pixels',
@@ -600,7 +589,10 @@ class _Color_Selector:
 
     def setup_plot(self):
         self.ax, self.collection, self.colors = _make_colors(
-            self.data_files, max_res=self.x_res, y_res=self.y_res, cmap=self.cmap)
+            self.data_files, 
+            max_res=self.x_res, 
+            y_res=self.y_res, 
+            cmap=self.cmap)
         self.fig = self.ax.figure
         self.fig.set_size_inches(16, 9)
         self.xys = self.collection.get_offsets()
@@ -651,8 +643,15 @@ class _Color_Selector:
                 fill=True))
         self.rec_select.disconnect_events()
         self.alt_rec_select = RectangleSelector(
-            self.ax, self.on_rec_delete, useblit=True, drawtype="box", rectprops=dict(
-                facecolor='grey', edgecolor='red', alpha=0.2, fill=True))
+            self.ax, 
+            self.on_rec_delete, 
+            useblit=True, 
+            drawtype="box", 
+            rectprops=dict(
+                facecolor='grey', 
+                edgecolor='red', 
+                alpha=0.2, 
+                fill=True))
         self.alt_rec_select.disconnect_events()
         self.lasso_select = LassoSelector(
             self.ax, self.make_curve, lineprops={'color': 'white'})
@@ -1454,9 +1453,7 @@ class _Mistake_Selector():
             self.on_select,
             drawtype='box',
             useblit=True,
-            button=[
-                1,
-                3],
+            button=[1, 3],
             minspanx=5,
             minspany=5,
             spancoords='pixels',

@@ -1,14 +1,10 @@
 import numpy as np
 import PySimpleGUI as sg
 from scipy.optimize import least_squares
-try:
-    from . import generate_lorentz as gl
-    from . import classify_data as cd
-    from . import utilities as util
-except BaseException:
-    import generate_lorentz as gl
-    import classify_data as cd
-    import utilities as util
+
+from . import generate_lorentz as gl
+from . import classify_data as cd
+from . import utilities as util
 
 
 def estimate_parameters(f, v, n=1, estimate_background=True):

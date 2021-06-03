@@ -1,19 +1,16 @@
 import numpy as np
-try:
-    from . import classify_data as cd
-    from . import utilities as util
-except BaseException:
-    import classify_data as cd
-    import utilities as util
+
+from . import classify_data as cd
+from . import utilities as util
 
 # Break down into several different size scales
 # For each size scale, slide over window and say if there is a Lorentzian
 # there or not
 
 
-def flip_bool(a):
+def _flip_bool(a):
     """
-    Flips the bit of the provided input. It's recommended to use bit_invert()
+    Flips the bit of the provided input. It's recommended to use _bit_invert()
     in utilities instead.
 
     Parameters
@@ -103,14 +100,14 @@ def compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     window_size = np.ceil(scale[2] / zoom)
     offset = window_size * overlap
     has_lorentz = np.ones(scale[2])
-    labels = flip_bool(labels)
+    labels = _flip_bool(labels)
     for i in range(0, len(labels)):
         start_index = int(i * offset)
         end_index = int(start_index + window_size)
         set_value = int(labels[i])
         set_indices = np.ones((1, end_index - start_index)) * set_value
         has_lorentz[start_index:end_index] = has_lorentz[start_index:end_index] * set_indices
-    has_lorentz = flip_bool(has_lorentz)
+    has_lorentz = _flip_bool(has_lorentz)
     return find_regions(has_lorentz)
 
 
@@ -177,7 +174,7 @@ def slide_scale(
         else:
             prediction_scores = model.predict(window_list[i])
             if target == 0:
-                prediction_scores = util.bit_invert(prediction_scores)
+                prediction_scores = util._bit_invert(prediction_scores)
             prediction_scores[:, 1] -= confidence_tolerance
             predictions = np.argmax(prediction_scores, axis=1)
         if i >= min_zoom:
@@ -191,7 +188,7 @@ def slide_scale(
         regions = compress_regions(regions, merge_tolerance=merge_tolerance)
     regions = util.drop_region(cd.normalize_index(regions, scale, final_scale))
     if simplify:
-        regions = util.drop_region(util.simplify_regions(regions))
+        regions = util.drop_region(util._simplify_regions(regions))
     return regions
 
 
@@ -375,7 +372,7 @@ def split_peaks(
             regions[i][0],
             axis=0)
     return util.drop_region(
-        util.simplify_regions(split_regions),
+        util._simplify_regions(split_regions),
         min_data_points)
 
 

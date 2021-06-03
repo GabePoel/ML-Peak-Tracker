@@ -1,20 +1,16 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
-from matplotlib.widgets import Button
-try:
-    from . import classify_data as cd
-    from . import fit_lorentz as fl
-    from . import utilities as util
-except BaseException:
-    import classify_data as cd
-    import fit_lorentz as fl
-    import utilities as util
-
 """
 A set of tools that let you "spy" into the data you're working with to see how
 the models are working.
 """
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+from matplotlib.widgets import Button
+
+from . import classify_data as cd
+from . import fit_lorentz as fl
+from . import utilities as util
 
 def plot_count(i, count_predictions, count_label, count_data):
     """

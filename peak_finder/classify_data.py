@@ -1,15 +1,12 @@
-import numpy as np
-import multiprocessing as mp
-import scipy.interpolate as interp
-try:
-    from . import utilities as util
-except BaseException:
-    import utilities as util
-
 """
 Handles most if not all of the data preprocessing.
 """
 
+import numpy as np
+import multiprocessing as mp
+import scipy.interpolate as interp
+
+from . import utilities as util
 
 def arr_to_tup(a):
     """
@@ -319,11 +316,11 @@ def normalize_index(x, input_scale, output_scale):
 
 
 def normalize_data(
-    background_params,
-    lorentz_params,
-    f,
-    v,
-    scale=(0, 1, 1024)):
+        background_params,
+        lorentz_params,
+        f,
+        v,
+        scale=(0, 1, 1024)):
     """
     Normalizes a data set.
     """

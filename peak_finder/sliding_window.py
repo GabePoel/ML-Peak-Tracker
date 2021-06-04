@@ -59,7 +59,7 @@ def find_regions(has_lorentz):
     return regions
 
 
-def decompose_by_scale(v, zoom, scale=(0, 1, 1024), overlap=1 / 4):
+def _decompose_by_scale(v, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     """
     Given the provided zoom level, will decompose into an array of many small
     windows.
@@ -77,7 +77,7 @@ def decompose_by_scale(v, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     return windows
 
 
-def decompose_all(
+def _decompose_all(
         v,
         num_zooms,
         scale=(0, 1, 1024),
@@ -91,12 +91,12 @@ def decompose_all(
         return [v]
     windows_list = []
     for i in range(0, num_zooms):
-        windows_list.append(decompose_by_scale(
+        windows_list.append(_decompose_by_scale(
             v, zoom_level ** i, scale=scale, overlap=overlap))
     return windows_list
 
 
-def compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
+def _compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     """
     Given an array of windows at a specific zoom level, will return the
     corresponding region array.
@@ -115,7 +115,7 @@ def compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
     return find_regions(has_lorentz)
 
 
-def compose_all(labels_list, scale=(0, 1, 1024), overlap=1 / 4, zoom_level=2):
+def _compose_all(labels_list, scale=(0, 1, 1024), overlap=1 / 4, zoom_level=2):
     """
     Given a list of window arrays, will return the entire corresponding region
     array.
@@ -125,7 +125,7 @@ def compose_all(labels_list, scale=(0, 1, 1024), overlap=1 / 4, zoom_level=2):
         if labels_list[i] is not None:
             regions = np.append(
                 regions,
-                compose_by_scale(
+                _compose_by_scale(
                     labels_list[i],
                     zoom_level ** i,
                     scale=scale,
@@ -159,7 +159,7 @@ def slide_scale(
     final_scale = cd.scale_1d(v)
     if merge_tolerance is None:
         merge_tolerance = 0.8 * (1 - overlap)
-    window_list = decompose_all(
+    window_list = _decompose_all(
         v, max_zoom, scale, overlap, zoom_level=zoom_level)
     prediction_list = []
     for i in util._progressbar(
@@ -182,7 +182,7 @@ def slide_scale(
             prediction_list.append(predictions)
         else:
             prediction_list.append(None)
-    regions = compose_all(prediction_list, scale=scale,
+    regions = _compose_all(prediction_list, scale=scale,
                           overlap=overlap, zoom_level=zoom_level)
     regions.sort(axis=0)
     if compress:

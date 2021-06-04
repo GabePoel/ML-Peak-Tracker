@@ -1723,7 +1723,7 @@ class _Mistake_Selector():
             self.zoom_in()
             self.mark_curves(self.T_ind)
             self.peak_plot(self.T_ind, self.p_ind)
-        elif event.key == 'r':
+        elif event.key == 'h':
             self.reset_zoom()
             self.mark_curves(self.T_ind)
             self.peak_plot(self.T_ind, self.p_ind)
@@ -1861,9 +1861,13 @@ def color_selection(
         in Enhance! mode.
     shift
         Draw a perfectly square area in Enhance! mode.
+    enter
+        Commit current selection for fitting.
     
     """
     y_res = min(y_res / len(data_files), 1)
+    if len(parameters) == 2:
+        parameters = parameters[1]
     selector = _Color_Selector(data_files, x_res=x_res, y_res=y_res,
                                cmap=cmap, parameters=parameters, method=method)
     return fl.parameters_from_selections(
@@ -1901,7 +1905,32 @@ def mistake_selection(data_files, parameters=None, path=None, method='lm'):
 
     Shortcuts
     ---------
-    WIP
+    h
+        Return to "home" view. This resets the canvas to view all sweeps and
+        frequencies.
+    i
+        Zoom in.
+    o
+        Zoom out.
+    1
+        Fit a Lorentzian using a Trust Region Reflective algorithm. See
+        `<scipy.optimize.least_squares>`.
+    2
+        Fit a Lorentzian using a Levenberg-Marquardt algorithm. See 
+        `<scipy.optimize.least_squares>`.
+    3
+        Fit a Lorentzian using a Dogleg algorithm with rectangular trust 
+        regions. See `<scipy.optimize.least_squares>`.
+    up
+        View the next peak.
+    down
+        View the previous peak.
+    left
+        Pan to the left.
+    right
+        Pan to the right.
+    enter
+        Commit current selection for fitting.
     """
     m = _Mistake_Selector(data_files, parameters, path, method=method)
     return m.parameters

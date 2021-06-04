@@ -22,10 +22,7 @@ def passive_train(
         name='unnamed_model',
         location=None,
         data_size=10000,
-        scale=(
-            0,
-            1,
-            1024),
+        scale=(0, 1, 1024),
         expansion=2,
         noise=True,
         epochs=1000,

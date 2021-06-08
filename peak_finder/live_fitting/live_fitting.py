@@ -1866,7 +1866,7 @@ def color_selection(
     
     """
     y_res = min(y_res / len(data_files), 1)
-    if len(parameters) == 2:
+    if not parameters is None and len(parameters) == 2:
         parameters = parameters[1]
     selector = _Color_Selector(data_files, x_res=x_res, y_res=y_res,
                                cmap=cmap, parameters=parameters, method=method)

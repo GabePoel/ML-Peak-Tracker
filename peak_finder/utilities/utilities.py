@@ -52,6 +52,8 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as interp
 from tkinter import filedialog
 from nptdms import TdmsFile
+from time import sleep
+from tqdm import tqdm
 
 
 def _open_file():
@@ -90,7 +92,7 @@ def _open_folder():
 if 'linux' in sys.platform:
     import gi
     gi.require_version("Gtk", "3.0")
-    from gi.repository import Gtk
+    from gi.repository import Gtk, Gdk, GLib
 
     def _quick_buttons(dialog):
         """
@@ -104,56 +106,96 @@ if 'linux' in sys.platform:
         """
         GTK backend file dialog for opening a single file.
         """
-        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
-        _quick_buttons(dialog)
-        dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        dialog.run()
-        path = dialog.get_filename()
-        dialog.destroy()
-        return path
+        result = []
+
+        def _open_file_helper(_None):
+            """
+            Wrapped file opening file dialog window class.
+            """
+            dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
+            _quick_buttons(dialog)
+            dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+            dialog.run()
+            path = dialog.get_filename()
+            dialog.destroy()
+            Gtk.main_quit()
+            result.append(path)
+        Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT, _open_file_helper, None)
+        Gtk.main()
+        return result[0]
 
     def _open_files():
         """
         GTK backend file dialog for opening multiple files.
         """
-        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
-        dialog.set_select_multiple(True)
-        _quick_buttons(dialog)
-        dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        dialog.run()
-        paths = dialog.get_filenames()
-        dialog.destroy()
-        return paths
+        result = []
+
+        def _open_files_helper(_None):
+            """
+            Wrapped multiple file opening file dialog window class.
+            """
+            dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
+            dialog.set_select_multiple(True)
+            _quick_buttons(dialog)
+            dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+            dialog.run()
+            paths = dialog.get_filenames()
+            dialog.destroy()
+            Gtk.main_quit()
+            result.append(paths)
+        Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT, _open_files_helper, None)
+        Gtk.main()
+        return result[0]
 
     def _save_file(filters=[], name=''):
         """
         GTK backend file dialog for saving a single file.
         """
-        dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE)
-        _quick_buttons(dialog)
-        dialog.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-        # for f in filters:
-        #     filter_text = Gtk.FileFilter()
-        #     filter_text.set_name(f[0])
-        #     dialog.add_filter(filter_text)
-        dialog.run()
-        path = os.path.join(dialog.get_current_folder(),
-                            dialog.get_current_name())
-        dialog.destroy()
-        return path
+        result = []
+
+        def _save_file_helper(filters=[], name=''):
+            """
+            Wrapped file saving file dialog window class.
+            """
+            dialog = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.SAVE)
+            _quick_buttons(dialog)
+            dialog.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+            # for f in filters:
+            #     filter_text = Gtk.FileFilter()
+            #     filter_text.set_name(f[0])
+            #     dialog.add_filter(filter_text)
+            dialog.run()
+            path = os.path.join(dialog.get_current_folder(),
+                                dialog.get_current_name())
+            dialog.destroy()
+            Gtk.main_quit()
+            result.append(path)
+        Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT, _save_file_helper, None)
+        Gtk.main()
+        return result[0]
 
     def _open_folder():
         """
         GTK backend file dialog for opening a folder.
         """
-        dialog = Gtk.FileChooserDialog(
-            action=Gtk.FileChooserAction.SELECT_FOLDER)
-        _quick_buttons(dialog)
-        dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        dialog.run()
-        path = dialog.get_filename()
-        dialog.destroy()
-        return path
+        result = []
+
+        def _open_folder_helper(_None):
+            """
+            Wrapped folder opening file dialog window class.
+            """
+            dialog = Gtk.FileChooserDialog(
+                action=Gtk.FileChooserAction.SELECT_FOLDER)
+            _quick_buttons(dialog)
+            dialog.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+            dialog.run()
+            path = dialog.get_filename()
+            dialog.destroy()
+            Gtk.main_quit()
+            result.append(path)
+        Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT, _open_folder_helper, None)
+        Gtk.main()
+        return result[0]
 
 # Holds utilities that many parts of the peak tracker use.
 
@@ -1005,13 +1047,20 @@ def import_tdms_files(paths=[], show=True):
     """
     paths = load_files(paths)
     data_files = []
-    for p in paths:
-        if p[-5:] == '.tdms':
-            stamp = os.path.basename(p)[:-5]
-            data_file = _import_file(p)
-            data_file._import_meta(stamp)
-            data_file._set_temp()
-            data_files.append(data_file)
+    if show:
+        print(paths)
+    i = 0
+    with tqdm(total=len(paths), file=sys.stdout) as pbar:
+        for p in paths:
+            pbar.set_description('Imported: %d' % (1 + i))
+            pbar.update(1)
+            sleep(0.01)
+            if p[-5:] == '.tdms':
+                stamp = os.path.basename(p)[:-5]
+                data_file = _import_file(p)
+                data_file._import_meta(stamp)
+                data_file._set_temp()
+                data_files.append(data_file)
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     print('Imported file order:')
     for i in range(len(data_files)):
@@ -1048,14 +1097,20 @@ def import_tdms_dir(path=None, show=True):
     data_files = []
     if show:
         print(path)
-    for name in names:
-        if name[-5:] == '.tdms':
-            stamp = name[:-5]
-            file_path = os.path.join(path, name)
-            data_file = _import_file(file_path)
-            data_file._import_meta(stamp)
-            data_file._set_temp()
-            data_files.append(data_file)
+    i = 0
+    with tqdm(total=len(names), file=sys.stdout) as pbar:
+        for name in names:
+            pbar.set_description('Imported: %d' % (1 + i))
+            pbar.update(1)
+            sleep(0.01)
+            if name[-5:] == '.tdms':
+                stamp = name[:-5]
+                file_path = os.path.join(path, name)
+                data_file = _import_file(file_path)
+                data_file._import_meta(stamp)
+                data_file._set_temp()
+                data_files.append(data_file)
+
     data_files.sort(key=lambda d: int(str(d.date) + str(d.time)))
     return data_files
 

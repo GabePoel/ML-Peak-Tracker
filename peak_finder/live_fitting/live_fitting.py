@@ -1636,11 +1636,11 @@ class _Mistake_Selector():
         button.pack(in_=self.controls, side="left")
 
     def close_window(self):
-        if self.path is None:
-            try:
-                self.save()
-            except BaseException:
-                pass
+        # if self.path is None:
+        #     try:
+        #         self.save()
+        #     except BaseException:
+        #         pass
         self.autosave()
         self.canvas._tkcanvas.pack_forget()
         self.toolbar.pack_forget()

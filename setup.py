@@ -27,7 +27,8 @@ setuptools.setup(
         'matplotlib', 
         'nptdms', 
         'pysimplegui',
-        'tensorflow'
+        'tensorflow',
+        'tqdm',
         ],
     # package_data = {
     #     # Include anything found in the "trained_models" subdirectory

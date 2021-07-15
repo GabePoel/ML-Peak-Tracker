@@ -541,6 +541,7 @@ class _Color_Selector:
         self.y_res = y_res
         self.cmap = cmap
         self.data_files = data_files
+        self.temps = util.get_temperatures(data_files)
         self.parameters = parameters
         self.method = method
         self.setup_plot()
@@ -673,7 +674,7 @@ class _Color_Selector:
             self.cursor.set_active(True)
             self.rec_select.connect_default_events()
             self.rec_select.set_visible(True)
-        elif self.mode == 'preview':
+        elif self.mode == 'preview' or self.mode == 'temp':
             self.pre_cursor.set_active(True)
             self.pick = self.canvas.mpl_connect(
                 'button_release_event', self.on_pre_click)
@@ -832,6 +833,8 @@ class _Color_Selector:
             self.commit_trace()
         elif event.key == 'o':
             self.toggle_smooth()
+        elif event.key == 'k':
+            self.what_temperature()
 
     def disconnect(self):
         self.autosave()
@@ -1132,6 +1135,9 @@ class _Color_Selector:
     def horizontal_selection(self):
         self.set_mode('preview')
 
+    def what_temperature(self):
+        self.set_mode('temp')
+
     def on_pre_click(self, event):
         if self.mode == 'preview':
             index = int(np.round(event.ydata))
@@ -1142,6 +1148,13 @@ class _Color_Selector:
                 self.set_mode('select')
                 params = self.find_params(index, x)
                 self.display_params(params, index)
+        elif self.mode == 'temp':
+            index = int(np.round(event.ydata))
+            if index >= 0 and index < len(self.data_files):
+                temp = self.temps[index]
+                tk.messagebox.showinfo('Temperature', 
+                    'Temperature of index ' + 
+                    str(index) + ': ' + str(temp) + ' K')
 
     def inspire_me(self):
         if _can_ml:
@@ -1818,6 +1831,10 @@ def color_selection(
         `automatic` that finds peaks on the selected sweep. This is useful when
         peaks are low amplitude and you're trying to find them without looking
         carefully over all frequencies by eye.
+    k
+        Lets you see the temperature of a given index. Just click on a spot on
+        the color plot to see the temperature there. This shortcut is a toggle.
+        So, press it again to turn temperature preview off.
     m
         Stands for "move." Toggles the panning tool.
     o

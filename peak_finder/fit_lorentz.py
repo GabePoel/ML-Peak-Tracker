@@ -509,10 +509,11 @@ def parameters_from_selections(
         force_fit=False,
         method='lm'):
     region_selections = clean_selections(region_selections)
-    sg.one_line_progress_meter_cancel('-key-')
+    sg.one_line_progress_meter_cancel(key='Fitting progress so far:')
     all_peaks = []
     counter = 0
     region_selections, params_selections = region_selections[0], region_selections[1]
+    do_fitting = True
     for i in util._progressbar(
             range(0, len(data_files)),
             "Fitting: ",
@@ -520,31 +521,44 @@ def parameters_from_selections(
         all_peaks.append(np.empty((0, 4)))
         for j in range(0, len(region_selections)):
             try:
-                sg.one_line_progress_meter(
-                    'Overall Fitting Progress',
-                    counter,
-                    len(data_files) *
-                    len(region_selections),
-                    '-key-')
+                if do_fitting:
+                    do_fitting = sg.one_line_progress_meter(
+                        'Overall Fitting Progress',
+                        counter + 1,
+                        len(data_files) *
+                        len(region_selections),
+                        key='Fitting progress so far:')
                 f = data_files[i].f
                 v = data_files[i].r
                 regions = region_selections[j][i]
-                params = parameters_from_regions(
-                    f,
-                    v,
-                    regions,
-                    allowed_delta_ind=allowed_delta_ind,
-                    catch_degeneracies=False,
-                    noise_filter=noise_filter,
-                    force_fit=force_fit,
-                    method=method)
+                if do_fitting:
+                    params = parameters_from_regions(
+                        f,
+                        v,
+                        regions,
+                        allowed_delta_ind=allowed_delta_ind,
+                        catch_degeneracies=False,
+                        noise_filter=noise_filter,
+                        force_fit=force_fit,
+                        method=method)
+                else:
+                    pnan = np.array([[np.nan, np.nan, np.nan, np.nan]])
+                    params = np.array([[np.nan, np.nan, np.nan, np.nan]])
+                    for i in range(len(regions) - 1):
+                        params = np.append(params, pnan, axis=1)
                 if len(params) == 0:
                     params = np.array([[np.nan, np.nan, np.nan, np.nan]])
             except BaseException:
                 params = np.array([[np.nan, np.nan, np.nan, np.nan]])
             all_peaks[i] = np.append(all_peaks[i], params, axis=0)
             counter += 1
-    sg.one_line_progress_meter_cancel('-key-')
+    if not do_fitting:
+        do_fitting = sg.one_line_progress_meter(
+                            'Overall Fitting Progress',
+                            len(data_files) * len(region_selections) - 1,
+                            len(data_files) * len(region_selections),
+                            key='Fitting progress so far:')
+    sg.one_line_progress_meter_cancel(key='Fitting progress so far:')
     all_peaks = np.array(all_peaks)
     if params_selections is not None:
         all_peaks = util.append_params_3d(all_peaks, params_selections)

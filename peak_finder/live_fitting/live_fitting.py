@@ -199,10 +199,12 @@ class _Live_Instance():
         self.fig = Figure()
         self.fig.set_size_inches(16, 9)
         self.ax = self.fig.add_subplot(111)
-        self.root = tk.Tk()
+        self.root = tk.Tk(baseName='interactiveSession', className='liveSelector')
         self.root.wm_title("Live Peak Finder")
         self.controls = tk.Frame(self.root)
+        self.plot_bar = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=False)
+        self.plot_bar.pack(side="top", fill="both", expand=False)
         self.slow_render = True
         if loop:
             self.make_button("Done", command=self.close_window)
@@ -223,9 +225,10 @@ class _Live_Instance():
         self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
         self.separator = ttk.Separator(self.root)
         self.separator.pack(in_=self.controls, side="left", padx=2)
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.controls)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.plot_bar)
         self.toolbar.update()
-        self.canvas._tkcanvas.pack()
+        # self.canvas._tkcanvas.pack()
+        self.canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
         self.plot_lorentzians()
         self.add_lorentz()
         if loop:
@@ -529,6 +532,11 @@ class _Live_Instance():
 
 
 class _Color_Selector:
+    """
+    The class containing all the information for the interactive color plot
+    session.
+    """
+
     def __init__(
             self,
             data_files,
@@ -537,6 +545,43 @@ class _Color_Selector:
             cmap='cool',
             parameters=None,
             method='lm'):
+        """
+        Initial call the build the `_Color_Selector`.
+
+        Parameters
+        ----------
+        data_files : list
+            List of data files to process and display.
+        x_res : int, optional
+            Initial resolution of the displayed x-axis. Default is `1000` but
+            can be set higher or lower depending on what sort of graphics your
+            computer can handle. The maximum value is the length of the
+            frequency array in each data file. The x-axis is the frequency
+            axis.
+        y_res : int, optional
+            Initial resolution of the displayed y-axis. Default is `100` but
+            can be set higher or lower depending on what sort of graphics your
+            computer can handle. The maximum value is the length of the list of
+            data files inputted into `data_files`. The y-axis just corresponds
+            to the sweeps in the order that they're given in the inputted list
+            of data files. For a linear change in temperature this means the
+            values displayed are proportional to the temperature. But, they are
+            not the temperature itself.
+        cmap : str, optional
+            Initial colormap used for the displayed plot. Defaults to `viridis`
+            but accepts any colormap that would be usable by `matplotlib`. This
+            can be changed from a selection of other colormaps during the
+            interactive plotting process.
+        parameters : arr, optional
+            Any pre-determined Lorentzian parameters to continue working from.
+            The parameters returned by `color_selection` work for this purpose.
+            This exists so you can save your work during the fitting process
+            and load it again later.
+        method : {'trf', 'dogbox', 'lm'}, optional
+            Fitting method used by the :func: `<scipy.optimize.least_squares>`
+            backend for fitting to Lorentzians. See the documentation on that
+            for more details. You generally do not have to change this.
+        """
         self.x_res = x_res
         self.y_res = y_res
         self.cmap = cmap
@@ -553,7 +598,10 @@ class _Color_Selector:
         tk.mainloop()
 
     def setup_interface(self):
-        self.root = tk.Tk()
+        """
+        Set up the tkinter GUI for interactive with the color plot session.
+        """
+        self.root = tk.Tk(baseName='interactiveSession', className='colorSelector')
         self.root.wm_title("Color Selector")
         self.patch_color = "tab:red"
         self.line_color = "tab:red"
@@ -566,6 +614,7 @@ class _Color_Selector:
         self.make_button("Toggle Displays", command=self.toggle_show)
         self.make_button("Parameter Preview",
                          command=self.horizontal_selection)
+        self.make_button("Point Info", command=self.what_temperature)
         self.make_button("Toggle Enhance!", command=self.enhance)
         self.make_button("(Un)Enhance!", command=self.unenhance)
         self.make_button("Inspire Me", command=self.inspire_me)
@@ -591,10 +640,17 @@ class _Color_Selector:
 
     def setup_plot(self):
         self.ax, self.collection, self.colors = _make_colors(
-            self.data_files, 
-            max_res=self.x_res, 
-            y_res=self.y_res, 
+            self.data_files,
+            max_res=self.x_res,
+            y_res=self.y_res,
             cmap=self.cmap)
+        """
+        Setup the color plot.
+
+        See Also
+        --------
+        `_make_colors`
+        """
         self.fig = self.ax.figure
         self.fig.set_size_inches(16, 9)
         self.xys = self.collection.get_offsets()
@@ -603,6 +659,9 @@ class _Color_Selector:
         self.slight_zoom_out()
 
     def setup_trackers(self):
+        """
+        Define various trackers to hold the data for the interactive session.
+        """
         self.ind = []
         self.selections = []
         self.patches = []
@@ -617,6 +676,12 @@ class _Color_Selector:
         self.smooth = False
 
     def setup_connections(self):
+        """
+        Establish all of the connections relating to the different modes that
+        exist in the color plot session. This handles the definition of all
+        visual selection cues so the user knows that they're doing and what
+        mode they're in.
+        """
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
         self.cursor = Cursor(self.ax, useblit=True,
                              color='blue', linewidth=1, linestyle=":")
@@ -645,14 +710,14 @@ class _Color_Selector:
                 fill=True))
         self.rec_select.disconnect_events()
         self.alt_rec_select = RectangleSelector(
-            self.ax, 
-            self.on_rec_delete, 
-            useblit=True, 
-            drawtype="box", 
+            self.ax,
+            self.on_rec_delete,
+            useblit=True,
+            drawtype="box",
             rectprops=dict(
-                facecolor='grey', 
-                edgecolor='red', 
-                alpha=0.2, 
+                facecolor='grey',
+                edgecolor='red',
+                alpha=0.2,
                 fill=True))
         self.alt_rec_select.disconnect_events()
         self.lasso_select = LassoSelector(
@@ -661,6 +726,15 @@ class _Color_Selector:
         self.press = self.canvas.mpl_connect('key_press_event', self.on_press)
 
     def set_mode(self, mode):
+        """
+        Set which connections are active for the given mode and establish that
+        mode as the current one.
+
+        Parameters
+        ----------
+        mode : string
+            The mode to initialize.
+        """
         self.last_mode = self.mode
         self.autosave()
         self.disconnect_all()
@@ -690,6 +764,10 @@ class _Color_Selector:
         self.canvas.flush_events()
 
     def disconnect_all(self):
+        """
+        Turn off all connections. This is a reset switch so that a new mode can
+        be set and the correct connections can be turned on.
+        """
         self.cursor.set_active(False)
         self.del_cursor.set_active(False)
         self.pre_cursor.set_active(False)
@@ -702,9 +780,20 @@ class _Color_Selector:
         self.canvas.mpl_disconnect('button_release_event')
 
     def enable_delete(self):
+        """
+        Toggle to turn on 'delete' mode.
+        """
         self.set_mode('delete')
 
     def on_delete(self, event):
+        """
+        Method to interpret the interactions done during 'delete' mode.
+
+        Parameters
+        ----------
+        event : Event
+            What interaction occured.
+        """
         if self.mode == 'delete':
             patch = event.artist
             try:
@@ -727,6 +816,9 @@ class _Color_Selector:
             self.enable_delete()
 
     def make_cmap_menu(self):
+        """
+        Make the menu of background color map options to use.
+        """
         options = sorted(_option_colors.keys())
         self.color_variable = tk.StringVar(self.root)
         self.opt = ttk.OptionMenu(self.root, self.color_variable, *options)
@@ -735,6 +827,9 @@ class _Color_Selector:
         self.color_variable.trace("w", self.update_cmap)
 
     def make_color_menus(self):
+        """
+        Make the menu of colors to use for rendered curves on the plot.
+        """
         options = sorted(_option_select_colors.keys())
         self.face_color_variable = tk.StringVar(self.root)
         self.param_color_variable = tk.StringVar(self.root)
@@ -750,6 +845,9 @@ class _Color_Selector:
         self.param_color_variable.trace("w", self.update_line_color)
 
     def update_patch_color(self, *args):
+        """
+        Change the colors of all the drawn polygonal patches.
+        """
         patch_color = _option_select_colors[self.face_color_variable.get()]
         for patch in self.patches:
             patch.set_facecolor(patch_color)
@@ -757,6 +855,9 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def update_line_color(self, *args):
+        """
+        Change the colors of all the drawn curves.
+        """
         line_color = _option_select_colors[self.param_color_variable.get()]
         for line in self.lines:
             line.set_color(line_color)
@@ -768,10 +869,21 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def update_cmap(self, *args):
+        """
+        Change the background color map.
+
+        See Also
+        --------
+        `update_color_map`
+        """
         self.cmap = _option_colors[self.color_variable.get()]
         self.update_colors(cmap=self.cmap)
 
     def reload(self):
+        """
+        Reload the current color map and all plots on it. This completely
+        refreshes the canvas.
+        """
         self.autosave()
         self.canvas._tkcanvas.pack_forget()
         ax, collection = _make_colors(
@@ -788,11 +900,33 @@ class _Color_Selector:
         self.canvas._tkcanvas.pack()
 
     def on_select(self, verts):
+        """
+        Actions to take upon a polygonal selction.
+
+        Parameters
+        ----------
+        verts : array-like
+            The transparent points within the polygon selction.
+
+        See Also
+        --------
+        `_make_colors`
+        """
         path = Path(verts)
         self.ind = np.nonzero(path.contains_points(self.xys))[0]
         self.canvas.draw_idle()
 
     def on_press(self, event):
+        """
+        Method that determines what's done for most of the possible keyboard
+        shortcuts. The only exceptions are those that are handled automatically
+        by matplotlib for rectangular selections, polygon selections, etc.
+
+        Parameters
+        ----------
+        event : Event
+            The completed interaction to be processed.
+        """
         if event.key == 'enter':
             self.another_selection()
         elif event.key == ' ':
@@ -837,11 +971,18 @@ class _Color_Selector:
             self.what_temperature()
 
     def disconnect(self):
+        """
+        Disconnect the polygon events and connections.
+        """
         self.autosave()
         self.poly.disconnect_events()
         self.canvas.draw_idle()
 
     def toggle_smooth(self):
+        """
+        Toggles drawing of smooth curves when creating curves manually instead
+        of fitting.
+        """
         self.smooth = not self.smooth
         self.tra_cursor.set_active(False)
         self.tra_cursor, self.tra_cursor_alt = self.tra_cursor_alt, self.tra_cursor
@@ -850,18 +991,39 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def tweak(self):
+        """
+        Make an interactive `mistake_selection` session for tweaking the
+        current parameters.
+
+        See Also
+        --------
+        `mistake_selection`
+        """
         self.autosave()
-        self.parameters = mistake_selection(
-            self.data_files, self.parameters, self.path)
+        try:
+            if self.parameters is not None and len(self.parameters[0]) > 0:
+                self.parameters = mistake_selection(
+                    self.data_files, self.parameters, self.path)
+            else:
+                tk.messagebox.showinfo('Error', 
+                    'You have no parameters to tweak.')
+        except:
+            tk.messagebox.showinfo('Error', 'You have no parameters to tweak.')
         self.refresh_parameters()
         self.autosave()
         self.canvas.draw_idle()
 
     def trace(self):
+        """
+        Enable 'trace' mode for manually drawing traces instead of fitting.
+        """
         self.canvas.draw_idle()
         self.set_mode('trace')
 
     def commit_trace(self):
+        """
+        Save the current trace.
+        """
         trace = self.trace_coords
         for t in self.traces:
             t.set_alpha(0)
@@ -876,6 +1038,24 @@ class _Color_Selector:
         self.refresh_parameters()
 
     def parameters_from_trace(self, trace):
+        """
+        Create parameters from the provided trace. Since this wasn't created
+        by fitting, the only physically meaningful parameters is the frequency.
+        But, the other parameters can't be listed as `None` since those will
+        be filtered out by other methods. So, they're instead provided with
+        approximate dummy values.
+
+        Parameters
+        ----------
+        trace : array-like
+            Vertices of the values from the trace.
+
+        Returns
+        -------
+        arr
+            A 3D Lorentzian parameter array containing all the parameters
+            approximated by the trace.
+        """
         p = []
         y = self.to_y(trace)
         y_min = min(y)
@@ -899,6 +1079,14 @@ class _Color_Selector:
         return np.array(p)
 
     def make_curve(self, verts):
+        """
+        Draw a curve from the provided vertices.
+
+        Parameters
+        ----------
+        verts : array-like
+            Vertices of the curve.
+        """
         v = self.make_safe(verts)
         for trace in self.traces:
             trace.set_alpha(0)
@@ -923,12 +1111,41 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def to_v(self, x, y):
+        """
+        Create a vertex from the given coordinates.
+
+        Parameters
+        ----------
+        x : arr
+            1D array of the x value indices along the plot coordinates.
+        y : int
+            1D array of the y value indices along the plot coordinates.
+
+        Returns
+        -------
+        list
+            The "array-like" list of vertices.
+        """
         v = []
         for i in range(len(x)):
             v.append((x[i], y[i]))
         return v
 
     def make_safe(self, verts):
+        """
+        Given a list of vertices, provides a new one where all the vertices
+        are within the confines of the plot.
+
+        Parameters
+        ----------
+        verts : list
+            The list of input vertices.
+
+        Returns
+        -------
+        list
+            The list of output vertices.
+        """
         x_vals = []
         y_vals = []
         verts.reverse()
@@ -952,14 +1169,44 @@ class _Color_Selector:
         return final_verts
 
     def to_x(self, verts):
+        """
+        Get the x indices corresponding to the given vertices.
+
+        Parameters
+        ----------
+        verts : list
+            List of vertices.
+
+        Returns
+        -------
+        array
+            The x values.
+        """
         x = [v[0] for v in verts]
         return np.array(x)
 
     def to_y(self, verts):
+        """
+        Get the y indices corresponding to the given vertices.
+
+        Parameters
+        ----------
+        verts : list
+            List of vertices.
+
+        Returns
+        -------
+        array
+            The y values.
+        """
         y = [v[1] for v in verts]
         return np.array(y)
 
     def refresh_parameters(self):
+        """
+        Clean up the parameters maintained by the session and re-render them
+        correctly.
+        """
         self.autosave()
         for path in self.paths:
             try:
@@ -971,6 +1218,16 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def on_rec_delete(self, click, release):
+        """
+        What to do when a rectangular selection is drawn in 'delete' mode.
+
+        Parameters
+        ----------
+        click : click event
+            Data corresponding to the click that started drawing the rectangle.
+        release : release event
+            Data corresponding to the release that ended drawing the rectangle.
+        """
         if self.mode == 'delete':
             x1, y1 = click.xdata, click.ydata
             x2, y2 = release.xdata, release.ydata
@@ -1012,6 +1269,16 @@ class _Color_Selector:
             self.refresh_parameters()
 
     def on_rec_select(self, click, release):
+        """
+        What to do when a rectangular selection is drawn in 'enhance' mode.
+
+        Parameters
+        ----------
+        click : click event
+            Data corresponding to the click that started drawing the rectangle.
+        release : release event
+            Data corresponding to the release that ended drawing the rectangle.
+        """
         if self.mode == 'enhance':
             try:
                 self.cursor.set_active(True)
@@ -1026,11 +1293,24 @@ class _Color_Selector:
                 pass
 
     def make_button(self, text, command):
+        """
+        Make a tkinter button and add it to the GUI.
+
+        Parameters
+        ----------
+        text : string
+            Text to show in the button.
+        command : function
+            Method to run when the button is pressed.
+        """
         button = ttk.Button(master=self.root, text=text,
                             command=command, takefocus=False)
         button.pack(in_=self.controls, side="left")
 
     def close_window(self):
+        """
+        Disconnect everything and end the session when the window is closed.
+        """
         try:
             self.another_selection()
         except BaseException:
@@ -1043,6 +1323,9 @@ class _Color_Selector:
         self.root.destroy()
 
     def finish_selection(self):
+        """
+        Commit, render, and cleanup a polygonal selection.
+        """
         selection = _points_to_ranges(
             np.array(self.xys[self.ind]), self.data_files, self.x_res)
         self.selections.append(selection)
@@ -1060,12 +1343,19 @@ class _Color_Selector:
         self.ax.add_patch(patch)
 
     def another_selection(self):
+        """
+        Start another polygonal selection.
+        """
         self.finish_selection()
         self.poly = PolygonSelector(self.ax, self.on_select, useblit=True)
         self.set_mode('select')
         self.ind = []
 
     def toggle_show(self):
+        """
+        Toggle the display of polygonal patches (selections), lines/curves,
+        and the Lorentzian markers for individual temperatures.
+        """
         self.autosave()
         self.show_patches = not self.show_patches
         if self.show_patches:
@@ -1087,12 +1377,31 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def slight_zoom_out(self):
+        """
+        Slightly zoom out from the initial window so that zooming in can be
+        done that includes the data from all possible temperatures. Without
+        this, the data will exactly fill up the plot window so that any
+        imperfect zoom will inevitably make some data go off the screen.
+        """
         y_lim = self.ax.get_ylim()
         y_delta = y_lim[1] - y_lim[0]
         new_y_lim = (y_lim[0] - 0.1 * y_delta, y_lim[1] + 0.1 * y_delta)
         self.ax.set_ylim(new_y_lim[0], new_y_lim[1])
 
     def make_params_from_selection(self, index):
+        """
+        Make parameters from the selection corresponding to the provided index.
+
+        Parameters
+        ----------
+        index : int
+            Index of the `Data_File` to make the parameters from.
+
+        Returns
+        -------
+        arr
+            A 3D Lorentzian parameter array.
+        """
         params = np.empty((0, 4))
         for i in range(0, len(self.selections)):
             try:
@@ -1111,6 +1420,27 @@ class _Color_Selector:
         return params
 
     def find_params(self, index, x):
+        """
+        Start a `live_selection` interactive session in a new window to find
+        peaks so that you know where to look in the color plot.
+
+        Parameters
+        ----------
+        index : int
+            Index of the `Data_File` to look at.
+        x : float
+            The x value of the selected location so that a green reference line
+            can be rendered in the `live_selection` session.
+
+        Returns
+        -------
+        arr
+            A 2D Lorentzian parameter array.
+
+        See Also
+        --------
+        `live_selection`
+        """
         existing_params = self.make_params_from_selection(index)
         if self.parameters is not None:
             for i in range(0, len(self.parameters[index])):
@@ -1122,6 +1452,17 @@ class _Color_Selector:
         return params
 
     def display_params(self, params, index):
+        """
+        Display the given parameters at the `Data_File` corresponding to the
+        provided index.
+
+        Parameters
+        ----------
+        params : arr
+            A 2D Lorentzian parameter array.
+        index : int
+            Index of the `Data_File` to display show the Lorentzian markers at.
+        """
         f = self.data_files[index].f
         regions = fl.regions_from_parameters(f, params, extension=2)
         y = np.array([index, index])
@@ -1133,15 +1474,39 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def horizontal_selection(self):
+        """
+        Enable 'preview' mode.
+        """
         self.set_mode('preview')
 
     def what_temperature(self):
+        """
+        Enable 'temp' mode.
+        """
         self.set_mode('temp')
 
     def on_pre_click(self, event):
+        """
+        Actions correspondong to events where the user clicks on the color plot
+        with cross-hairs active. This is what should be done in both 'preview'
+        and 'temp' modes.
+
+        Parameters
+        ----------
+        event : click event
+            The click done at the targeted location on the plot.
+        """
+        x_select = event.xdata
+        y_select = event.ydata
+        if x_select is None:
+            x_select = -1
+        if y_select is None:
+            y_select = -1
+        x_check = x_select > 0 and x_select < self.x_res
+        index = int(np.round(y_select))
+        y_check = index >= 0 and index < len(self.data_files)
         if self.mode == 'preview':
-            index = int(np.round(event.ydata))
-            if index >= 0 and index < len(self.data_files):
+            if x_check and y_check:
                 f = self.data_files[index].f
                 x = (event.xdata / self.x_res) * (f[-1] - f[0]) + f[0]
                 self.canvas.mpl_disconnect('button_release_event')
@@ -1149,14 +1514,26 @@ class _Color_Selector:
                 params = self.find_params(index, x)
                 self.display_params(params, index)
         elif self.mode == 'temp':
-            index = int(np.round(event.ydata))
-            if index >= 0 and index < len(self.data_files):
+            if x_check and y_check:
+                f = self.data_files[index].f
+                f0 = (event.xdata / self.x_res) * (f[-1] - f[0]) + f[0]
+                f0 = np.round(f0, 2)
+                f_string = str(f0) + ' Hz'
+                if f0 > 1000:
+                    f0 = np.round(f0 / 1000, 2)
+                    f_string = str(f0) + ' kHz'
+                if f0 > 1000:
+                    f0 = np.round(f0 / 1000, 2)
+                    f_string = str(f0) + ' MHz'
                 temp = self.temps[index]
-                tk.messagebox.showinfo('Temperature', 
-                    'Temperature of index ' + 
-                    str(index) + ': ' + str(temp) + ' K')
+                show_string = ('Index: ' + str(index) + '\nTemperature: ' +
+                               str(temp) + ' K\nFrequency: ' + f_string)
+                tk.messagebox.showinfo('Point Info', show_string)
 
     def inspire_me(self):
+        """
+        Use machine learning to try and find some Lorentzians automatically.
+        """
         if _can_ml:
             self.autosave()
             index = simpledialog.askinteger("Index Selection", "Which index?")
@@ -1167,6 +1544,18 @@ class _Color_Selector:
             auto.quick_analyze(None, None)
 
     def update_colors(self, cmap="viridis"):
+        """
+        Render an updated backgroudn color map.
+
+        Parameters
+        ----------
+        cmap : str, optional
+            The new color map, by default "viridis."
+
+        See Also
+        --------
+        `update_cmap`
+        """
         max_res = self.x_res
         y_res = self.y_res
         data_files = self.data_files
@@ -1184,7 +1573,8 @@ class _Color_Selector:
         color_x = np.linspace(0, max_res, max_res)
         color_y = np.linspace(0, len(data_files), len(z))
         self.colors.remove()
-        self.colors = self.ax.pcolormesh(color_x, color_y, z, cmap=cmap)
+        self.colors = self.ax.pcolormesh(
+            color_x, color_y, z, cmap=cmap, shading='auto')
         for render in self.enhanced_renders:
             render.remove()
         self.enhanced_renders = []
@@ -1195,10 +1585,16 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def enhance(self):
+        """
+        Activate 'enhance' mode.
+        """
         self.autosave()
         self.set_mode('enhance')
 
     def unenhance(self):
+        """
+        Turn off all enhancements for faster rendering.
+        """
         for render in self.enhanced_renders:
             render.remove()
         self.enhanced_renders = []
@@ -1206,6 +1602,19 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def renormalize(self, verts):
+        """
+        Normalized vertices for an enhanced region.
+
+        Parameters
+        ----------
+        verts : array-like
+            Input vertices.
+
+        Returns
+        -------
+        list
+            Normalized vertices.
+        """
         full_min = 0
         full_max = len(self.data_files[0].f) - 1
         x_min = 0
@@ -1225,6 +1634,20 @@ class _Color_Selector:
         return normed_verts
 
     def render_enhance(self, x_min, x_max, y_min, y_max):
+        """
+        Render an enhanced area.
+
+        Parameters
+        ----------
+        x_min : float
+            Minimum x value of enhanced area.
+        x_max : float
+            Maximum x value of enhanced area.
+        y_min : float
+            Minimum y value of enhanced area.
+        y_max : float
+            Maximum y value of enhanced area.
+        """
         x_min = max(x_min, 0)
         x_max = min(x_max, self.x_res)
         y_min = max(y_min, 0)
@@ -1248,7 +1671,7 @@ class _Color_Selector:
         color_x = np.linspace(x_min, x_max, max_res)
         color_y = np.linspace(y_min, y_max, len(z))
         self.enhanced_renders.append(self.ax.pcolormesh(
-            color_x, color_y, z, cmap=self.cmap))
+            color_x, color_y, z, cmap=self.cmap, shading='auto'))
         new_area = (x_min, x_max, y_min, y_max)
         bad_areas = []
         for i in range(0, len(self.enhanced_areas)):
@@ -1263,17 +1686,30 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def plot_parameters(self, parameters):
+        """
+        Plot the provided parameters.
+
+        Parameters
+        ----------
+        parameters : arr
+            A 3D Lorentzian parameter array.
+        """
         for i in range(0, len(parameters[0])):
-            x = self.x_res * (parameters[..., i, 1] - min(self.data_files[0].f)) / (
-                max(self.data_files[0].f) - min(self.data_files[0].f))
+            x = self.x_res * (parameters[..., i, 1] - 
+                min(self.data_files[0].f)) / (max(self.data_files[0].f) - 
+                min(self.data_files[0].f))
             y = np.arange(len(parameters))
             self.paths.append(self.ax.plot(
                 x, y, color=self.line_color, picker=False)[0])
 
     def prerender(self):
+        """
+        Render fit selections without leaving the interactive session.
+        """
         self.autosave()
         self.parameters = fl.parameters_from_selections(
-            self.data_files, (self.selections, self.parameters), method=self.method)
+            self.data_files, (self.selections, self.parameters), 
+            method=self.method)
         self.refresh_parameters()
         self.selections = []
         for patch in self.patches:
@@ -1282,6 +1718,9 @@ class _Color_Selector:
         self.canvas.draw_idle()
 
     def show_stuff(self):
+        """
+        Basic debugging information.
+        """
         print()
         print('----- debug -----')
         print()
@@ -1295,6 +1734,10 @@ class _Color_Selector:
         print(len(self.paths))
 
     def save(self):
+        """
+        Open a save window. Saves a pickled tuple of the selections and
+        parameters.
+        """
         if self.path is None:
             name = 'selections'
         else:
@@ -1302,6 +1745,9 @@ class _Color_Selector:
         self.path = util.save((self.selections, self.parameters), name=name)
 
     def autosave(self):
+        """
+        Once one save is done, autosave is enabled automatically.
+        """
         if self.path is not None:
             path = self.path[:-4] + '_autosave' + '.pkl'
             util.save((self.selections, self.parameters), path)
@@ -1316,7 +1762,7 @@ class _Point_Selector:
         self.setup_interface()
 
     def setup_interface(self):
-        self.root = tk.Tk()
+        self.root = tk.Tk(baseName='interactiveSession', className='pointSelector')
         self.root.wm_title("Frequency Selector")
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=False)
@@ -1420,7 +1866,7 @@ class _Mistake_Selector():
         self.setup_interface()
 
     def setup_interface(self):
-        self.root = tk.Tk()
+        self.root = tk.Tk(baseName='interactiveSession', className='mistakeSelector')
         self.root.wm_title("Mistake Selector")
         self.controls = tk.Frame(self.root)
         self.controls.pack(side="top", fill="both", expand=False)
@@ -1743,6 +2189,21 @@ class _Mistake_Selector():
 
 
 def _check_contains(old_area, new_area):
+    """
+    See if a new region entirely contains an old one.
+
+    Parameters
+    ----------
+    old_area : tuple
+        A four element tuple of the form `(x_min, x_max, y_min, y_max)`.
+    new_area : tuple
+        A four element tuple of the form `(x_min, x_max, y_min, y_max)`.
+
+    Returns
+    -------
+    bool
+        Whether or not the old area is entirely contained in the new area.
+    """
     checks = [
         old_area[0] >= new_area[0],
         old_area[1] <= new_area[1],
@@ -1800,7 +2261,7 @@ def color_selection(
     -------
     arr
         The 3D parameter array of the Lorentzians fitted from the inputted data
-        files. 
+        files.
             - Axis 0 determines which sweep.
             - Axis 1 determines which Lorentzian.
             - Axis 2 is the parameters of the given Lorentzian.
@@ -1880,10 +2341,10 @@ def color_selection(
         Draw a perfectly square area in Enhance! mode.
     enter
         Commit current selection for fitting.
-    
+
     """
     y_res = min(y_res / len(data_files), 1)
-    if not parameters is None and len(parameters) == 2:
+    if parameters is not None and len(parameters) == 2:
         parameters = parameters[1]
     selector = _Color_Selector(data_files, x_res=x_res, y_res=y_res,
                                cmap=cmap, parameters=parameters, method=method)
@@ -1915,7 +2376,7 @@ def mistake_selection(data_files, parameters=None, path=None, method='lm'):
     -------
     arr
         The 3D parameter array of the Lorentzians fitted from the inputted data
-        files. 
+        files.
             - Axis 0 determines which sweep.
             - Axis 1 determines which Lorentzian.
             - Axis 2 is the parameters of the given Lorentzian.
@@ -1933,10 +2394,10 @@ def mistake_selection(data_files, parameters=None, path=None, method='lm'):
         Fit a Lorentzian using a Trust Region Reflective algorithm. See
         `<scipy.optimize.least_squares>`.
     2
-        Fit a Lorentzian using a Levenberg-Marquardt algorithm. See 
+        Fit a Lorentzian using a Levenberg-Marquardt algorithm. See
         `<scipy.optimize.least_squares>`.
     3
-        Fit a Lorentzian using a Dogleg algorithm with rectangular trust 
+        Fit a Lorentzian using a Dogleg algorithm with rectangular trust
         regions. See `<scipy.optimize.least_squares>`.
     up
         View the next peak.
@@ -1954,6 +2415,38 @@ def mistake_selection(data_files, parameters=None, path=None, method='lm'):
 
 
 def _make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
+    """
+    Generate a complete color plot for a given set of data_files.
+
+    Parameters
+    ----------
+    data_files : list
+        List of data_files.
+    max_res : int, optional
+        Total number of points rendered along the x_axis. Defaults to 1000.
+        This is just the default resolution rendered. All frequency values
+        are still included in the data and can be interacted with.
+    y_res : int, optional
+        Fractional resolution of the y_axis. Defaults to 1. This default means
+        that all points along the y_axis (all temperatures/data_files) are
+        rendered by default.
+    cmap : str, optional
+        Color map to render with, by default "viridis."
+
+    Returns
+    -------
+    ax
+        The axes of the rendered plot. Essential for the interactive matplotlib
+        session.
+    pts
+        Points that correspond to each frequency value to be interacted with
+        in the subplot. These are not visible to the user. However, they need
+        to be rendered anyways so that they can be grabbed with the polygon
+        selector generated by matplotlib. These are rendered with an opacity
+        of zero.
+    colors
+        The colormesh for the rendered color plot.
+    """
     x = np.empty((0,))
     y = np.empty((0,))
     z = np.empty((0, max_res))
@@ -1975,11 +2468,37 @@ def _make_colors(data_files, max_res=1000, y_res=1, cmap="viridis"):
     fig = Figure()
     ax = fig.add_subplot(111)
     pts = ax.scatter(x, y, alpha=0)
-    colors = ax.pcolormesh(color_x, color_y, z, cmap=cmap)
+    colors = ax.pcolormesh(color_x, color_y, z, cmap=cmap, shading='auto')
     return ax, pts, colors
 
 
 def _points_to_ranges(points, data_files, res):
+    """
+    Find the minimum and maximum frequencies defined by the provided points as
+    generated from a polygon selection in an interactive color plot. Then turn
+    those points into ranges that can be sent into a fitting subroutine.
+
+    Parameters
+    ----------
+    points : array-like
+        Offsets for the invisible points to render in the selection. See
+        `_make_colors` for more info.
+    data_files : list
+        List of data_files.
+    res : int
+        Resolution of the x_axis. Used for math about how the points are
+        distributed to identify the corresponding frequencies.
+
+    Returns
+    -------
+    dict
+        A dictionary of ranges to fit over identified by the indices of the
+        data_file containing the frequencies to be fit over within that range.
+
+    See Also
+    --------
+    `_make_colors`
+    """
     point_matching = []
     for i in range(0, len(data_files)):
         point_matching.append([])
@@ -2009,7 +2528,24 @@ def _points_to_ranges(points, data_files, res):
 
 def live_selection(data_file, params=None, vline=None):
     """
-    Interactive peak selector at single temperature.
+    Interactive peak selector at a single temperature.
+
+    Parameters
+    ----------
+    data_file : Data_File
+        The `Data_File` that with all the data to be looked at.
+    params : arr, optional
+        A 2D Lorentzian parameter array with any parameters to start with.
+        This allows you to pause your work and continue later.
+    vline : float, optional
+        A specific frequency to mark with a vertical green line. This is done
+        for integration with the interactive color plot primarily.
+
+    Returns
+    -------
+    arr
+        A 2D Lorentzian parameter array of all the peaks selected within the
+        interactive session.
     """
     f = data_file.f
     x = data_file.x
@@ -2027,7 +2563,25 @@ def live_selection(data_file, params=None, vline=None):
 
 def point_selection(data_files, params=None, fs=[]):
     """
-    Interactive peak filter from several trials at the same temperature.
+    An interactive session to help with finding redundant peaks between several
+    RUS sweeps at the same given temperature.
+
+    Parameters
+    ----------
+    data_files : list
+        List of `data_files` at the same temperature.
+    params : arr, optional
+        A 3D Lorentzian parameter array correpsonding to the parameters for
+        the given data_files. Also accepts a list of 2D Lorentzian parameter
+        arrays.
+    fs : list, optional
+        Any already chosen frequencies to put markers out and include in the
+        export.
+
+    Returns
+    -------
+    list
+        The final list of chosen frequencies.
     """
     fs = list(fs)
     if params is not None:

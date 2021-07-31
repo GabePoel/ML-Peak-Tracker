@@ -2,19 +2,29 @@
 
 ## Docstrings
 
-The following files still need to be written with scikit docstring format:
- - [ ] `automatic.py`
+The following files still need to be written with scikit docstring format. They generally have something written for most if not all functions/classes/methods. But, the documentation is still incomplete.
+ - [x] `automatic.py`
  - [ ] `classify_data.py`
  - [ ] `data_spy.py`
- - [ ] `efficient_data_generation.py`
+ - [x] `efficient_data_generation.py`
  - [ ] `fit_lorentz.py`
  - [ ] `generate_data.py`
  - [ ] `generate_lorentz.py`
  - [ ] `live_fitting.py`
+    - [x] Common functions
+    - [ ] `_Selection`
+    - [ ] `_Live_Instance`
+    - [x] `_Color_Selector`
+    - [ ] `_Point_Selector`
+    - [ ] `_Mistake_Selector`
+    - [x] `live_selection`
+    - [x] `color_selection`
+    - [x] `point_selection`
+    - [x] `mistake_selection`
  - [ ] `models.py`
  - [ ] `sliding_window.py`
  - [ ] `train_model.py`
- - [ ] `utilities.py`
+ - [x] `utilities.py`
  - [ ] `scripts/train_simple_class.py`
  - [ ] `scripts/train_tight_wiggle.py`
  - [ ] `scripts/train_wide_wiggle.py`
@@ -33,5 +43,5 @@ The following files still need to be written with scikit docstring format:
  ## Other Stuff
  - [ ] Write guide on training models.
  - [x] Rewrite peak _tracker_.
- - [ ] Update this todo list because it's so out of date lol :(
+ - [x] Update this todo list because it's so out of date lol :(
 

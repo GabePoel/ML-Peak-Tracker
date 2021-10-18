@@ -446,22 +446,13 @@ def equalize_data(class_labels, class_data):
     """
     a1 = class_data[np.where(class_labels == 1)[0]]
     a2 = class_data[np.where(class_labels == 2)[0]]
-    # a3 = class_data[np.where(class_labels == 3)[0]]
-    # a4 = class_data[np.where(class_labels == 4)[0]]
     max_len = min(len(a1), len(a2))
-    # max_len = min(len(a1), len(a2), len(a3), len(a4))
     a1 = a1[0:max_len]
     a2 = a2[0:max_len]
-    # a3 = a3[0:max_len]
-    # a4 = a4[0:max_len]
     arr = np.concatenate((a1, a2))
-    # arr = np.concatenate((a1, a2, a3, a4))
     b1 = np.ones((max_len, 1)) * 0
     b2 = np.ones((max_len, 1)) * 1
-    # b3 = np.ones((max_len, 1)) * 2
-    # b4 = np.ones((max_len, 1)) * 3
     brr = np.concatenate((b1, b2))
-    # brr = np.concatenate((b1, b2, b3, b4))
     combined_arr = np.append(brr, arr, axis=1)
     combined_arr = np.random.permutation(combined_arr)
     labels = np.transpose(combined_arr)[0]
@@ -530,13 +521,6 @@ def pre_process_for_classifying(block, scale=(0, 1, 1024)):
     cluster_labels = np.empty((0, 1))
     cluster_data = np.empty((0, scale[2]))
     pool = mp.Pool(mp.cpu_count())
-    # for i in util._progressbar(range(block_size), "Classifying: ", 40):
-    #     lorentz_params = lorentz_arrays_list[i]
-    #     f_v_data = data_arrays_list[i]
-    #     fit_range_list = disect_lorentz_params_array(lorentz_params)[1]
-    #     (v, labels) = partition_data_2d(f_v_data, fit_range_list, lorentz_params)
-    #     cluster_labels = np.append(cluster_labels, labels, axis=0)
-    #     cluster_data = np.append(cluster_data, v, axis=0)
     results = pool.map(
         classify, [
             (i, lorentz_arrays_list, data_arrays_list) for i in range(block_size)])

@@ -27,7 +27,7 @@ setuptools.setup(
         'matplotlib', 
         'nptdms', 
         'pysimplegui',
-        'tensorflow',
+        # 'tensorflow',
         'tqdm',
         ],
     # package_data = {

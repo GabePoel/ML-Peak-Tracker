@@ -45,3 +45,5 @@ The following files still need to be written with scikit docstring format. They 
  - [x] Rewrite peak _tracker_.
  - [x] Update this todo list because it's so out of date lol :(
 
+## Tests.
+ - [ ] Write tests for _everything_. 🙁

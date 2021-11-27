@@ -1,5 +1,10 @@
 # Things That Need Doing
 
+
+## Big Changes
+- [ ] Migrate models to separate library/repository.
+- [ ] Allow for automated model installation.
+- [ ] Host latest version of `peak_finder` on Pypi again.
 ## Docstrings
 
 The following files still need to be written with scikit docstring format. They generally have something written for most if not all functions/classes/methods. But, the documentation is still incomplete.
@@ -10,13 +15,13 @@ The following files still need to be written with scikit docstring format. They 
  - [ ] `fit_lorentz.py`
  - [ ] `generate_data.py`
  - [ ] `generate_lorentz.py`
- - [ ] `live_fitting.py`
+ - [x] `live_fitting.py`
     - [x] Common functions
-    - [ ] `_Selection`
-    - [ ] `_Live_Instance`
+    - [x] `_Selection`
+    - [x] `_Live_Instance`
     - [x] `_Color_Selector`
-    - [ ] `_Point_Selector`
-    - [ ] `_Mistake_Selector`
+    - [x] `_Point_Selector`
+    - [x] `_Mistake_Selector`
     - [x] `live_selection`
     - [x] `color_selection`
     - [x] `point_selection`

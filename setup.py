@@ -5,7 +5,7 @@ with open('README.md', 'r') as fh:
     
 setuptools.setup(
     name = 'peak_finder',
-    version = '0.4.0',
+    version = '0.4.1',
     author = 'Gabriel Perko-Engel',
     author_email = 'gpe@berkeley.edu',
     description = 'For finding and processing Lorentzian line shapes.',

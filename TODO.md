@@ -48,7 +48,8 @@ The following files still need to be written with scikit docstring format. They 
  ## Other Stuff
  - [ ] Write guide on training models.
  - [x] Rewrite peak _tracker_.
- - [x] Update this todo list because it's so out of date lol :(
+ - [x] Update this todo list because it's so out of date lol 🙁
 
 ## Tests.
  - [ ] Write tests for _everything_. 🙁
+ - [ ] Add tooltips to live sessions.

@@ -1,7 +1,7 @@
 from . import sliding_window as sw
 from . import fit_lorentz as fl
 from . import live_fitting as lf
-from . import models
+from lorentzian_models import models
 import numpy as np
 
 """

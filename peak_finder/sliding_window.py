@@ -1,7 +1,7 @@
 """
 The main toolbox for actually applying the machine learning models on real
 data. The process is as follows:
-    1. Breakd won data into several different size scales.
+    1. Break down data into several different size scales.
     2. For each size scale, slide over window and say if there is a Lorentzian.
         there or not.
 """

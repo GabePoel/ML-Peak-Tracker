@@ -12,8 +12,22 @@ Where the individual terms are as below.
 
 ## Installing
 
-Just run the following to install directly from this repository.
+Note that none of the installation methods download nor install the pre-made Lorentzian models. You need to get those separately. Please see [Lorentzian Models](https://github.com/GabePoel/Lorentzian-Models) for more information.
+
+The **recommended** installation method is from [pypi](https://pypi.org/project/peak-finder/0.5/).
+
+```sh
+pip install peak-finder
+```
+
+But, you can also install directly from this git repository. These releases might not always be stable.
+
 ```sh
 pip3 install git+https://github.com/GabePoel/ML-Peak-Tracker#egg=peak_finder --user
 ```
-This does not download and install the models. For those, please see [Lorentzian Models](https://github.com/GabePoel/Lorentzian-Models).
+Or, if you only want to install the deltas, you can also clone this repository locally and then install using the included `local_install.sh` script. Navigate into the cloned repository and then run the following command.
+
+```sh
+sh ./peak_finder/local_install.sh
+```
+

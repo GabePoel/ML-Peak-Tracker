@@ -28,7 +28,7 @@ The following files still need to be written with scikit docstring format. They 
     - [x] `mistake_selection`
  - [ ] `models.py`
  - [ ] `sliding_window.py`
- - [ ] `train_model.py`
+ - [x] `train_model.py`
  - [x] `utilities.py`
  - [ ] `scripts/train_simple_class.py`
  - [ ] `scripts/train_tight_wiggle.py`

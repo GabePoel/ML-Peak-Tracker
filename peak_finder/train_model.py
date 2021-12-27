@@ -20,16 +20,16 @@ def set_default(parameter, default, num_models=1):
     Parameters
     ----------
     parameter : arr
-        Lorentzian array.
+        Lorentzian parameter array.
     default : arr
-        Lorentzian array.
+        Lorentzian parameter array.
     num_models : int, optional
         By default 1.
 
     Returns
     -------
-    [type]
-        [description]
+    parameters
+        Lorentzian parameter array.
     """
     if len(parameter) == 0:
         for i in range(0, num_models):

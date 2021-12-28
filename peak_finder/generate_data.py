@@ -4,9 +4,11 @@ and the like listed. This is generally overkill for model training. Instead,
 you should use `efficient_data_generation`.
 """
 
-from . import generate_lorentz as gl
-import numpy as np
 import os
+
+import numpy as np
+
+from . import generate_lorentz as gl
 
 
 def mag_round(x, base=10):

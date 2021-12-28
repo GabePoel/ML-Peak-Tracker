@@ -2,12 +2,15 @@
 Framework for passive model training scripts.
 """
 
-from . import utilities as util
-from . import efficient_data_generation as ed
-from . import classify_data as cd
+import os
+
 import numpy as np
 import tensorflow as tf
-import os
+
+from . import classify_data as cd
+from . import efficient_data_generation as ed
+from . import utilities as util
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -212,7 +215,7 @@ def passive_train(
                 train_routine()
             except BaseException:
                 n -= 1
-                print('An error occured. Restarting round.')
+                print('An error occurred. Restarting round.')
 
     else:
         while not stop_condition:
@@ -258,7 +261,7 @@ def passive_class_train(
         default scale throughout `peak_finder` and is standard for normalized
         Lorentzians.
     noise : bool, optional
-        Whether or not Gaussian noise should be added to the trainign data, by
+        Whether Gaussian noise should be added to the training data, by
         default True.
     epochs : int, optional
         Epochs, by default 1000.
@@ -273,7 +276,7 @@ def passive_class_train(
     metrics : list, optional
         By default ['accuracy'].
     stop_condition : bool, optional
-        Whether or not the training should stop on its own, by default False.
+        Whether the training should stop on its own, by default False.
     steps : int, optional
         By default 1.
     verbose : int, optional

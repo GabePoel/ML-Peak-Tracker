@@ -2,9 +2,10 @@
 Generates Lorentzians and provides functional forms for fitting.
 """
 
+import numpy as np
+
 from . import classify_data as cd
 from . import utilities as util
-import numpy as np
 
 
 def in_phase_lorentz(A, f0, FWHM, f):

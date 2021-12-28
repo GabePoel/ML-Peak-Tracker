@@ -2,13 +2,14 @@
 Tools to remove the background from real data. All are very experimental.
 """
 
-from . import utilities as util
-from . import generate_lorentz as gl
-from . import fit_lorentz as fl
-from . import sliding_window as sw
-from lorentzian_models import models
-import numpy as np
 import PySimpleGUI as sg
+import numpy as np
+from lorentzian_models import models
+
+from . import fit_lorentz as fl
+from . import generate_lorentz as gl
+from . import sliding_window as sw
+from . import utilities as util
 
 
 def remove_background(data_files, start_index=0):

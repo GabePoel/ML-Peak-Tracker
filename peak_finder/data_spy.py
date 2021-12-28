@@ -3,12 +3,15 @@ A set of tools that let you "spy" into the data you're working with to see how
 the models are working.
 """
 
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.gridspec import GridSpec
+
 from . import classify_data as cd
 from . import fit_lorentz as fl
 from . import utilities as util
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
+
+
 # from matplotlib.widgets import Button
 
 

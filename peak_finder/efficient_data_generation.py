@@ -4,15 +4,18 @@ needed for model fitting. Generally use this unless you need everything else
 that `generate_data` provides.
 """
 
-from . import classify_data as cd
-from . import generate_data as gd
-from . import generate_lorentz as gl
-from . import utilities as util
 import multiprocessing as mp
-import numpy as np
 import os
 import shutil
 import zipfile
+
+import numpy as np
+
+from . import classify_data as cd
+from . import generate_lorentz as gl
+from . import utilities as util
+
+
 # import sys
 
 

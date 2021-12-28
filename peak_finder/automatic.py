@@ -1,8 +1,9 @@
-from . import sliding_window as sw
+import numpy as np
+from lorentzian_models import models
+
 from . import fit_lorentz as fl
 from . import live_fitting as lf
-from lorentzian_models import models
-import numpy as np
+from . import sliding_window as sw
 
 """
 Tools for quick and dirty automatic fitting using un-tweaked built in machine

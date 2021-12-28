@@ -6,9 +6,10 @@ data. The process is as follows:
         there or not.
 """
 
+import numpy as np
+
 from . import classify_data as cd
 from . import utilities as util
-import numpy as np
 
 
 def _flip_bool(a):

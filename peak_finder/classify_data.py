@@ -525,7 +525,8 @@ def pre_process_for_classifying(block, scale=(0, 1, 1024)):
     pool = mp.Pool(mp.cpu_count())
     results = pool.map(
         classify, [
-            (i, lorentz_arrays_list, data_arrays_list) for i in range(block_size)])
+            (i, lorentz_arrays_list, data_arrays_list) for i in
+            range(block_size)])
     pool.close()
     for result in results:
         cluster_labels = np.append(cluster_labels, result[0], axis=0)

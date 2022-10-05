@@ -111,7 +111,8 @@ def _compose_by_scale(labels, zoom, scale=(0, 1, 1024), overlap=1 / 4):
         end_index = int(start_index + window_size)
         set_value = int(labels[i])
         set_indices = np.ones((1, end_index - start_index)) * set_value
-        has_lorentz[start_index:end_index] = has_lorentz[start_index:end_index] * set_indices
+        has_lorentz[start_index:end_index] = has_lorentz[start_index:end_index
+            ] * set_indices
     has_lorentz = _flip_bool(has_lorentz)
     return find_regions(has_lorentz)
 

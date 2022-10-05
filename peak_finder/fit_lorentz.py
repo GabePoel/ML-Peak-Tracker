@@ -512,7 +512,8 @@ def parameters_from_selections(
     sg.one_line_progress_meter_cancel(key='Fitting progress so far:')
     all_peaks = []
     counter = 0
-    region_selections, params_selections = region_selections[0], region_selections[1]
+    region_selections, params_selections = region_selections[0
+        ], region_selections[1]
     do_fitting = True
     for i in util._progressbar(
             range(0, len(data_files)),

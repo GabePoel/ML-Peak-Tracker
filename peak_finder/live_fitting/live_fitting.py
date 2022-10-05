@@ -2060,7 +2060,8 @@ class _Color_Selector:
             A 3D Lorentzian parameter array.
         """
         for i in range(0, len(parameters[0])):
-            x = self.x_res * (parameters[..., i, 1] - min(self.data_files[0].f)) / (
+            x = self.x_res * (parameters[..., i, 1] - 
+                min(self.data_files[0].f)) / (
                 max(self.data_files[0].f) - min(self.data_files[0].f))
             y = np.arange(len(parameters))
             self.paths.append(self.ax.plot(
@@ -3256,7 +3257,7 @@ def point_selection(data_files, params=None, fs=[]):
     data_files : list
         List of `data_files` at the same temperature.
     params : arr, optional
-        A 3D Lorentzian parameter array correpsonding to the parameters for
+        A 3D Lorentzian parameter array corresponding to the parameters for
         the given data_files. Also accepts a list of 2D Lorentzian parameter
         arrays.
     fs : list, optional

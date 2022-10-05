@@ -361,7 +361,8 @@ def make_single_data_set(
             v_norm += np.linspace(scale[0], scale[1],
                                   scale[2]) * (np.random.random() - 0.5) * 2
         v_norm += ((np.linspace(scale[0], scale[1], scale[2]) + (
-            np.random.random() - 0.5) * 30) ** 2) * (np.random.random() - 0.5) * .5
+            np.random.random() - 0.5) * 30) ** 2) * (np.random.random() - 0.5
+            ) * .5
         if not no_norm:
             v_norm = cd.normalize_1d(v_norm, scale)
         all_data = np.append(all_data, np.array([v_norm]), axis=0)

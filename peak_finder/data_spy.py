@@ -109,8 +109,8 @@ def spider_plot(data_file, params=None, bg=True, color_1=None, color_2=None):
     if params is not None:
         regions = fl.regions_from_parameters(data_file.f, params)
         for region in regions:
-            plt.plot(data_file.x[int(region[0]):int(region[1])], data_file.y[int(
-                region[0]):int(region[1])], color=color_2)
+            plt.plot(data_file.x[int(region[0]):int(region[1])], data_file.y[
+                int(region[0]):int(region[1])], color=color_2)
 
 
 def plot_all_params(params, index):

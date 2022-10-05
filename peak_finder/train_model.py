@@ -243,7 +243,8 @@ def passive_class_train(
         verbose=1,
         no_quit=False):
     """
-    Passively trains a model that classifies a given Lorentzian cluster as having some number of Lorentzians inside it.
+    Passively trains a model that classifies a given Lorentzian cluster as
+    having some number of Lorentzians inside it.
 
     Parameters
     ----------

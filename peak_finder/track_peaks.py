@@ -338,9 +338,10 @@ def find_missing_peaks_tog(
         chosen_params = match_params(nan_params, potential_params)
         checked_params = np.empty((0, 4))
         for i in range(0, len(nan_params)):
-            if chosen_params[i][1] > nan_limits[i][0] and chosen_params[i][1] < nan_limits[i][1]:
-                checked_params = np.append(
-                    checked_params, [chosen_params[i]], axis=0)
+            if chosen_params[i][1] > nan_limits[i][0] and chosen_params[i][
+                1] < nan_limits[i][1]:
+                    checked_params = np.append(
+                        checked_params, [chosen_params[i]], axis=0)
             else:
                 checked_params = np.append(
                     checked_params, [[np.nan, np.nan, np.nan, np.nan]], axis=0)
@@ -402,7 +403,8 @@ def track_temperatures(
     initial parameters.
     """
     # previous refers to the index before
-    # reference refers to the last known usable values (could be index before or earlier)
+    # reference refers to the last known usable values (could be index before or
+    # earlier)
     # active refers to the current index
     # search_limit doesn't currently do anything
     if progress_window:
@@ -478,7 +480,7 @@ def track_temperatures(
 
 
 def bind_regions(f, regions, parameters):
-    # regions and paarameters must be the same length
+    # regions and parameters must be the same length
     bound_regions = np.empty((0, 2))
     for i in range(0, len(regions)):
         if i == 0:
@@ -530,7 +532,8 @@ def params_bound_check(
 
 def bound_A_check(reference_params_1d, target_params_1d, reference_counts_1d):
     return util.order_difference(
-        reference_params_1d[0], target_params_1d[0]) < .35 * (1 + reference_counts_1d / 3)
+        reference_params_1d[0], target_params_1d[0]) < .35 * (1 + 
+            reference_counts_1d / 3)
 
 
 def bound_f0_check(reference_params_1d, target_params_1d, reference_counts_1d):
@@ -553,7 +556,8 @@ def bound_phase_check(
         target_params_1d,
         reference_counts_1d):
     return np.abs(
-        reference_params_1d[3] - target_params_1d[3]) < reference_counts_1d * np.pi / 2
+        reference_params_1d[3] - target_params_1d[3]) < (reference_counts_1d *
+            np.pi / 2)
 
 
 def nan_merge(main_params, input_params):

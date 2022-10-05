@@ -87,7 +87,8 @@ def remove_background(data_files, start_index=0):
                     # live.activate()
                     if len(bg_params) > 0:
                         v_to_remove = gl.multi_lorentz_2d(f, bg_params)
-                        # v_to_remove = cd.normalize_1d(v_to_remove, (min(v), max(v), len(v)))
+                        # v_to_remove = cd.normalize_1d(v_to_remove, (min(v),
+                        # max(v), len(v)))
                         v = v - v_to_remove
                         coef_2 = np.polyfit(f, v, 3)
                         bg_2 = np.poly1d(coef_2)

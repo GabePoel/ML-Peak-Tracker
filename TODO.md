@@ -36,7 +36,7 @@ The following files still need to be written with scikit docstring format. They 
 
  ## Bug Fixes
 
- The following scripts don't respond well to running in the main PATH. They instead need to be run from their default directoy. Also, their connection to the model they train from needs to be updated.
+ The following scripts don't respond well to running in the main PATH. They instead need to be run from their default directory. Also, their connection to the model they train from needs to be updated.
  - [ ] `scripts/train_simple_count.py`
  - [ ] `scripts/train_tight_wiggle.py`
  - [ ] `scripts/train_wide_wiggle.py`
